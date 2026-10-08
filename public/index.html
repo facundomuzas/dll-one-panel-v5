@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#78b748">
+  <title>DLL ONE · Panel Cloud</title>
+  <style>
+    :root{
+      --brand:#78b748;
+      --brand-dark:#568b30;
+      --bg:#f5f7f3;
+      --surface:#ffffff;
+      --surface-2:#f9faf8;
+      --text:#1e2620;
+      --muted:#687268;
+      --line:#e3e8e0;
+      --danger:#b42318;
+      --warning:#a15c00;
+      --shadow:0 10px 30px rgba(29,48,22,.08);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .hidden{display:none!important}
+    .login{
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:24px;
+      background:
+        radial-gradient(circle at top left,rgba(120,183,72,.18),transparent 38%),
+        var(--bg);
+    }
+    .login-card{
+      width:min(430px,100%);
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:28px;
+      box-shadow:var(--shadow);
+      padding:30px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .brand img{
+      width:46px;
+      height:46px;
+      object-fit:contain;
+      border-radius:12px;
+    }
+    .brand strong{font-size:21px}
+    .brand small{
+      display:block;
+      color:var(--muted);
+      margin-top:2px;
+    }
+    .field{margin-top:18px}
+    .field label{
+      display:block;
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:7px;
+    }
+    .field input,.field select{
+      width:100%;
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:12px;
+      padding:12px 13px;
+      outline:none;
+    }
+    .field input:focus,.field select:focus{
+      border-color:var(--brand);
+      box-shadow:0 0 0 3px rgba(120,183,72,.12);
+    }
+    .btn{
+      border:0;
+      border-radius:12px;
+      padding:11px 15px;
+      font-weight:700;
+    }
+    .btn-primary{
+      background:var(--brand);
+      color:#fff;
+    }
+    .btn-light{
+      background:#eef2ec;
+      color:var(--text);
+    }
+    .login .btn{width:100%;margin-top:20px}
+    .error{
+      margin-top:14px;
+      color:var(--danger);
+      font-size:14px;
+    }
+
+    .app{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns:248px 1fr;
+    }
+    aside{
+      background:#172018;
+      color:#fff;
+      padding:18px 14px;
+      position:sticky;
+      top:0;
+      height:100vh;
+    }
+    aside .brand{
+      padding:4px 7px 18px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    aside .brand small{color:#b7c0b7}
+    .nav{padding-top:15px}
+    .nav button{
+      width:100%;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      border:0;
+      color:#dce6da;
+      background:transparent;
+      padding:11px 12px;
+      border-radius:12px;
+      text-align:left;
+      margin-bottom:5px;
+    }
+    .nav button.active{
+      background:rgba(120,183,72,.18);
+      color:#fff;
+    }
+    .nav button:hover{background:rgba(255,255,255,.06)}
+    .soon{
+      margin-top:18px;
+      padding:13px;
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius:14px;
+      color:#c6d0c4;
+      font-size:13px;
+      line-height:1.45;
+    }
+    main{min-width:0}
+    header{
+      min-height:72px;
+      display:flex;
+      align-items:center;
+      gap:14px;
+      justify-content:space-between;
+      padding:14px 24px;
+      background:rgba(255,255,255,.88);
+      border-bottom:1px solid var(--line);
+      position:sticky;
+      top:0;
+      backdrop-filter:blur(12px);
+      z-index:5;
+    }
+    .head-left{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+    .company{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:12px;
+      padding:10px 12px;
+      min-width:250px;
+      max-width:420px;
+    }
+    .sync{
+      color:var(--muted);
+      font-size:12px;
+    }
+    .content{padding:24px}
+    .hero{
+      display:flex;
+      justify-content:space-between;
+      gap:20px;
+      align-items:flex-end;
+      margin-bottom:20px;
+    }
+    .hero h1{
+      margin:0;
+      font-size:28px;
+      letter-spacing:-.02em;
+    }
+    .hero p{
+      margin:7px 0 0;
+      color:var(--muted);
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      border-radius:999px;
+      padding:7px 10px;
+      background:#edf6e7;
+      color:var(--brand-dark);
+      font-size:12px;
+      font-weight:800;
+    }
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:20px;
+    }
+    .card{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:0 3px 12px rgba(29,48,22,.03);
+      padding:17px;
+    }
+    .metric .label{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+    }
+    .metric .value{
+      font-size:30px;
+      font-weight:850;
+      margin-top:8px;
+      letter-spacing:-.03em;
+    }
+    .table-card{
+      padding:0;
+      overflow:hidden;
+    }
+    .table-head{
+      padding:16px 17px;
+      display:flex;
+      gap:12px;
+      justify-content:space-between;
+      align-items:center;
+      border-bottom:1px solid var(--line);
+    }
+    .table-head h3{margin:0;font-size:16px}
+    .table-wrap{overflow:auto;max-height:66vh}
+    table{
+      border-collapse:collapse;
+      width:100%;
+      font-size:13px;
+    }
+    th,td{
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      vertical-align:top;
+      white-space:nowrap;
+    }
+    th{
+      position:sticky;
+      top:0;
+      background:var(--surface-2);
+      color:var(--muted);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      z-index:1;
+    }
+    td.wrap{white-space:normal;min-width:220px}
+    tr:hover td{background:#fbfcfa}
+    .empty{
+      padding:44px 20px;
+      text-align:center;
+      color:var(--muted);
+    }
+    .status{
+      display:inline-flex;
+      padding:5px 8px;
+      border-radius:999px;
+      background:#eef2ec;
+      font-weight:750;
+      font-size:11px;
+    }
+    .status.good{background:#edf6e7;color:#497b27}
+    .status.warn{background:#fff4e5;color:var(--warning)}
+    .status.bad{background:#fff0ee;color:var(--danger)}
+    .section{display:none}
+    .section.active{display:block}
+    .loading{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      background:#172018;
+      color:#fff;
+      padding:10px 13px;
+      border-radius:12px;
+      box-shadow:var(--shadow);
+      font-size:13px;
+    }
+    @media(max-width:1050px){
+      .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media(max-width:760px){
+      .app{grid-template-columns:1fr}
+      aside{
+        position:relative;
+        height:auto;
+      }
+      .nav{
+        display:flex;
+        gap:6px;
+        overflow:auto;
+      }
+      .nav button{
+        width:auto;
+        white-space:nowrap;
+      }
+      .soon{display:none}
+      header{position:relative;padding:12px}
+      .company{min-width:0;width:100%}
+      .content{padding:14px}
+      .cards{grid-template-columns:1fr 1fr}
+      .hero{align-items:flex-start;flex-direction:column}
+    }
+  </style>
+</head>
+<body>
+  <div id="login" class="login">
+    <div class="login-card">
+      <div class="brand">
+        <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
+        <div>
+          <strong>DLL ONE</strong>
+          <small>Panel Cloud V5 · Alpha segura</small>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Usuario</label>
+        <input id="loginUser" autocomplete="username" placeholder="admin@dllone.com">
+      </div>
+
+      <div class="field">
+        <label>Contraseña</label>
+        <input id="loginPassword" type="password" autocomplete="current-password">
+      </div>
+
+      <button class="btn btn-primary" onclick="login()">Entrar</button>
+      <div id="loginError" class="error"></div>
+    </div>
+  </div>
+
+  <div id="app" class="app hidden">
+    <aside>
+      <div class="brand">
+        <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
+        <div>
+          <strong>DLL ONE</strong>
+          <small>Panel Cloud V5</small>
+        </div>
+      </div>
+
+      <div class="nav">
+        <button class="active" data-tab="dashboard" onclick="go('dashboard',this)">⌂ Dashboard</button>
+        <button data-tab="conversations" onclick="go('conversations',this)">💬 Conversaciones</button>
+        <button data-tab="orders" onclick="go('orders',this)">🧾 Pedidos</button>
+        <button data-tab="delivery" onclick="go('delivery',this)">🚚 Delivery</button>
+        <button data-tab="customers" onclick="go('customers',this)">👥 Clientes</button>
+      </div>
+
+      <div class="soon">
+        <strong style="color:#fff">DLL ONE Salud</strong><br>
+        La arquitectura V5 queda preparada para agregar Turnos como módulo separado, sin mezclar lógica clínica con Gastro.
+      </div>
+    </aside>
+
+    <main>
+      <header>
+        <div class="head-left">
+          <select id="companySelect" class="company" onchange="changeCompany()"></select>
+          <div>
+            <div id="syncText" class="sync">Sin sincronizar</div>
+          </div>
+        </div>
+        <button class="btn btn-light" onclick="logout()">Salir</button>
+      </header>
+
+      <div class="content">
+        <section id="dashboard" class="section active">
+          <div class="hero">
+            <div>
+              <h1 id="companyTitle">Panel Central</h1>
+              <p>Lecturas rápidas desde PostgreSQL. El bot actual sigue funcionando sin cambios.</p>
+            </div>
+            <span class="pill">● POSTGRES SHADOW</span>
+          </div>
+
+          <div class="cards">
+            <div class="card metric"><div class="label">Conversaciones</div><div id="mChats" class="value">—</div></div>
+            <div class="card metric"><div class="label">Pedidos activos</div><div id="mOrders" class="value">—</div></div>
+            <div class="card metric"><div class="label">Delivery a cotizar</div><div id="mQuotes" class="value">—</div></div>
+            <div class="card metric"><div class="label">Atención humana</div><div id="mHuman" class="value">—</div></div>
+            <div class="card metric"><div class="label">Pagos pendientes</div><div id="mPayments" class="value">—</div></div>
+          </div>
+
+          <div class="card">
+            <strong>Qué es esta versión</strong>
+            <p style="color:var(--muted);line-height:1.55;margin-bottom:0">
+              V5.0 es una migración paralela: copia la información operativa a PostgreSQL para que el Panel lea rápido.
+              No reemplaza todavía al Panel V4 para acciones críticas. Primero medimos velocidad y estabilidad; después movemos las acciones una por una.
+            </p>
+          </div>
+        </section>
+
+        <section id="conversations" class="section">
+          <div class="hero">
+            <div><h1>Conversaciones</h1><p>Últimos chats sincronizados.</p></div>
+          </div>
+          <div class="card table-card">
+            <div class="table-head"><h3>Bandeja</h3><span id="countConversations" class="sync"></span></div>
+            <div id="conversationsTable" class="table-wrap"></div>
+          </div>
+        </section>
+
+        <section id="orders" class="section">
+          <div class="hero">
+            <div><h1>Pedidos</h1><p>Pedidos activos sincronizados desde DLL ONE.</p></div>
+          </div>
+          <div class="card table-card">
+            <div class="table-head"><h3>Pedidos activos</h3><span id="countOrders" class="sync"></span></div>
+            <div id="ordersTable" class="table-wrap"></div>
+          </div>
+        </section>
+
+        <section id="delivery" class="section">
+          <div class="hero">
+            <div><h1>Delivery por cotizar</h1><p>Lectura instantánea de cotizaciones pendientes.</p></div>
+          </div>
+          <div class="card table-card">
+            <div class="table-head"><h3>Pendientes</h3><span id="countDelivery" class="sync"></span></div>
+            <div id="deliveryTable" class="table-wrap"></div>
+          </div>
+        </section>
+
+        <section id="customers" class="section">
+          <div class="hero">
+            <div><h1>Clientes</h1><p>Base de clientes sincronizada.</p></div>
+          </div>
+          <div class="card table-card">
+            <div class="table-head"><h3>Clientes</h3><span id="countCustomers" class="sync"></span></div>
+            <div id="customersTable" class="table-wrap"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="loading" class="loading hidden">Cargando…</div>
+
+<script>
+  let companies=[];
+  let companyId='';
+  let currentTab='dashboard';
+
+  const $=id=>document.getElementById(id);
+
+  function esc(value){
+    return String(value??'')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'","&#039;");
+  }
+
+  function first(obj, keys){
+    for(const key of keys){
+      if(obj && obj[key]!==undefined && obj[key]!==null && String(obj[key]).trim()!==''){
+        return obj[key];
+      }
+    }
+    return '';
+  }
+
+  function money(value){
+    const n=Number(String(value??0).replace(/[^\d.-]/g,''))||0;
+    return '$'+n.toLocaleString('es-AR');
+  }
+
+  function showLoading(on){
+    $('loading').classList.toggle('hidden',!on);
+  }
+
+  async function api(url, options={}){
+    const r=await fetch(url,{
+      credentials:'include',
+      headers:{
+        'Content-Type':'application/json',
+        ...(options.headers||{})
+      },
+      ...options
+    });
+
+    let data={};
+    try{data=await r.json()}catch{}
+
+    if(r.status===401){
+      showLogin();
+      throw new Error('Sesión vencida');
+    }
+
+    if(!r.ok || data.ok===false){
+      throw new Error(data.error||('HTTP '+r.status));
+    }
+
+    return data;
+  }
+
+  async function login(){
+    $('loginError').textContent='';
+    try{
+      const r=await api('/api/login',{
+        method:'POST',
+        body:JSON.stringify({
+          user:$('loginUser').value.trim(),
+          password:$('loginPassword').value
+        })
+      });
+
+      if(r.ok){
+        await start();
+      }
+    }catch(err){
+      $('loginError').textContent=err.message||String(err);
+    }
+  }
+
+  async function logout(){
+    try{await api('/api/logout',{method:'POST'})}catch{}
+    showLogin();
+  }
+
+  function showLogin(){
+    $('app').classList.add('hidden');
+    $('login').classList.remove('hidden');
+  }
+
+  function showApp(){
+    $('login').classList.add('hidden');
+    $('app').classList.remove('hidden');
+  }
+
+  async function start(){
+    showLoading(true);
+    try{
+      await api('/api/me');
+      const r=await api('/api/companies');
+      companies=r.items||[];
+
+      const select=$('companySelect');
+      select.innerHTML=companies.map(c=>
+        `<option value="${esc(c.idEmpresa)}">${esc(c.nombreEmpresa)}</option>`
+      ).join('');
+
+      companyId=companies[0]?.idEmpresa||'';
+
+      if(!companyId){
+        throw new Error('Todavía no hay empresas sincronizadas. Ejecutá sincronizarPanelCloudV500() en Apps Script.');
+      }
+
+      showApp();
+      await loadTab('dashboard');
+    }finally{
+      showLoading(false);
+    }
+  }
+
+  async function changeCompany(){
+    companyId=$('companySelect').value;
+    await loadTab(currentTab);
+  }
+
+  async function go(tab,button){
+    currentTab=tab;
+    document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+    $(tab).classList.add('active');
+    document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+    if(button)button.classList.add('active');
+    await loadTab(tab);
+  }
+
+  async function loadTab(tab){
+    if(!companyId)return;
+
+    showLoading(true);
+
+    try{
+      if(tab==='dashboard')await loadDashboard();
+      if(tab==='conversations')await loadConversations();
+      if(tab==='orders')await loadOrders();
+      if(tab==='delivery')await loadDelivery();
+      if(tab==='customers')await loadCustomers();
+    }catch(err){
+      alert(err.message||String(err));
+    }finally{
+      showLoading(false);
+    }
+  }
+
+  function syncLabel(value){
+    if(!value)return 'Sin sincronizar';
+    const d=new Date(value);
+    return 'Última copia: '+d.toLocaleString('es-AR');
+  }
+
+  async function loadDashboard(){
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/summary`);
+    const s=r.summary||{};
+    $('companyTitle').textContent=r.company?.nombreEmpresa||'Panel Central';
+    $('syncText').textContent=syncLabel(r.company?.syncedAt);
+    $('mChats').textContent=s.chats??0;
+    $('mOrders').textContent=s.activeOrders??0;
+    $('mQuotes').textContent=s.pendingQuotes??0;
+    $('mHuman').textContent=s.humanAttention??0;
+    $('mPayments').textContent=s.pendingPayment??0;
+  }
+
+  function renderGenericTable(target, items, preferredColumns){
+    const box=$(target);
+
+    if(!items.length){
+      box.innerHTML='<div class="empty">No hay datos para mostrar.</div>';
+      return;
+    }
+
+    const allKeys=[...new Set(items.flatMap(x=>Object.keys(x||{})))];
+    const columns=[
+      ...preferredColumns.filter(x=>allKeys.includes(x)),
+      ...allKeys.filter(x=>!preferredColumns.includes(x)).slice(0,5)
+    ].slice(0,8);
+
+    box.innerHTML=`
+      <table>
+        <thead><tr>${columns.map(c=>`<th>${esc(c.replaceAll('_',' '))}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${items.map(row=>`
+            <tr>
+              ${columns.map(c=>{
+                const value=row?.[c]??'';
+                const long=String(value).length>42;
+                return `<td class="${long?'wrap':''}">${esc(value)}</td>`;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  async function loadConversations(){
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/chats`);
+    $('syncText').textContent=syncLabel(r.syncedAt);
+    $('countConversations').textContent=(r.total||0)+' chats';
+    renderGenericTable(
+      'conversationsTable',
+      r.items||[],
+      ['ID_CLIENTE','NOMBRE','TELEFONO','ULTIMO_MENSAJE','ESTADO','ACTUALIZADO_EL']
+    );
+  }
+
+  async function loadOrders(){
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/pedidos?filter=ACTIVOS`);
+    $('syncText').textContent=syncLabel(r.syncedAt);
+    $('countOrders').textContent=(r.total||0)+' activos';
+    renderGenericTable(
+      'ordersTable',
+      r.items||[],
+      ['ID_PEDIDO','FECHA','NOMBRE_CLIENTE','PRODUCTOS','TOTAL','ESTADO_PAGO','ESTADO_PEDIDO','TIPO_ENTREGA']
+    );
+  }
+
+  async function loadDelivery(){
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/deliveryQuotes`);
+    $('syncText').textContent=syncLabel(r.syncedAt);
+    $('countDelivery').textContent=(r.total||0)+' pendientes';
+    renderGenericTable(
+      'deliveryTable',
+      r.items||[],
+      ['ID_COTIZACION','FECHA','NOMBRE_CLIENTE','DIRECCION','PEDIDO_RESUMEN','SUBTOTAL','ESTADO']
+    );
+  }
+
+  async function loadCustomers(){
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/clientes`);
+    $('syncText').textContent=syncLabel(r.syncedAt);
+    $('countCustomers').textContent=(r.total||0)+' clientes';
+    renderGenericTable(
+      'customersTable',
+      r.items||[],
+      ['ID_CLIENTE','NOMBRE','TELEFONO','EMAIL','ESTADO','ULTIMA_INTERACCION']
+    );
+  }
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Enter' && !$('login').classList.contains('hidden')){
+      login();
+    }
+  });
+
+  start().catch(showLogin);
+</script>
+</body>
+</html>
