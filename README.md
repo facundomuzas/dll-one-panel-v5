@@ -309,3 +309,16 @@ La clave nunca se entrega al navegador; Railway llama al Bridge de Apps Script.
 
 Pedidos, cocina, delivery, comprobantes y configuración continúan operándose en V4.
 Eso se migra en V5.2.
+
+
+## Hotfix V5.1.2 — Bridge URL probada
+
+El Panel V5 ahora da prioridad a la variable Railway:
+
+APPS_SCRIPT_BRIDGE_URL
+
+Debe copiarse EXACTAMENTE desde el servicio Railway `dll-one-v4-motor`,
+donde ya está funcionando el bridge con Apps Script.
+
+Esto evita depender de `ScriptApp.getService().getUrl()`, que puede devolver
+una URL /dev o una implementación que pide login de Google.

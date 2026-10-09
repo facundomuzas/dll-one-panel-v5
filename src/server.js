@@ -84,19 +84,31 @@ function normalizeState(value) {
 
 function bridgeUrl(companyRow) {
   const snapshot = companyRow?.snapshot || {};
-  const raw = String(
-    snapshot.bridgeUrl ||
-    process.env.APPS_SCRIPT_BRIDGE_URL ||
-    ""
+
+  // V5.1.2:
+  // primero usamos la URL ya probada por el motor V4 en Railway.
+  // ScriptApp.getService().getUrl() puede devolver una URL /dev o una
+  // implementación que exige login de Google y desde Railway termina en 401.
+  const envBridge = String(
+    process.env.APPS_SCRIPT_BRIDGE_URL || ""
   ).trim();
+
+  const snapshotBridge = String(
+    snapshot.bridgeUrl || ""
+  ).trim();
+
+  const raw = envBridge || snapshotBridge;
 
   if (!raw) {
     throw new Error(
-      "Falta bridgeUrl. Actualizá PanelV5Sync.gs y ejecutá sincronizarPanelCloudV510()."
+      "Falta APPS_SCRIPT_BRIDGE_URL en Railway y tampoco hay bridgeUrl sincronizada."
     );
   }
 
-  return raw.replace(/\/+$/, "") + "?dllone_v4=1";
+  return raw
+    .replace(/\/dev(?:\?.*)?$/i, "/exec")
+    .replace(/\/+$/, "") +
+    "?dllone_v4=1";
 }
 
 async function postBridge(companyRow, operation, payload = {}, actor = "PANEL_V5") {
@@ -215,8 +227,14 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.1.0",
+      version: "5.1.2",
       mode: "HYBRID_CONVERSATIONS",
+      bridge: {
+        configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
+        source: String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim()
+          ? "RAILWAY_ENV"
+          : "SNAPSHOT_FALLBACK"
+      },
       db
     });
   } catch (err) {
@@ -607,6 +625,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.1.0 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.1.2 escuchando en puerto ${PORT}`
   );
 });
