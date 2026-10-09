@@ -1,324 +1,160 @@
-# DLL ONE Panel Cloud V5.1.0 — Conversaciones reales
+# DLL ONE Panel Cloud V5.2.0
 
-## Objetivo
+## Super Admin + Onboarding de empresas
 
-Esta versión NO reemplaza el bot actual ni el Panel V4.1.7.
+V5.2 agrega al Panel Cloud:
 
-Es la primera etapa de migración del Panel Central a:
+- Super Admin.
+- Alta de empresas nuevas.
+- Selección de módulos por empresa.
+- Usuarios propios por empresa.
+- Cada usuario ve solamente las empresas asignadas.
+- Edición de datos del negocio.
+- Catálogo y precios sin abrir Google Sheets.
+- Alta manual de productos y servicios.
+- Importación de listas Excel/CSV.
+- ONE Gastro: categorías, productos, variantes y extras.
+- Conversaciones operativas de V5.1.
+- Diseño Mobile First.
 
-**Navegador → Railway → PostgreSQL**
+## Arquitectura de esta etapa
 
-El Panel V5 lee desde PostgreSQL y por eso deja de esperar a Google Sheets en cada pantalla.
+Los usuarios y permisos nuevos viven en PostgreSQL.
 
-## Qué incluye esta Alpha
+Los datos comerciales que el bot todavía consume desde Google Sheets se escriben a través del Bridge seguro:
 
-- Login propio.
-- Multiempresa.
-- Dashboard.
-- Conversaciones / Chats.
-- Pedidos.
-- Delivery por cotizar.
-- Clientes.
-- PostgreSQL.
-- Sincronización desde el Apps Script actual.
-- Diseño DLL ONE verde.
-- Preparado para agregar ONE Salud / Turnos después.
+Panel V5 -> Railway -> Apps Script -> planilla de la empresa.
 
-## Qué NO hace todavía
+Esto mantiene compatible el bot actual mientras seguimos migrando.
 
-V5.0.0 es **shadow/read-only**.
+## Roles
 
-Las acciones críticas siguen haciéndose desde el Panel V4:
-- tomar una conversación,
-- responder manualmente,
-- cambiar estados de pedidos,
-- cotizar delivery,
-- verificar comprobantes.
+### SUPERADMIN
 
-Esto es intencional. Primero comprobamos velocidad/estabilidad de la nueva arquitectura sin arriesgar el bot que hoy funciona.
+- Ve todas las empresas.
+- Crea empresas.
+- Activa módulos.
+- Crea accesos para clientes.
+- Puede editar cualquier empresa.
 
-La próxima etapa será V5.1:
-**acciones del panel → Railway → backend**, moviendo operaciones una a una.
+El usuario definido en `PANEL_ADMIN_USER` / `PANEL_ADMIN_PASSWORD` sigue siendo el Super Admin de emergencia.
 
----
+### ADMIN_EMPRESA
 
-# Instalación en Railway
+- Solo ve su empresa asignada.
+- Puede usar conversaciones.
+- Puede editar datos del negocio.
+- Puede cargar catálogo/listas de precios.
+- Puede administrar ONE Gastro si el módulo está activo.
+- No puede activar módulos ni crear otras empresas.
 
-## 1. GitHub
+### OPERADOR
 
-Crear un repositorio nuevo, por ejemplo:
+En V5.2 tiene acceso a las empresas asignadas y operación básica. Más adelante vamos a separar permisos finos por sección.
 
-`dll-one-panel-v5`
+## Importación de listas de precios
 
-Subir a la raíz TODO el contenido de la carpeta `dll_one_panel_v5`.
+Formatos:
 
-## 2. Railway
+- `.xlsx`
+- `.xls`
+- `.csv`
 
-Crear un nuevo servicio desde ese repositorio.
+La primera hoja debe tener una columna `NOMBRE` o `PRODUCTO`.
 
-NO reemplazar el servicio actual `dll-one-v4-motor`.
+Columnas reconocidas:
 
-Este Panel debe ser un servicio aparte.
+- CODIGO / CÓDIGO / SKU
+- NOMBRE / PRODUCTO
+- DESCRIPCION / DESCRIPCIÓN
+- PRECIO
+- CATEGORIA / CATEGORÍA
+- MARCA
+- UNIDAD
+- TIPO_ITEM
 
-## 3. Agregar PostgreSQL
+Hasta 1000 filas por archivo y 6 MB.
 
-Dentro del mismo proyecto Railway:
+## Instalación
 
-**Add / New → Database → PostgreSQL**
+1. Hacer backup actual:
 
-Después conectar la variable `DATABASE_URL` al servicio `dll-one-panel-v5`.
-
-## 4. Variables del servicio
-
-Cargar:
-
-```text
-NODE_ENV=production
-PANEL_ADMIN_USER=tu-correo
-PANEL_ADMIN_PASSWORD=una-clave-fuerte
-JWT_SECRET=una-clave-muy-larga-y-aleatoria
-PANEL_SYNC_KEY=TU_DLL_ONE_BRIDGE_KEY
+```javascript
+crearBackupManualV371()
 ```
 
-`PANEL_SYNC_KEY` tiene que ser EXACTAMENTE el mismo valor de `DLL_ONE_BRIDGE_KEY` del Apps Script actual.
+2. Apps Script: reemplazar `Código.gs` completo por:
 
-Railway define `PORT` automáticamente. El código también acepta 8080.
+`CODIGO_PANEL_CENTRAL_V520_SUPERADMIN_ONBOARDING.gs`
 
-## 5. Verificar Railway
+3. Reemplazar `PanelV5Sync.gs` por:
 
-Abrir:
+`PANEL_V5_SYNC_V520.gs`
 
-`https://TU-DOMINIO-RAILWAY/health`
+4. Guardar y ejecutar una vez:
 
-Esperado:
+```javascript
+actualizarAV520SuperAdminOnboarding()
+```
+
+5. Apps Script -> Implementar -> Administrar implementaciones -> Editar -> Nueva versión -> Implementar.
+
+6. Ejecutar:
+
+```javascript
+verBridgePublicoV511()
+```
+
+Debe terminar en `/exec`.
+
+7. GitHub: subir el contenido de `dll_one_panel_v5` al repo `dll-one-panel-v5`, sobrescribiendo la versión anterior.
+
+8. Commit changes y esperar Railway Online.
+
+9. Revisar:
+
+`/health`
+
+Debe decir:
 
 ```json
-{
-  "ok": true,
-  "service": "DLL ONE Panel Cloud",
-  "version": "5.0.0",
-  "mode": "POSTGRES_SHADOW"
-}
+"version":"5.2.0"
 ```
 
-Al principio `companies` va a estar en 0.
-
----
-
-# Conectar Apps Script
-
-## 1. Agregar archivo
-
-En el proyecto Apps Script ACTUAL de DLL ONE:
-
-**+ → Secuencia de comandos**
-
-Nombre:
-
-`PanelV5Sync`
-
-Pegar el contenido de:
-
-`PANEL_V5_SYNC_V500.gs`
-
-NO reemplazar `Código.gs`.
-NO reemplazar `panel.html`.
-
-## 2. Script Property
-
-Apps Script → Configuración del proyecto → Propiedades del script.
-
-Agregar:
-
-```text
-PANEL_V5_URL
-```
-
-Valor:
-
-```text
-https://TU-DOMINIO-RAILWAY
-```
-
-Sin barra `/` al final.
-
-## 3. Diagnóstico
-
-Ejecutar:
-
-```javascript
-diagnosticoPanelCloudV500()
-```
-
-Tiene que mostrar:
-
-- panelUrl con tu Railway.
-- bridgeKeyConfigurada = true.
-- empresasActivas >= 1.
-
-## 4. Primera copia
-
-Ejecutar:
-
-```javascript
-sincronizarPanelCloudV500()
-```
-
-Después volver a `/health`.
-
-Ahora debería decir:
-
-```json
-"companies": 1
-```
-
-o más, según empresas activas.
-
-## 5. Abrir Panel V5
-
-Abrir directamente el dominio Railway del Panel.
-
-Entrar con:
-
-- `PANEL_ADMIN_USER`
-- `PANEL_ADMIN_PASSWORD`
-
-El Dashboard y las pestañas deben abrir desde PostgreSQL.
-
----
-
-# Sincronización automática
-
-Cuando la primera prueba funcione, ejecutar:
-
-```javascript
-instalarTriggerPanelCloudV500()
-```
-
-Esto crea una copia cada 1 minuto.
-
-**Importante:** este trigger es temporal durante la migración.
-
-En V5.1/V5.2 el objetivo es que el bot y el panel escriban directamente en PostgreSQL y eliminar esta espera de hasta 1 minuto.
-
-Para quitarlo:
-
-```javascript
-quitarTriggerPanelCloudV500()
-```
-
----
-
-# Arquitectura de migración
-
-## Hoy
-
-```text
-WhatsApp
-   ↓
-Railway V4
-   ↓
-Apps Script / Sheets
-
-Panel V4
-   ↓
-Apps Script / Sheets
-```
-
-## V5.0 Shadow
-
-```text
-Bot actual ───────────────► sigue igual
-
-Sheets
-   ↓ cada minuto
-PanelV5Sync
-   ↓
-Railway Panel V5
-   ↓
-PostgreSQL
-   ↓
-Panel Cloud
-```
-
-## Meta final
-
-```text
-WhatsApp ──► Railway
-                │
-Panel Web ──────┤
-                ↓
-            PostgreSQL
-                │
-          Sheets = backup/export
-```
-
----
-
-# Hospital / ONE Salud
-
-No conectar datos reales del hospital a esta Alpha.
-
-V5.0 prepara la base técnica.
-
-Cuando el hospital confirme qué sistema de turnos usa, se crea el módulo:
-
-**DLL ONE Salud / Turnos**
-
-con su propia estructura de:
-- pacientes administrativos,
-- especialidades,
-- profesionales,
-- agendas,
-- turnos,
-- recordatorios,
-- auditoría,
-- derivación humana.
-
-No se debe mezclar información clínica con el módulo Gastro.
-
-
-## V5.0.2 Mobile First
-
-- Barra inferior fija para navegar con una mano en celular.
-- Inicio, Chats, Pedidos, Delivery y Clientes siempre accesibles.
-- Tablas convertidas automáticamente en tarjetas verticales en pantallas chicas.
-- Selector de empresa compacto y fijo arriba.
-- Botón actualizar accesible.
-- Mejor tamaño de botones y campos táctiles.
-- Soporte básico PWA para agregar el Panel a la pantalla de inicio.
-- No cambia el motor, PostgreSQL, credenciales ni sincronización.
-
-
-## V5.1 — Conversaciones reales
-
-El Panel Cloud ya puede operar la bandeja de WhatsApp:
-
-- Ver conversaciones en vivo.
-- Buscar y filtrar BOT / HUMANO.
-- Abrir historial.
-- Tomar conversación: pausa la IA para ese cliente.
-- Responder desde el Panel Cloud usando el WhatsApp del negocio.
-- Devolver al bot.
-- Respeta la ventana de 24 horas de WhatsApp.
-
-La seguridad de las acciones usa el mismo `DLL_ONE_BRIDGE_KEY` / `PANEL_SYNC_KEY`.
-La clave nunca se entrega al navegador; Railway llama al Bridge de Apps Script.
-
-### Todavía en V4
-
-Pedidos, cocina, delivery, comprobantes y configuración continúan operándose en V4.
-Eso se migra en V5.2.
-
-
-## Hotfix V5.1.2 — Bridge URL probada
-
-El Panel V5 ahora da prioridad a la variable Railway:
-
-APPS_SCRIPT_BRIDGE_URL
-
-Debe copiarse EXACTAMENTE desde el servicio Railway `dll-one-v4-motor`,
-donde ya está funcionando el bridge con Apps Script.
-
-Esto evita depender de `ScriptApp.getService().getUrl()`, que puede devolver
-una URL /dev o una implementación que pide login de Google.
+10. Abrir Panel -> Ctrl+F5.
+
+## No cambiar en Railway
+
+Se mantienen:
+
+- DATABASE_URL
+- PANEL_ADMIN_USER
+- PANEL_ADMIN_PASSWORD
+- JWT_SECRET
+- PANEL_SYNC_KEY
+- APPS_SCRIPT_BRIDGE_URL
+
+No hace falta crear otro PostgreSQL ni otro servicio.
+
+## Primer alta recomendada
+
+1. Entrar como Super Admin.
+2. Super Admin -> Crear empresa.
+3. Elegir módulos.
+4. Crear acceso para cliente.
+5. Cerrar sesión.
+6. Entrar con la cuenta del cliente.
+7. Confirmar que solo ve su empresa.
+8. Mi negocio -> completar datos.
+9. Catálogo / precios -> cargar Excel o agregar items.
+10. Si tiene Gastro -> cargar categorías, productos, variantes y extras.
+
+## Todavía pendiente para próximas versiones
+
+- Menú visual por imágenes desde V5.
+- Medios de pago desde V5.
+- Configuración de delivery desde V5.
+- Cambio/restablecimiento de contraseña por el cliente.
+- Permisos finos para OPERADOR.
+- Pedidos/cocina/comprobantes 100% operativos desde V5.
+- Escritura directa del bot en PostgreSQL.

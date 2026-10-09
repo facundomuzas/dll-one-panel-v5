@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
+import { getPanelUserByLogin } from "./db.js";
 
 const COOKIE = "dllone_panel_v5";
 
@@ -19,24 +21,53 @@ function safeTextEqual(a, b) {
   return crypto.timingSafeEqual(aa, bb);
 }
 
-export function validLogin(user, password) {
-  return (
-    safeTextEqual(
-      user,
-      process.env.PANEL_ADMIN_USER || ""
-    ) &&
-    safeTextEqual(
-      password,
-      process.env.PANEL_ADMIN_PASSWORD || ""
-    )
+export async function validLogin(user, password) {
+  const loginKey = String(user || "").trim();
+  const pass = String(password || "");
+
+  // Super Admin de emergencia / bootstrap definido en Railway.
+  if (
+    safeTextEqual(loginKey, process.env.PANEL_ADMIN_USER || "") &&
+    safeTextEqual(pass, process.env.PANEL_ADMIN_PASSWORD || "")
+  ) {
+    return {
+      userId: 0,
+      loginKey,
+      displayName: "Super Admin",
+      role: "SUPERADMIN",
+      source: "ENV"
+    };
+  }
+
+  const dbUser = await getPanelUserByLogin(loginKey);
+
+  if (!dbUser || !dbUser.active) {
+    return null;
+  }
+
+  const ok = await bcrypt.compare(
+    pass,
+    String(dbUser.password_hash || "")
   );
+
+  if (!ok) return null;
+
+  return {
+    userId: Number(dbUser.user_id),
+    loginKey: dbUser.login_key,
+    displayName: dbUser.display_name,
+    role: String(dbUser.role || "ADMIN_EMPRESA").toUpperCase(),
+    source: "DB"
+  };
 }
 
 export function issueSession(res, user) {
   const token = jwt.sign(
     {
-      sub: String(user),
-      role: "SUPERADMIN"
+      sub: String(user.loginKey || ""),
+      uid: Number(user.userId || 0),
+      name: String(user.displayName || user.loginKey || "Usuario"),
+      role: String(user.role || "ADMIN_EMPRESA").toUpperCase()
     },
     secret(),
     {

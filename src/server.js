@@ -4,13 +4,21 @@ import compression from "compression";
 import cookieParser from "cookie-parser";
 import crypto from "crypto";
 import path from "path";
+import bcrypt from "bcryptjs";
+import * as XLSX from "xlsx";
 import { fileURLToPath } from "url";
 
 import {
   initDb,
   upsertCompanySnapshot,
   listCompanies,
+  listCompaniesForUser,
   getCompany,
+  userCanAccessCompany,
+  listPanelUsers,
+  createPanelUser,
+  updatePanelUserCompanies,
+  setPanelUserActive,
   dbHealth
 } from "./db.js";
 
@@ -178,6 +186,164 @@ async function postBridge(companyRow, operation, payload = {}, actor = "PANEL_V5
   }
 }
 
+
+async function postBridgeGlobal(operation, payload = {}, actor = "PANEL_V5") {
+  const key = String(process.env.PANEL_SYNC_KEY || "").trim();
+  if (!key) throw new Error("Falta PANEL_SYNC_KEY en Railway.");
+
+  const raw = String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim();
+  if (!raw) {
+    throw new Error("Falta APPS_SCRIPT_BRIDGE_URL en Railway.");
+  }
+
+  const target =
+    raw
+      .replace(/\/dev(?:\?.*)?$/i, "/exec")
+      .replace(/\/+$/, "") +
+    "?dllone_v4=1&key=" +
+    encodeURIComponent(key);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 45000);
+
+  try {
+    const response = await fetch(target, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-dll-one-key": key
+      },
+      body: JSON.stringify({
+        action: "panel_v5",
+        operation,
+        actor,
+        ...payload
+      }),
+      signal: controller.signal
+    });
+
+    const text = await response.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch {}
+
+    if (!response.ok || !data || data.ok !== true) {
+      throw new Error(
+        data?.error ||
+        `Bridge HTTP ${response.status}: ${text.slice(0, 500)}`
+      );
+    }
+
+    return data.result;
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      throw new Error("Apps Script tardó demasiado en responder.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function requireSuperadmin(req, res, next) {
+  if (String(req.session?.role || "").toUpperCase() !== "SUPERADMIN") {
+    return res.status(403).json({
+      ok: false,
+      error: "Solo SUPERADMIN puede realizar esta acción."
+    });
+  }
+  next();
+}
+
+async function companyAccessRequired(req, res, next) {
+  try {
+    const allowed = await userCanAccessCompany(
+      Number(req.session?.uid || 0),
+      String(req.session?.role || ""),
+      String(req.params.companyId || "")
+    );
+
+    if (!allowed) {
+      return res.status(403).json({
+        ok: false,
+        error: "No tenés acceso a esta empresa."
+      });
+    }
+
+    next();
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
+      error: String(err?.message || err)
+    });
+  }
+}
+
+function normalizeCatalogRowsFromWorkbook(base64, filename = "lista.xlsx") {
+  const raw = String(base64 || "").replace(/^data:.*?;base64,/i, "");
+  if (!raw) throw new Error("No se recibió el archivo.");
+
+  const buffer = Buffer.from(raw, "base64");
+  if (!buffer.length) throw new Error("El archivo está vacío.");
+  if (buffer.length > 6 * 1024 * 1024) {
+    throw new Error("La lista supera 6 MB.");
+  }
+
+  const wb = XLSX.read(buffer, { type: "buffer" });
+  const firstSheet = wb.SheetNames?.[0];
+  if (!firstSheet) throw new Error("El archivo no tiene hojas.");
+
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[firstSheet], {
+    defval: "",
+    raw: false
+  });
+
+  const pick = (row, names) => {
+    const entries = Object.entries(row || {});
+    for (const name of names) {
+      const normalized = String(name).trim().toLowerCase();
+      const found = entries.find(([k]) =>
+        String(k).trim().toLowerCase() === normalized
+      );
+      if (found) return found[1];
+    }
+    return "";
+  };
+
+  const normalized = rows.map(row => {
+    const precioRaw = pick(row, ["PRECIO", "PRICE", "VALOR", "PRECIO UNITARIO", "PRECIO_UNITARIO"]);
+    const precio = Number(
+      String(precioRaw || "")
+        .replace(/\./g, "")
+        .replace(",", ".")
+        .replace(/[^0-9.-]/g, "")
+    );
+
+    return {
+      codigo: String(pick(row, ["CODIGO", "CÓDIGO", "SKU", "ID"]) || "").trim(),
+      tipoItem: String(pick(row, ["TIPO_ITEM", "TIPO", "TYPE"]) || "PRODUCTO").trim().toUpperCase(),
+      nombre: String(pick(row, ["NOMBRE", "PRODUCTO", "DESCRIPCION CORTA", "DESCRIPCIÓN CORTA"]) || "").trim(),
+      descripcion: String(pick(row, ["DESCRIPCION", "DESCRIPCIÓN", "DETALLE"]) || "").trim(),
+      precio: Number.isFinite(precio) ? precio : 0,
+      unidad: String(pick(row, ["UNIDAD", "MEDIDA"]) || "unidad").trim(),
+      categoria: String(pick(row, ["CATEGORIA", "CATEGORÍA", "RUBRO"]) || "").trim(),
+      marca: String(pick(row, ["MARCA", "BRAND"]) || "").trim(),
+      activo: "SI"
+    };
+  }).filter(x => x.nombre);
+
+  if (!normalized.length) {
+    throw new Error(
+      `No encontré productos en ${filename}. La lista necesita al menos una columna NOMBRE o PRODUCTO.`
+    );
+  }
+
+  if (normalized.length > 1000) {
+    throw new Error("La importación admite hasta 1000 filas por archivo.");
+  }
+
+  return normalized;
+}
+
 function summarize(companyRow) {
   const snapshot = companyRow?.snapshot || {};
   const pedidos = rows(snapshot, "pedidos");
@@ -240,8 +406,8 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.1.3",
-      mode: "HYBRID_CONVERSATIONS",
+      version: "5.2.0",
+      mode: "SUPERADMIN_ONBOARDING",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
         source: String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim()
@@ -254,7 +420,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.1.3",
+      version: "5.2.0",
       error: String(err?.message || err)
     });
   }
@@ -284,7 +450,7 @@ app.post("/sync/company", async (req, res) => {
     return res.json({
       ok: true,
       ...result,
-      version: "5.1.3"
+      version: "5.2.0"
     });
   } catch (err) {
     return res.status(400).json({
@@ -294,24 +460,34 @@ app.post("/sync/company", async (req, res) => {
   }
 });
 
-app.post("/api/login", (req, res) => {
+app.post("/api/login", async (req, res) => {
   const user = String(req.body?.user || "");
   const password = String(req.body?.password || "");
 
-  if (!validLogin(user, password)) {
-    return res.status(401).json({
+  try {
+    const sessionUser = await validLogin(user, password);
+
+    if (!sessionUser) {
+      return res.status(401).json({
+        ok: false,
+        error: "Usuario o contraseña incorrectos."
+      });
+    }
+
+    issueSession(res, sessionUser);
+
+    return res.json({
+      ok: true,
+      user: sessionUser.loginKey,
+      name: sessionUser.displayName,
+      role: sessionUser.role
+    });
+  } catch (err) {
+    return res.status(500).json({
       ok: false,
-      error: "Usuario o contraseña incorrectos."
+      error: String(err?.message || err)
     });
   }
-
-  issueSession(res, user);
-
-  return res.json({
-    ok: true,
-    user,
-    role: "SUPERADMIN"
-  });
 });
 
 app.post("/api/logout", (_req, res) => {
@@ -323,13 +499,18 @@ app.get("/api/me", authRequired, (req, res) => {
   return res.json({
     ok: true,
     user: req.session?.sub || "",
+    userId: Number(req.session?.uid || 0),
+    name: req.session?.name || req.session?.sub || "",
     role: req.session?.role || ""
   });
 });
 
-app.get("/api/companies", authRequired, async (_req, res) => {
+app.get("/api/companies", authRequired, async (req, res) => {
   try {
-    const companies = await listCompanies();
+    const companies = await listCompaniesForUser(
+      Number(req.session?.uid || 0),
+      String(req.session?.role || "")
+    );
 
     return res.json({
       ok: true,
@@ -349,6 +530,84 @@ app.get("/api/companies", authRequired, async (_req, res) => {
     });
   }
 });
+
+app.get("/api/admin/users", authRequired, requireSuperadmin, async (_req, res) => {
+  try {
+    const users = await listPanelUsers();
+    return res.json({ ok:true, items:users });
+  } catch (err) {
+    return res.status(500).json({ ok:false, error:String(err?.message || err) });
+  }
+});
+
+app.post("/api/admin/users", authRequired, requireSuperadmin, async (req, res) => {
+  try {
+    const loginKey = String(req.body?.loginKey || "").trim();
+    const displayName = String(req.body?.displayName || loginKey).trim();
+    const password = String(req.body?.password || "");
+    const role = String(req.body?.role || "ADMIN_EMPRESA").trim().toUpperCase();
+    const companyIds = Array.isArray(req.body?.companyIds) ? req.body.companyIds : [];
+
+    if (!loginKey) throw new Error("Ingresá un usuario o correo.");
+    if (password.length < 8) throw new Error("La contraseña debe tener al menos 8 caracteres.");
+    if (role !== "SUPERADMIN" && !companyIds.length) {
+      throw new Error("Asigná al menos una empresa al usuario.");
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await createPanelUser({ loginKey, displayName, passwordHash, role, companyIds });
+
+    return res.json({ ok:true, user });
+  } catch (err) {
+    return res.status(400).json({ ok:false, error:String(err?.message || err) });
+  }
+});
+
+app.post("/api/admin/users/:userId/active", authRequired, requireSuperadmin, async (req, res) => {
+  try {
+    const user = await setPanelUserActive(req.params.userId, !!req.body?.active);
+    if (!user) return res.status(404).json({ok:false,error:"Usuario no encontrado."});
+    return res.json({ok:true,user});
+  } catch (err) {
+    return res.status(400).json({ok:false,error:String(err?.message || err)});
+  }
+});
+
+app.post("/api/admin/companies", authRequired, requireSuperadmin, async (req, res) => {
+  try {
+    const payload = {
+      nombreEmpresa: String(req.body?.nombreEmpresa || "").trim(),
+      tipoNegocio: String(req.body?.tipoNegocio || "MIXTO").trim().toUpperCase(),
+      webSlug: String(req.body?.webSlug || "").trim(),
+      phoneNumberId: String(req.body?.phoneNumberId || "").trim(),
+      modulos: {
+        MODULO_VENTAS: req.body?.modules?.ventas ? "SI" : "NO",
+        MODULO_GASTRO: req.body?.modules?.gastro ? "SI" : "NO",
+        MODULO_EVENTOS: req.body?.modules?.eventos ? "SI" : "NO",
+        MODULO_SERVICIOS: req.body?.modules?.servicios ? "SI" : "NO"
+      }
+    };
+
+    if (!payload.nombreEmpresa) throw new Error("Ingresá el nombre de la empresa.");
+
+    const result = await postBridgeGlobal(
+      "admin_create_company",
+      payload,
+      req.session?.sub || "SUPERADMIN_V5"
+    );
+
+    return res.json({ ok:true, ...result });
+  } catch (err) {
+    return res.status(400).json({ ok:false, error:String(err?.message || err) });
+  }
+});
+
+
+app.use(
+  "/api/company/:companyId",
+  authRequired,
+  companyAccessRequired
+);
 
 app.get(
   "/api/company/:companyId/summary",
@@ -579,6 +838,143 @@ app.post(
 );
 
 app.get(
+  "/api/company/:companyId/profile",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company = await getCompany(req.params.companyId);
+      if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+
+      const result = await postBridge(
+        company,
+        "company_profile_get",
+        {},
+        req.session?.sub || "PANEL_V5"
+      );
+
+      return res.json({ok:true,...result});
+    } catch (err) {
+      return res.status(502).json({ok:false,error:String(err?.message || err)});
+    }
+  }
+);
+
+app.post(
+  "/api/company/:companyId/profile",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company = await getCompany(req.params.companyId);
+      if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+
+      const result = await postBridge(
+        company,
+        "company_profile_save",
+        {
+          data: req.body || {},
+          allowModules: String(req.session?.role || "").toUpperCase() === "SUPERADMIN"
+        },
+        req.session?.sub || "PANEL_V5"
+      );
+
+      return res.json({ok:true,...result});
+    } catch (err) {
+      return res.status(502).json({ok:false,error:String(err?.message || err)});
+    }
+  }
+);
+
+app.get(
+  "/api/company/:companyId/catalog",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company = await getCompany(req.params.companyId);
+      if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+      const result = await postBridge(company,"catalog_list",{},req.session?.sub || "PANEL_V5");
+      return res.json({ok:true,...result});
+    } catch (err) {
+      return res.status(502).json({ok:false,error:String(err?.message || err)});
+    }
+  }
+);
+
+app.post(
+  "/api/company/:companyId/catalog/item",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company = await getCompany(req.params.companyId);
+      if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+      const result = await postBridge(company,"catalog_save",{item:req.body || {}},req.session?.sub || "PANEL_V5");
+      return res.json({ok:true,...result});
+    } catch (err) {
+      return res.status(502).json({ok:false,error:String(err?.message || err)});
+    }
+  }
+);
+
+app.post(
+  "/api/company/:companyId/catalog/import-file",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company = await getCompany(req.params.companyId);
+      if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+
+      const items = normalizeCatalogRowsFromWorkbook(req.body?.base64, req.body?.filename);
+      const result = await postBridge(
+        company,
+        "catalog_bulk",
+        {items},
+        req.session?.sub || "PANEL_V5"
+      );
+
+      return res.json({ok:true,parsed:items.length,...result});
+    } catch (err) {
+      return res.status(400).json({ok:false,error:String(err?.message || err)});
+    }
+  }
+);
+
+app.get(
+  "/api/company/:companyId/gastro",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company = await getCompany(req.params.companyId);
+      if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+      const result = await postBridge(company,"gastro_get",{},req.session?.sub || "PANEL_V5");
+      return res.json({ok:true,...result});
+    } catch (err) {
+      return res.status(502).json({ok:false,error:String(err?.message || err)});
+    }
+  }
+);
+
+for (const [pathName, operation] of [
+  ["category","gastro_save_category"],
+  ["product","gastro_save_product"],
+  ["variant","gastro_save_variant"],
+  ["extra","gastro_save_extra"]
+]) {
+  app.post(
+    `/api/company/:companyId/gastro/${pathName}`,
+    authRequired,
+    async (req, res) => {
+      try {
+        const company = await getCompany(req.params.companyId);
+        if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+        const result = await postBridge(company,operation,{data:req.body || {}},req.session?.sub || "PANEL_V5");
+        return res.json({ok:true,...result});
+      } catch (err) {
+        return res.status(502).json({ok:false,error:String(err?.message || err)});
+      }
+    }
+  );
+}
+
+app.get(
   "/api/company/:companyId/:dataset",
   authRequired,
   async (req, res) => {
@@ -696,6 +1092,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.1.3 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.2.0 escuchando en puerto ${PORT}`
   );
 });

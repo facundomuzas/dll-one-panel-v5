@@ -425,6 +425,75 @@
       overflow-wrap:anywhere;
       word-break:break-word;
     }
+
+    .form-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+    .form-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .form-grid .full{grid-column:1/-1}
+    .form-field label{
+      display:block;
+      font-size:11px;
+      color:var(--muted);
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.035em;
+      margin-bottom:6px;
+    }
+    .form-field input,.form-field select,.form-field textarea{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      padding:10px 11px;
+      outline:none;
+    }
+    .form-field textarea{min-height:86px;resize:vertical}
+    .form-field input:focus,.form-field select:focus,.form-field textarea:focus{
+      border-color:var(--brand);
+      box-shadow:0 0 0 3px rgba(120,183,72,.12);
+    }
+    .section-grid{
+      display:grid;
+      grid-template-columns:minmax(0,420px) minmax(0,1fr);
+      gap:14px;
+      align-items:start;
+    }
+    .stack{display:grid;gap:14px}
+    .card-title{font-size:16px;font-weight:850;margin:0 0 12px}
+    .card-sub{font-size:12px;color:var(--muted);line-height:1.45;margin:-5px 0 13px}
+    .actions-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+    .module-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .module-check{
+      display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;
+      padding:10px;background:#fbfcfa;font-size:13px;font-weight:750
+    }
+    .module-check input{width:auto}
+    .data-list{display:grid;gap:8px}
+    .data-row{
+      border:1px solid var(--line);border-radius:13px;padding:11px 12px;background:#fff;
+      display:flex;justify-content:space-between;gap:10px;align-items:flex-start
+    }
+    .data-row-main{min-width:0}
+    .data-row-main strong{display:block;overflow-wrap:anywhere}
+    .data-row-main small{display:block;color:var(--muted);margin-top:4px;line-height:1.35}
+    .data-row-side{white-space:nowrap;text-align:right;font-weight:850}
+    .mini-note{font-size:11px;color:var(--muted);line-height:1.45}
+    .file-drop{
+      border:1px dashed #b9c8b2;border-radius:14px;padding:14px;background:#f8fbf6
+    }
+    .more-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .more-card{
+      border:1px solid var(--line);background:#fff;border-radius:16px;padding:18px;text-align:left;
+      min-height:105px;box-shadow:0 2px 10px rgba(29,48,22,.035)
+    }
+    .more-card strong{display:block;margin-top:8px}
+    .more-card small{display:block;color:var(--muted);margin-top:5px;line-height:1.35}
+    .role-tag{display:inline-flex;padding:5px 8px;border-radius:999px;background:#edf6e7;color:var(--brand-dark);font-size:10px;font-weight:850}
+    .admin-only.hidden-admin{display:none!important}
+
     @media(max-width:1050px){
       .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
     }
@@ -480,6 +549,12 @@
         gap:9px;
         margin-bottom:14px;
       }
+      .section-grid{grid-template-columns:1fr}
+      .form-grid,.form-grid.three{grid-template-columns:1fr}
+      .module-checks{grid-template-columns:1fr 1fr}
+      .more-grid{grid-template-columns:1fr 1fr}
+      .data-row{padding:12px}
+
       .card{padding:13px;border-radius:15px}
       .metric .label{font-size:10px;line-height:1.2}
       .metric .value{font-size:26px;margin-top:6px}
@@ -583,7 +658,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.1.3 · Conversaciones</small>
+          <small>Panel Cloud V5.2.0 · Conversaciones</small>
         </div>
       </div>
 
@@ -608,7 +683,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.1.3</small>
+          <small>Panel Cloud V5.2.0</small>
         </div>
       </div>
 
@@ -618,6 +693,10 @@
         <button data-tab="orders" onclick="go('orders',this)">🧾 Pedidos</button>
         <button data-tab="delivery" onclick="go('delivery',this)">🚚 Delivery</button>
         <button data-tab="customers" onclick="go('customers',this)">👥 Clientes</button>
+        <button data-tab="business" onclick="go('business',this)">🏢 Mi negocio</button>
+        <button data-tab="catalog" onclick="go('catalog',this)">💲 Catálogo / precios</button>
+        <button id="navGastro" data-tab="gastro" onclick="go('gastro',this)">🍔 Gastro</button>
+        <button id="navAdmin" class="admin-only hidden-admin" data-tab="admin" onclick="go('admin',this)">⚙ Super Admin</button>
       </div>
 
       <div class="soon">
@@ -661,7 +740,7 @@
           <div class="card">
             <strong>Qué es esta versión</strong>
             <p style="color:var(--muted);line-height:1.55;margin-bottom:0">
-              V5.1 ya permite operar conversaciones de WhatsApp desde el Panel Cloud: tomar el chat, responder como humano y devolverlo al bot. Pedidos y delivery siguen temporalmente en V4.
+              V5.2 suma Super Admin, altas de empresas, usuarios por empresa, configuración del negocio y carga de listas de precios. Pedidos y delivery siguen temporalmente en V4.
             </p>
           </div>
         </section>
@@ -669,7 +748,7 @@
         <section id="conversations" class="section">
           <div class="hero">
             <div><h1>Conversaciones</h1><p>WhatsApp en vivo · tomá el chat, respondé y devolvelo al bot.</p></div>
-            <span class="pill">● V5.1.3 OPERATIVO</span>
+            <span class="pill">● V5.2 OPERATIVO</span>
           </div>
 
           <div class="card conversation-shell">
@@ -746,6 +825,192 @@
             <div id="customersTable" class="table-wrap"></div>
           </div>
         </section>
+
+        <section id="business" class="section">
+          <div class="hero">
+            <div><h1>Mi negocio</h1><p>Datos que usa DLL ONE para representar correctamente a la empresa.</p></div>
+            <span id="businessRoleTag" class="role-tag"></span>
+          </div>
+
+          <div class="section-grid">
+            <div class="card">
+              <h3 class="card-title">Datos generales</h3>
+              <div class="form-grid">
+                <div class="form-field full"><label>Nombre comercial</label><input id="bizName"></div>
+                <div class="form-field"><label>Tipo de negocio</label><select id="bizType"><option value="PRODUCTOS">Productos</option><option value="SERVICIOS">Servicios</option><option value="MIXTO">Mixto</option></select></div>
+                <div class="form-field"><label>Teléfono</label><input id="bizPhone"></div>
+                <div class="form-field full"><label>Dirección</label><input id="bizAddress"></div>
+                <div class="form-field full"><label>Email</label><input id="bizEmail" type="email"></div>
+                <div id="bizPhoneNumberWrap" class="form-field full admin-only hidden-admin"><label>WhatsApp Phone Number ID</label><input id="bizPhoneNumberId"></div>
+              </div>
+              <div class="actions-row"><button class="btn btn-primary" onclick="saveBusiness()">Guardar cambios</button></div>
+            </div>
+
+            <div class="card">
+              <h3 class="card-title">Módulos DLL ONE</h3>
+              <p class="card-sub">Solo el Super Admin decide qué módulos forman parte del plan de cada empresa.</p>
+              <div class="module-checks">
+                <label class="module-check"><input id="modVentas" type="checkbox"> ONE Ventas</label>
+                <label class="module-check"><input id="modGastro" type="checkbox"> ONE Gastro</label>
+                <label class="module-check"><input id="modEventos" type="checkbox"> ONE Eventos</label>
+                <label class="module-check"><input id="modServicios" type="checkbox"> ONE Servicios</label>
+              </div>
+              <p id="moduleHelp" class="mini-note" style="margin-top:12px"></p>
+            </div>
+          </div>
+        </section>
+
+        <section id="catalog" class="section">
+          <div class="hero">
+            <div><h1>Catálogo y precios</h1><p>La empresa puede mantener sus productos y precios sin entrar a Google Sheets.</p></div>
+            <span id="catalogCount" class="pill">0 items</span>
+          </div>
+
+          <div class="section-grid">
+            <div class="stack">
+              <div class="card">
+                <h3 class="card-title">Agregar / editar item</h3>
+                <input id="catRow" type="hidden">
+                <div class="form-grid">
+                  <div class="form-field"><label>Código</label><input id="catCode" placeholder="Opcional"></div>
+                  <div class="form-field"><label>Tipo</label><select id="catType"><option value="PRODUCTO">Producto</option><option value="SERVICIO_FIJO">Servicio fijo</option><option value="SERVICIO_UNIDAD">Servicio por unidad</option><option value="SERVICIO_COTIZABLE">Servicio a cotizar</option></select></div>
+                  <div class="form-field full"><label>Nombre</label><input id="catName"></div>
+                  <div class="form-field full"><label>Descripción</label><textarea id="catDescription"></textarea></div>
+                  <div class="form-field"><label>Precio</label><input id="catPrice" type="number" min="0" step="0.01"></div>
+                  <div class="form-field"><label>Unidad</label><input id="catUnit" value="unidad"></div>
+                  <div class="form-field"><label>Categoría</label><input id="catCategory"></div>
+                  <div class="form-field"><label>Marca</label><input id="catBrand"></div>
+                </div>
+                <div class="actions-row">
+                  <button class="btn btn-primary" onclick="saveCatalogItem()">Guardar</button>
+                  <button class="btn btn-light" onclick="clearCatalogForm()">Nuevo</button>
+                </div>
+              </div>
+
+              <div class="card file-drop">
+                <h3 class="card-title">Importar lista de precios</h3>
+                <p class="card-sub">Acepta Excel .xlsx/.xls y CSV. La primera hoja debe tener al menos NOMBRE o PRODUCTO. También reconoce PRECIO, CÓDIGO, CATEGORÍA, MARCA y UNIDAD.</p>
+                <input id="catalogFile" type="file" accept=".xlsx,.xls,.csv">
+                <div class="actions-row"><button class="btn btn-primary" onclick="importCatalogFile()">Importar archivo</button></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 class="card-title">Productos y servicios</h3>
+              <div id="catalogList" class="data-list"><div class="empty">Cargando catálogo…</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="gastro" class="section">
+          <div class="hero">
+            <div><h1>ONE Gastro</h1><p>Categorías, productos, variantes y extras del menú.</p></div>
+            <span class="pill">● GASTRO BASE</span>
+          </div>
+
+          <div class="section-grid">
+            <div class="stack">
+              <div class="card">
+                <h3 class="card-title">Nueva categoría</h3>
+                <div class="form-grid"><div class="form-field full"><label>Nombre</label><input id="gCatName"></div><div class="form-field"><label>Posición</label><input id="gCatOrder" type="number" value="10"></div></div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroCategory()">Guardar categoría</button></div>
+              </div>
+
+              <div class="card">
+                <h3 class="card-title">Nuevo producto</h3>
+                <div class="form-grid">
+                  <div class="form-field full"><label>Categoría</label><select id="gProductCategory"></select></div>
+                  <div class="form-field full"><label>Nombre</label><input id="gProductName"></div>
+                  <div class="form-field full"><label>Descripción</label><textarea id="gProductDescription"></textarea></div>
+                  <div class="form-field"><label>Precio base</label><input id="gProductPrice" type="number" min="0"></div>
+                  <div class="form-field"><label>Posición</label><input id="gProductOrder" type="number" value="10"></div>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroProduct()">Guardar producto</button></div>
+              </div>
+
+              <div class="card">
+                <h3 class="card-title">Variante</h3>
+                <div class="form-grid">
+                  <div class="form-field full"><label>Producto</label><select id="gVariantProduct"></select></div>
+                  <div class="form-field"><label>Nombre</label><input id="gVariantName" placeholder="Simple, Doble, x2…"></div>
+                  <div class="form-field"><label>Precio</label><input id="gVariantPrice" type="number" min="0"></div>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroVariant()">Guardar variante</button></div>
+              </div>
+
+              <div class="card">
+                <h3 class="card-title">Extra</h3>
+                <div class="form-grid">
+                  <div class="form-field"><label>Nombre</label><input id="gExtraName" placeholder="Cheddar extra"></div>
+                  <div class="form-field"><label>Precio</label><input id="gExtraPrice" type="number" min="0"></div>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroExtra()">Guardar extra</button></div>
+              </div>
+            </div>
+
+            <div class="stack">
+              <div class="card"><h3 class="card-title">Categorías</h3><div id="gCategoriesList" class="data-list"></div></div>
+              <div class="card"><h3 class="card-title">Productos</h3><div id="gProductsList" class="data-list"></div></div>
+              <div class="card"><h3 class="card-title">Variantes y extras</h3><div id="gOptionsList" class="data-list"></div></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="admin" class="section">
+          <div class="hero">
+            <div><h1>Super Admin</h1><p>Alta de empresas y accesos de clientes. Solo visible para DLL ONE.</p></div>
+            <span class="pill">● SUPERADMIN</span>
+          </div>
+
+          <div class="section-grid">
+            <div class="stack">
+              <div class="card">
+                <h3 class="card-title">Crear empresa</h3>
+                <div class="form-grid">
+                  <div class="form-field full"><label>Nombre</label><input id="adminCompanyName"></div>
+                  <div class="form-field"><label>Tipo</label><select id="adminCompanyType"><option value="MIXTO">Mixto</option><option value="PRODUCTOS">Productos</option><option value="SERVICIOS">Servicios</option></select></div>
+                  <div class="form-field"><label>Slug web</label><input id="adminCompanySlug" placeholder="Opcional"></div>
+                  <div class="form-field full"><label>Phone Number ID de WhatsApp</label><input id="adminCompanyPhoneId" placeholder="Se puede completar después"></div>
+                </div>
+                <div class="module-checks" style="margin-top:12px">
+                  <label class="module-check"><input id="adminModVentas" type="checkbox" checked> ONE Ventas</label>
+                  <label class="module-check"><input id="adminModGastro" type="checkbox"> ONE Gastro</label>
+                  <label class="module-check"><input id="adminModEventos" type="checkbox"> ONE Eventos</label>
+                  <label class="module-check"><input id="adminModServicios" type="checkbox"> ONE Servicios</label>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="createCompany()">Crear empresa</button></div>
+              </div>
+
+              <div class="card">
+                <h3 class="card-title">Crear acceso para cliente</h3>
+                <div class="form-grid">
+                  <div class="form-field full"><label>Nombre</label><input id="adminUserName"></div>
+                  <div class="form-field full"><label>Usuario / correo</label><input id="adminUserLogin"></div>
+                  <div class="form-field full"><label>Contraseña inicial</label><input id="adminUserPassword" type="password"></div>
+                  <div class="form-field"><label>Rol</label><select id="adminUserRole"><option value="ADMIN_EMPRESA">Administrador empresa</option><option value="OPERADOR">Operador</option></select></div>
+                  <div class="form-field"><label>Empresa</label><select id="adminUserCompany"></select></div>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="createPanelUser()">Crear usuario</button></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 class="card-title">Usuarios creados</h3>
+              <div id="adminUsersList" class="data-list"><div class="empty">Cargando usuarios…</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="more" class="section">
+          <div class="hero"><div><h1>Más</h1><p>Configuración y administración.</p></div></div>
+          <div class="more-grid">
+            <button class="more-card" onclick="go('business')">🏢<strong>Mi negocio</strong><small>Datos generales y módulos.</small></button>
+            <button class="more-card" onclick="go('catalog')">💲<strong>Catálogo</strong><small>Productos, servicios y listas de precios.</small></button>
+            <button id="moreGastro" class="more-card" onclick="go('gastro')">🍔<strong>Gastro</strong><small>Menú, variantes y extras.</small></button>
+            <button class="more-card" onclick="go('customers')">👥<strong>Clientes</strong><small>Base de clientes.</small></button>
+            <button id="moreAdmin" class="more-card admin-only hidden-admin" onclick="go('admin')">⚙<strong>Super Admin</strong><small>Crear empresas y accesos.</small></button>
+          </div>
+        </section>
       </div>
     </main>
 
@@ -754,7 +1019,7 @@
       <button data-tab="conversations" onclick="go('conversations',this)"><span class="ico">💬</span><span class="txt">Chats</span></button>
       <button data-tab="orders" onclick="go('orders',this)"><span class="ico">🧾</span><span class="txt">Pedidos</span></button>
       <button data-tab="delivery" onclick="go('delivery',this)"><span class="ico">🚚</span><span class="txt">Delivery</span></button>
-      <button data-tab="customers" onclick="go('customers',this)"><span class="ico">👥</span><span class="txt">Clientes</span></button>
+      <button data-tab="more" onclick="go('more',this)"><span class="ico">☰</span><span class="txt">Más</span></button>
     </nav>
   </div>
 
@@ -770,6 +1035,9 @@
     at:0
   };
   let selectedChat=null;
+  let currentUser=null;
+  let catalogItems=[];
+  let gastroData={categorias:[],productos:[],variantes:[],extras:[]};
   let inboxTimer=null;
   let inboxSearchTimer=null;
   let inboxBusy=false;
@@ -865,7 +1133,7 @@
   async function start(){
     showLoading(true);
     try{
-      await api('/api/me');
+      currentUser=await api('/api/me');
       const r=await api('/api/companies');
       companies=r.items||[];
 
@@ -876,20 +1144,45 @@
 
       companyId=companies[0]?.idEmpresa||'';
 
-      if(!companyId){
-        throw new Error('Todavía no hay empresas sincronizadas. Ejecutá sincronizarPanelCloudV500() en Apps Script.');
-      }
+      const isSuperadmin=String(currentUser?.role||'').toUpperCase()==='SUPERADMIN';
+      document.querySelectorAll('.admin-only').forEach(el=>{
+        el.classList.toggle('hidden-admin',!isSuperadmin);
+      });
+      $('businessRoleTag').textContent=isSuperadmin?'SUPERADMIN':(currentUser?.name||currentUser?.user||'EMPRESA');
 
       showApp();
+      updateModuleNavigation();
+
+      if(!companyId){
+        if(isSuperadmin){
+          await go('admin');
+          return;
+        }
+        throw new Error('Tu usuario todavía no tiene una empresa asignada.');
+      }
+
       await loadTab('dashboard');
     }finally{
       showLoading(false);
     }
   }
 
+  function selectedCompany(){
+    return companies.find(c=>c.idEmpresa===companyId)||null;
+  }
+
+  function updateModuleNavigation(){
+    const company=selectedCompany();
+    const mods=company?.modules||{};
+    const gastroActive=String(mods.gastro??mods.MODULO_GASTRO??'').toUpperCase()==='SI'||mods.gastro===true;
+    if($('navGastro'))$('navGastro').style.display=gastroActive?'':'none';
+    if($('moreGastro'))$('moreGastro').style.display=gastroActive?'':'none';
+  }
+
   async function changeCompany(){
     companyId=$('companySelect').value;
-    await loadTab(currentTab);
+    updateModuleNavigation();
+    await loadTab(currentTab==='admin'?'dashboard':currentTab);
   }
 
   async function go(tab,button){
@@ -909,7 +1202,14 @@
   }
 
   async function loadTab(tab){
-    if(!companyId)return;
+    const companyTabs=new Set(['dashboard','conversations','orders','delivery','customers','business','catalog','gastro']);
+    if(companyTabs.has(tab)&&!companyId){
+      if(String(currentUser?.role||'').toUpperCase()==='SUPERADMIN'){
+        await go('admin');
+        return;
+      }
+      throw new Error('No hay empresa seleccionada.');
+    }
 
     showLoading(true);
 
@@ -919,6 +1219,11 @@
       if(tab==='orders')await loadOrders();
       if(tab==='delivery')await loadDelivery();
       if(tab==='customers')await loadCustomers();
+      if(tab==='business')await loadBusiness();
+      if(tab==='catalog')await loadCatalog();
+      if(tab==='gastro')await loadGastro();
+      if(tab==='admin')await loadAdmin();
+      if(tab==='more')updateModuleNavigation();
     }catch(err){
       alert(err.message||String(err));
     }finally{
@@ -1319,6 +1624,270 @@
       r.items||[],
       ['ID_CLIENTE','NOMBRE','TELEFONO','EMAIL','ESTADO','ULTIMA_INTERACCION']
     );
+  }
+
+
+  async function refreshCompanies(){
+    const r=await api('/api/companies');
+    companies=r.items||[];
+    const select=$('companySelect');
+    const previous=companyId;
+    select.innerHTML=companies.map(c=>`<option value="${esc(c.idEmpresa)}">${esc(c.nombreEmpresa)}</option>`).join('');
+    companyId=companies.some(c=>c.idEmpresa===previous)?previous:(companies[0]?.idEmpresa||'');
+    select.value=companyId;
+    updateModuleNavigation();
+    fillAdminCompanySelect();
+  }
+
+  async function loadBusiness(){
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/profile`);
+    const e=r.empresa||{};
+    const c=r.config||{};
+    const m=r.modulos||{};
+    $('bizName').value=c.NOMBRE_EMPRESA||e.nombreEmpresa||'';
+    $('bizType').value=c.TIPO_NEGOCIO||e.tipoNegocio||'MIXTO';
+    $('bizPhone').value=c.TELEFONO||'';
+    $('bizAddress').value=c.DIRECCION||'';
+    $('bizEmail').value=c.EMAIL||'';
+    $('bizPhoneNumberId').value=e.phoneNumberId||'';
+    $('modVentas').checked=!!m.ventas;
+    $('modGastro').checked=!!m.gastro;
+    $('modEventos').checked=!!m.eventos;
+    $('modServicios').checked=!!m.servicios;
+    const isSuper=String(currentUser?.role||'').toUpperCase()==='SUPERADMIN';
+    ['modVentas','modGastro','modEventos','modServicios'].forEach(id=>$(id).disabled=!isSuper);
+    $('moduleHelp').textContent=isSuper
+      ?'Como Super Admin podés activar o desactivar módulos del plan.'
+      :'Los módulos de tu plan los administra DLL ONE.';
+  }
+
+  async function saveBusiness(){
+    const isSuper=String(currentUser?.role||'').toUpperCase()==='SUPERADMIN';
+    const body={
+      NOMBRE_EMPRESA:$('bizName').value.trim(),
+      TIPO_NEGOCIO:$('bizType').value,
+      TELEFONO:$('bizPhone').value.trim(),
+      DIRECCION:$('bizAddress').value.trim(),
+      EMAIL:$('bizEmail').value.trim()
+    };
+    if(isSuper){
+      body.PHONE_NUMBER_ID=$('bizPhoneNumberId').value.trim();
+      body.modulos={
+        ventas:$('modVentas').checked,
+        gastro:$('modGastro').checked,
+        eventos:$('modEventos').checked,
+        servicios:$('modServicios').checked
+      };
+    }
+    await api(`/api/company/${encodeURIComponent(companyId)}/profile`,{method:'POST',body:JSON.stringify(body)});
+    await refreshCompanies();
+    alert('Datos guardados.');
+  }
+
+  function clearCatalogForm(){
+    $('catRow').value='';
+    $('catCode').value='';
+    $('catType').value='PRODUCTO';
+    $('catName').value='';
+    $('catDescription').value='';
+    $('catPrice').value='';
+    $('catUnit').value='unidad';
+    $('catCategory').value='';
+    $('catBrand').value='';
+  }
+
+  function editCatalogItem(index){
+    const x=catalogItems[index];
+    if(!x)return;
+    $('catRow').value=x.fila||'';
+    $('catCode').value=x.codigo||'';
+    $('catType').value=x.tipoItem||'PRODUCTO';
+    $('catName').value=x.nombre||'';
+    $('catDescription').value=x.descripcion||'';
+    $('catPrice').value=x.precio??'';
+    $('catUnit').value=x.unidad||'unidad';
+    $('catCategory').value=x.categoria||'';
+    $('catBrand').value=x.marca||'';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function renderCatalog(){
+    $('catalogCount').textContent=`${catalogItems.length} items`;
+    const box=$('catalogList');
+    if(!catalogItems.length){
+      box.innerHTML='<div class="empty">Todavía no hay productos o servicios.</div>';
+      return;
+    }
+    box.innerHTML=catalogItems.map((x,i)=>`
+      <div class="data-row">
+        <div class="data-row-main">
+          <strong>${esc(x.nombre||'')}</strong>
+          <small>${esc([x.codigo,x.categoria,x.marca].filter(Boolean).join(' · '))}${x.descripcion?'<br>'+esc(x.descripcion):''}</small>
+        </div>
+        <div class="data-row-side">${x.modoPrecio==='A_COTIZAR'?'A cotizar':money(x.precio)}<br><button class="btn btn-light btn-sm" onclick="editCatalogItem(${i})">Editar</button></div>
+      </div>`).join('');
+  }
+
+  async function loadCatalog(){
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/catalog`);
+    catalogItems=r.items||[];
+    renderCatalog();
+  }
+
+  async function saveCatalogItem(){
+    const item={
+      fila:Number($('catRow').value||0)||undefined,
+      codigo:$('catCode').value.trim(),
+      tipoItem:$('catType').value,
+      nombre:$('catName').value.trim(),
+      descripcion:$('catDescription').value.trim(),
+      precio:Number($('catPrice').value||0),
+      unidad:$('catUnit').value.trim()||'unidad',
+      categoria:$('catCategory').value.trim(),
+      marca:$('catBrand').value.trim(),
+      activo:'SI'
+    };
+    await api(`/api/company/${encodeURIComponent(companyId)}/catalog/item`,{method:'POST',body:JSON.stringify(item)});
+    clearCatalogForm();
+    await loadCatalog();
+  }
+
+  function fileToBase64(file){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(String(reader.result||'').split(',').pop()||'');
+      reader.onerror=()=>reject(new Error('No pude leer el archivo.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function importCatalogFile(){
+    const file=$('catalogFile').files?.[0];
+    if(!file){alert('Seleccioná un archivo Excel o CSV.');return}
+    if(!confirm(`¿Importar ${file.name}? Los códigos existentes se actualizarán y los nuevos se agregarán.`))return;
+    showLoading(true);
+    try{
+      const base64=await fileToBase64(file);
+      const r=await api(`/api/company/${encodeURIComponent(companyId)}/catalog/import-file`,{
+        method:'POST',
+        body:JSON.stringify({filename:file.name,base64})
+      });
+      alert(`Importación terminada. ${r.guardados??r.parsed??0} filas procesadas.`);
+      $('catalogFile').value='';
+      await loadCatalog();
+    }catch(err){alert(err.message||String(err))}
+    finally{showLoading(false)}
+  }
+
+  function renderGastro(){
+    const cats=gastroData.categorias||[];
+    const products=gastroData.productos||[];
+    const variants=gastroData.variantes||[];
+    const extras=gastroData.extras||[];
+
+    $('gProductCategory').innerHTML='<option value="">Sin categoría</option>'+cats.map(x=>`<option value="${esc(x.idCategoria)}">${esc(x.nombre)}</option>`).join('');
+    $('gVariantProduct').innerHTML=products.map(x=>`<option value="${esc(x.idProducto)}">${esc(x.nombre)}</option>`).join('');
+
+    $('gCategoriesList').innerHTML=cats.length?cats.map(x=>`<div class="data-row"><div class="data-row-main"><strong>${esc(x.nombre)}</strong><small>Posición ${esc(x.orden)}</small></div></div>`).join(''):'<div class="empty">Sin categorías.</div>';
+    $('gProductsList').innerHTML=products.length?products.map(x=>`<div class="data-row"><div class="data-row-main"><strong>${esc(x.nombre)}</strong><small>${esc(x.descripcion||'')}</small></div><div class="data-row-side">${money(x.precioBase)}</div></div>`).join(''):'<div class="empty">Sin productos.</div>';
+    const options=[
+      ...variants.map(x=>({name:x.nombre,detail:`Variante · ${money(x.precio)}`})),
+      ...extras.map(x=>({name:x.nombre,detail:`Extra · ${money(x.precio)}`}))
+    ];
+    $('gOptionsList').innerHTML=options.length?options.map(x=>`<div class="data-row"><div class="data-row-main"><strong>${esc(x.name)}</strong><small>${esc(x.detail)}</small></div></div>`).join(''):'<div class="empty">Sin variantes ni extras.</div>';
+  }
+
+  async function loadGastro(){
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro`);
+    gastroData={
+      categorias:r.categorias||[],
+      productos:r.productos||[],
+      variantes:r.variantes||[],
+      extras:r.extras||[]
+    };
+    renderGastro();
+  }
+
+  async function saveGastroCategory(){
+    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/category`,{method:'POST',body:JSON.stringify({nombre:$('gCatName').value.trim(),orden:Number($('gCatOrder').value||0),activa:'SI'})});
+    $('gCatName').value='';
+    await loadGastro();
+  }
+
+  async function saveGastroProduct(){
+    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/product`,{method:'POST',body:JSON.stringify({idCategoria:$('gProductCategory').value,nombre:$('gProductName').value.trim(),descripcion:$('gProductDescription').value.trim(),precioBase:Number($('gProductPrice').value||0),orden:Number($('gProductOrder').value||0),activo:'SI',agotado:'NO'})});
+    $('gProductName').value='';$('gProductDescription').value='';$('gProductPrice').value='';
+    await loadGastro();
+  }
+
+  async function saveGastroVariant(){
+    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/variant`,{method:'POST',body:JSON.stringify({idProducto:$('gVariantProduct').value,nombre:$('gVariantName').value.trim(),precio:Number($('gVariantPrice').value||0),activa:'SI'})});
+    $('gVariantName').value='';$('gVariantPrice').value='';
+    await loadGastro();
+  }
+
+  async function saveGastroExtra(){
+    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/extra`,{method:'POST',body:JSON.stringify({nombre:$('gExtraName').value.trim(),precio:Number($('gExtraPrice').value||0),aplicaA:'TODOS',maxCantidad:1,activo:'SI'})});
+    $('gExtraName').value='';$('gExtraPrice').value='';
+    await loadGastro();
+  }
+
+  function fillAdminCompanySelect(){
+    if(!$('adminUserCompany'))return;
+    $('adminUserCompany').innerHTML=companies.map(c=>`<option value="${esc(c.idEmpresa)}">${esc(c.nombreEmpresa)}</option>`).join('');
+  }
+
+  async function loadAdmin(){
+    if(String(currentUser?.role||'').toUpperCase()!=='SUPERADMIN'){
+      throw new Error('Solo SUPERADMIN puede entrar acá.');
+    }
+    await refreshCompanies();
+    const r=await api('/api/admin/users');
+    const users=r.items||[];
+    $('adminUsersList').innerHTML=users.length?users.map(u=>{
+      const companiesText=(u.companies||[]).map(x=>x.companyId).join(', ')||'Todas / SuperAdmin';
+      return `<div class="data-row"><div class="data-row-main"><strong>${esc(u.display_name||u.login_key)}</strong><small>${esc(u.login_key)} · ${esc(u.role)} · ${esc(companiesText)}</small></div><div class="data-row-side">${u.active?'Activo':'Inactivo'}</div></div>`;
+    }).join(''):'<div class="empty">Todavía no creaste usuarios de empresas.</div>';
+  }
+
+  async function createCompany(){
+    const body={
+      nombreEmpresa:$('adminCompanyName').value.trim(),
+      tipoNegocio:$('adminCompanyType').value,
+      webSlug:$('adminCompanySlug').value.trim(),
+      phoneNumberId:$('adminCompanyPhoneId').value.trim(),
+      modules:{
+        ventas:$('adminModVentas').checked,
+        gastro:$('adminModGastro').checked,
+        eventos:$('adminModEventos').checked,
+        servicios:$('adminModServicios').checked
+      }
+    };
+    if(!body.nombreEmpresa){alert('Ingresá el nombre de la empresa.');return}
+    if(!confirm(`¿Crear la empresa ${body.nombreEmpresa}?`))return;
+    showLoading(true);
+    try{
+      const r=await api('/api/admin/companies',{method:'POST',body:JSON.stringify(body)});
+      await new Promise(resolve=>setTimeout(resolve,700));
+      await refreshCompanies();
+      alert(`Empresa creada: ${r.idEmpresa||''}`);
+      $('adminCompanyName').value='';$('adminCompanySlug').value='';$('adminCompanyPhoneId').value='';
+    }catch(err){alert(err.message||String(err))}
+    finally{showLoading(false)}
+  }
+
+  async function createPanelUser(){
+    const body={
+      displayName:$('adminUserName').value.trim(),
+      loginKey:$('adminUserLogin').value.trim(),
+      password:$('adminUserPassword').value,
+      role:$('adminUserRole').value,
+      companyIds:[$('adminUserCompany').value].filter(Boolean)
+    };
+    await api('/api/admin/users',{method:'POST',body:JSON.stringify(body)});
+    $('adminUserName').value='';$('adminUserLogin').value='';$('adminUserPassword').value='';
+    await loadAdmin();
+    alert('Usuario creado. Ya puede ingresar al Panel V5.');
   }
 
   if('serviceWorker' in navigator){
