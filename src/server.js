@@ -406,8 +406,8 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.2.0",
-      mode: "SUPERADMIN_ONBOARDING",
+      version: "5.3.0",
+      mode: "GASTRO_AUTOGESTION",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
         source: String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim()
@@ -420,7 +420,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.2.0",
+      version: "5.3.0",
       error: String(err?.message || err)
     });
   }
@@ -450,7 +450,7 @@ app.post("/sync/company", async (req, res) => {
     return res.json({
       ok: true,
       ...result,
-      version: "5.2.0"
+      version: "5.3.0"
     });
   } catch (err) {
     return res.status(400).json({
@@ -974,6 +974,123 @@ for (const [pathName, operation] of [
   );
 }
 
+
+app.get(
+  "/api/company/:companyId/gastro/settings",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company = await getCompany(req.params.companyId);
+      if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+      const result = await postBridge(company,"gastro_settings_get",{},req.session?.sub || "PANEL_V5");
+      return res.json({ok:true,...result});
+    } catch (err) {
+      return res.status(502).json({ok:false,error:String(err?.message || err)});
+    }
+  }
+);
+
+for (const [pathName, operation] of [
+  ["menu/config","gastro_menu_config"],
+  ["menu/upload","gastro_menu_upload"],
+  ["payment","gastro_payment_save"],
+  ["config","gastro_config_save"],
+  ["zone","gastro_zone_save"]
+]) {
+  app.post(
+    `/api/company/:companyId/gastro/${pathName}`,
+    authRequired,
+    async (req, res) => {
+      try {
+        const company = await getCompany(req.params.companyId);
+        if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+        const result = await postBridge(company,operation,{data:req.body || {}},req.session?.sub || "PANEL_V5");
+        return res.json({ok:true,...result});
+      } catch (err) {
+        return res.status(502).json({ok:false,error:String(err?.message || err)});
+      }
+    }
+  );
+}
+
+app.post(
+  "/api/company/:companyId/gastro/menu/:id/toggle",
+  authRequired,
+  async (req,res)=>{
+    try{
+      const company=await getCompany(req.params.companyId);
+      if(!company)return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+      const result=await postBridge(company,"gastro_menu_toggle",{idImagen:req.params.id,activa:req.body?.activa===true},req.session?.sub||"PANEL_V5");
+      return res.json({ok:true,...result});
+    }catch(err){return res.status(502).json({ok:false,error:String(err?.message||err)});}
+  }
+);
+
+app.post(
+  "/api/company/:companyId/gastro/menu/:id/move",
+  authRequired,
+  async (req,res)=>{
+    try{
+      const company=await getCompany(req.params.companyId);
+      if(!company)return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+      const result=await postBridge(company,"gastro_menu_move",{idImagen:req.params.id,direccion:String(req.body?.direccion||"")},req.session?.sub||"PANEL_V5");
+      return res.json({ok:true,...result});
+    }catch(err){return res.status(502).json({ok:false,error:String(err?.message||err)});}
+  }
+);
+
+app.post(
+  "/api/company/:companyId/gastro/menu/:id/delete",
+  authRequired,
+  async (req,res)=>{
+    try{
+      const company=await getCompany(req.params.companyId);
+      if(!company)return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+      const result=await postBridge(company,"gastro_menu_delete",{idImagen:req.params.id},req.session?.sub||"PANEL_V5");
+      return res.json({ok:true,...result});
+    }catch(err){return res.status(502).json({ok:false,error:String(err?.message||err)});}
+  }
+);
+
+app.get(
+  "/api/company/:companyId/gastro/menu/:id/preview",
+  authRequired,
+  async (req,res)=>{
+    try{
+      const company=await getCompany(req.params.companyId);
+      if(!company)return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+      const result=await postBridge(company,"gastro_menu_preview",{idImagen:req.params.id},req.session?.sub||"PANEL_V5");
+      return res.json({ok:true,...result});
+    }catch(err){return res.status(502).json({ok:false,error:String(err?.message||err)});}
+  }
+);
+
+app.post(
+  "/api/company/:companyId/gastro/payment/:fila/disable",
+  authRequired,
+  async (req,res)=>{
+    try{
+      const company=await getCompany(req.params.companyId);
+      if(!company)return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+      const result=await postBridge(company,"gastro_payment_disable",{fila:Number(req.params.fila)},req.session?.sub||"PANEL_V5");
+      return res.json({ok:true,...result});
+    }catch(err){return res.status(502).json({ok:false,error:String(err?.message||err)});}
+  }
+);
+
+app.post(
+  "/api/company/:companyId/gastro/zone/:id/delete",
+  authRequired,
+  async (req,res)=>{
+    try{
+      const company=await getCompany(req.params.companyId);
+      if(!company)return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+      const result=await postBridge(company,"gastro_zone_delete",{idZona:req.params.id},req.session?.sub||"PANEL_V5");
+      return res.json({ok:true,...result});
+    }catch(err){return res.status(502).json({ok:false,error:String(err?.message||err)});}
+  }
+);
+
 app.get(
   "/api/company/:companyId/:dataset",
   authRequired,
@@ -1092,6 +1209,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.2.0 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.3.0 escuchando en puerto ${PORT}`
   );
 });

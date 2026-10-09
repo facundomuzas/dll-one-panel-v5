@@ -158,3 +158,17 @@ No hace falta crear otro PostgreSQL ni otro servicio.
 - Permisos finos para OPERADOR.
 - Pedidos/cocina/comprobantes 100% operativos desde V5.
 - Escritura directa del bot en PostgreSQL.
+
+
+## V5.3.0 — Gastro Autogestión
+
+Agrega al Panel Cloud:
+- carga y orden de imágenes del menú,
+- activar/desactivar envío automático de menú,
+- medios de pago y detalle/alias,
+- habilitar efectivo/transferencia,
+- habilitar delivery/retiro,
+- zonas de delivery con referencias y costo,
+- autogestión desde celular o PC sin abrir Google Sheets.
+
+Los cambios se guardan todavía a través del Bridge seguro en las hojas que usa el bot actual. Así el comportamiento productivo no se rompe durante la migración.

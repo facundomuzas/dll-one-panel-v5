@@ -649,7 +649,15 @@
       .field input{min-height:46px;font-size:16px}
       .login .btn{min-height:48px}
     }
-  </style>
+  
+    .toggle-line{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
+    .toggle-line:last-child{border-bottom:0}.toggle-line strong{display:block;font-size:14px}.toggle-line small{display:block;color:var(--muted);margin-top:3px;line-height:1.35}
+    .switch{position:relative;width:48px;height:28px;flex:0 0 auto}.switch input{opacity:0;width:0;height:0}.switch span{position:absolute;inset:0;border-radius:999px;background:#d9dfd6;transition:.2s}.switch span:before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.22);transition:.2s}.switch input:checked+span{background:var(--brand)}.switch input:checked+span:before{transform:translateX(20px)}
+    .compact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.mini-card{border:1px solid var(--line);border-radius:14px;padding:13px;background:#fbfcfa}.mini-card.off{opacity:.58}.mini-title{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.mini-title strong{font-size:14px}.mini-title small{display:block;color:var(--muted);margin-top:3px}.mini-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.btn-xs{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 9px;font-size:12px;font-weight:750}.btn-xs:hover{border-color:var(--brand)}.btn-xs.danger{color:var(--danger)}
+    .upload-status{margin-top:9px;color:var(--muted);font-size:12px}.subsection-title{margin:22px 0 10px;font-size:18px}.lightbox{position:fixed;inset:0;background:rgba(15,20,15,.78);z-index:50;display:grid;place-items:center;padding:20px}.lightbox.hidden{display:none}.lightbox-card{position:relative;max-width:min(92vw,900px);max-height:92vh}.lightbox-card img{max-width:100%;max-height:88vh;border-radius:16px;background:#fff;box-shadow:0 20px 70px rgba(0,0,0,.35)}.lightbox-close{position:absolute;right:-10px;top:-10px;width:36px;height:36px;border:0;border-radius:50%;background:#fff;font-size:20px;box-shadow:var(--shadow)}
+    @media(max-width:760px){.compact-grid{grid-template-columns:1fr}.mini-actions .btn-xs{flex:1}.toggle-line{align-items:center}}
+
+</style>
 </head>
 <body>
   <div id="login" class="login">
@@ -658,7 +666,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.2.0 · Conversaciones</small>
+          <small>Panel Cloud V5.3.0 · Autogestión</small>
         </div>
       </div>
 
@@ -683,7 +691,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.2.0</small>
+          <small>Panel Cloud V5.3.0</small>
         </div>
       </div>
 
@@ -740,7 +748,7 @@
           <div class="card">
             <strong>Qué es esta versión</strong>
             <p style="color:var(--muted);line-height:1.55;margin-bottom:0">
-              V5.2 suma Super Admin, altas de empresas, usuarios por empresa, configuración del negocio y carga de listas de precios. Pedidos y delivery siguen temporalmente en V4.
+              V5.3 suma autogestión Gastro: menú visual, medios de pago y zonas de delivery. Pedidos operativos siguen temporalmente en V4 mientras completamos la migración.
             </p>
           </div>
         </section>
@@ -904,10 +912,11 @@
 
         <section id="gastro" class="section">
           <div class="hero">
-            <div><h1>ONE Gastro</h1><p>Categorías, productos, variantes y extras del menú.</p></div>
-            <span class="pill">● GASTRO BASE</span>
+            <div><h1>ONE Gastro</h1><p>Menú, precios, imágenes, pagos y delivery desde un solo lugar.</p></div>
+            <span class="pill">● GASTRO AUTOGESTIÓN</span>
           </div>
 
+          <h2 class="subsection-title">Productos del menú</h2>
           <div class="section-grid">
             <div class="stack">
               <div class="card">
@@ -915,7 +924,6 @@
                 <div class="form-grid"><div class="form-field full"><label>Nombre</label><input id="gCatName"></div><div class="form-field"><label>Posición</label><input id="gCatOrder" type="number" value="10"></div></div>
                 <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroCategory()">Guardar categoría</button></div>
               </div>
-
               <div class="card">
                 <h3 class="card-title">Nuevo producto</h3>
                 <div class="form-grid">
@@ -927,7 +935,6 @@
                 </div>
                 <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroProduct()">Guardar producto</button></div>
               </div>
-
               <div class="card">
                 <h3 class="card-title">Variante</h3>
                 <div class="form-grid">
@@ -937,7 +944,6 @@
                 </div>
                 <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroVariant()">Guardar variante</button></div>
               </div>
-
               <div class="card">
                 <h3 class="card-title">Extra</h3>
                 <div class="form-grid">
@@ -947,12 +953,70 @@
                 <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroExtra()">Guardar extra</button></div>
               </div>
             </div>
-
             <div class="stack">
               <div class="card"><h3 class="card-title">Categorías</h3><div id="gCategoriesList" class="data-list"></div></div>
               <div class="card"><h3 class="card-title">Productos</h3><div id="gProductsList" class="data-list"></div></div>
               <div class="card"><h3 class="card-title">Variantes y extras</h3><div id="gOptionsList" class="data-list"></div></div>
             </div>
+          </div>
+
+          <h2 class="subsection-title">Menú visual</h2>
+          <div class="section-grid">
+            <div class="stack">
+              <div class="card">
+                <h3 class="card-title">Fotos del menú</h3>
+                <p class="card-sub">Subí las imágenes terminadas que querés que el bot envíe por WhatsApp. JPG/PNG. El panel las comprime automáticamente si hace falta.</p>
+                <div class="toggle-line"><div><strong>Enviar imágenes automáticamente</strong><small>Cuando el cliente pida menú, carta o precios.</small></div><label class="switch"><input id="gMenuAuto" type="checkbox" onchange="saveGastroMenuConfig()"><span></span></label></div>
+                <div class="form-field full" style="margin-top:14px"><label>Seleccionar imágenes</label><input id="gMenuFiles" type="file" accept="image/jpeg,image/png" multiple></div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="uploadGastroMenuImages()">Subir imágenes</button></div>
+                <div id="gMenuUploadStatus" class="upload-status"></div>
+              </div>
+            </div>
+            <div class="stack"><div class="card"><h3 class="card-title">Imágenes cargadas</h3><div id="gMenuImagesList" class="compact-grid"></div></div></div>
+          </div>
+
+          <h2 class="subsection-title">Cobro y entrega</h2>
+          <div class="section-grid">
+            <div class="stack">
+              <div class="card">
+                <h3 class="card-title">Opciones comerciales</h3>
+                <div class="toggle-line"><div><strong>Delivery</strong><small>Permitir pedidos con envío.</small></div><label class="switch"><input id="gDeliveryEnabled" type="checkbox"><span></span></label></div>
+                <div class="toggle-line"><div><strong>Retiro por el local</strong><small>Permitir que el cliente pase a buscarlo.</small></div><label class="switch"><input id="gPickupEnabled" type="checkbox"><span></span></label></div>
+                <div class="toggle-line"><div><strong>Efectivo</strong><small>La IA puede ofrecer efectivo como forma de pago.</small></div><label class="switch"><input id="gCashEnabled" type="checkbox"><span></span></label></div>
+                <div class="toggle-line"><div><strong>Transferencia</strong><small>La IA puede ofrecer transferencia.</small></div><label class="switch"><input id="gTransferEnabled" type="checkbox"><span></span></label></div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroCommercialConfig()">Guardar opciones</button></div>
+              </div>
+              <div class="card">
+                <h3 class="card-title">Agregar medio de pago</h3>
+                <div class="form-grid">
+                  <div class="form-field"><label>Medio</label><input id="gPayName" placeholder="Transferencia, Efectivo…"></div>
+                  <div class="form-field"><label>Orden</label><input id="gPayOrder" type="number" value="100"></div>
+                  <div class="form-field full"><label>Detalle</label><textarea id="gPayDetail" placeholder="Alias, CBU, instrucciones…"></textarea></div>
+                  <div class="form-field full"><label><input id="gPayPreferred" type="checkbox"> Marcar como preferido</label></div>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroPayment()">Guardar medio de pago</button></div>
+              </div>
+            </div>
+            <div class="stack"><div class="card"><h3 class="card-title">Medios configurados</h3><div id="gPaymentsList" class="data-list"></div></div></div>
+          </div>
+
+          <h2 class="subsection-title">Zonas de delivery</h2>
+          <div class="section-grid">
+            <div class="stack">
+              <div class="card">
+                <h3 class="card-title">Agregar zona</h3>
+                <p class="card-sub">Podés indicar barrio/zona, referencias y precio. La IA usa esta información para entender mejor dónde está el cliente.</p>
+                <input id="gZoneId" type="hidden">
+                <div class="form-grid">
+                  <div class="form-field"><label>Zona / barrio</label><input id="gZoneName" placeholder="Centro"></div>
+                  <div class="form-field"><label>Costo</label><input id="gZoneCost" type="number" min="0" value="0"></div>
+                  <div class="form-field"><label>Posición</label><input id="gZoneOrder" type="number" value="100"></div>
+                  <div class="form-field full"><label>Referencias</label><textarea id="gZoneRefs" placeholder="Calles, barrios o referencias incluidas en esta zona"></textarea></div>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroZone()">Guardar zona</button><button class="btn btn-light" onclick="clearGastroZoneForm()">Limpiar</button></div>
+              </div>
+            </div>
+            <div class="stack"><div class="card"><h3 class="card-title">Zonas configuradas</h3><div id="gZonesList" class="data-list"></div></div></div>
           </div>
         </section>
 
@@ -1038,6 +1102,7 @@
   let currentUser=null;
   let catalogItems=[];
   let gastroData={categorias:[],productos:[],variantes:[],extras:[]};
+  let gastroSettingsData={menu:{imagenes:[]},pagos:{items:[]},entrega:{zonas:[]}};
   let inboxTimer=null;
   let inboxSearchTimer=null;
   let inboxBusy=false;
@@ -1798,14 +1863,133 @@
   }
 
   async function loadGastro(){
-    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro`);
+    const [r,s]=await Promise.all([
+      api(`/api/company/${encodeURIComponent(companyId)}/gastro`),
+      api(`/api/company/${encodeURIComponent(companyId)}/gastro/settings`)
+    ]);
     gastroData={
       categorias:r.categorias||[],
       productos:r.productos||[],
       variantes:r.variantes||[],
       extras:r.extras||[]
     };
+    gastroSettingsData={
+      menu:s.menu||{imagenes:[]},
+      pagos:s.pagos||{items:[]},
+      entrega:s.entrega||{zonas:[]}
+    };
     renderGastro();
+    renderGastroSettings();
+  }
+
+  function renderGastroSettings(){
+    const menu=gastroSettingsData.menu||{};
+    const pagos=gastroSettingsData.pagos||{};
+    const entrega=gastroSettingsData.entrega||{};
+    $('gMenuAuto').checked=menu.auto!==false;
+    $('gDeliveryEnabled').checked=entrega.deliveryHabilitado!==false;
+    $('gPickupEnabled').checked=entrega.retiroHabilitado!==false;
+    $('gCashEnabled').checked=pagos.efectivoHabilitado!==false;
+    $('gTransferEnabled').checked=pagos.transferenciaHabilitada!==false;
+
+    const imgs=menu.imagenes||[];
+    $('gMenuImagesList').innerHTML=imgs.length?imgs.map((x,i)=>`
+      <div class="mini-card ${x.activa?'':'off'}">
+        <div class="mini-title"><div><strong>${esc(x.nombre||('Menú '+(i+1)))}</strong><small>Posición ${esc(x.posicion||0)} · ${x.activa?'Activa':'Desactivada'}</small></div><span class="status ${x.activa?'good':'warn'}">${x.activa?'Activa':'Off'}</span></div>
+        <div class="mini-actions">
+          <button class="btn-xs" onclick="previewGastroMenuImage('${esc(x.idImagen)}')">Ver</button>
+          <button class="btn-xs" onclick="moveGastroMenuImage('${esc(x.idImagen)}','SUBIR')">↑</button>
+          <button class="btn-xs" onclick="moveGastroMenuImage('${esc(x.idImagen)}','BAJAR')">↓</button>
+          <button class="btn-xs" onclick="toggleGastroMenuImage('${esc(x.idImagen)}',${x.activa?'false':'true'})">${x.activa?'Desactivar':'Activar'}</button>
+          <button class="btn-xs danger" onclick="deleteGastroMenuImage('${esc(x.idImagen)}')">Eliminar</button>
+        </div>
+      </div>`).join(''):'<div class="empty">Todavía no hay imágenes cargadas.</div>';
+
+    const items=pagos.items||[];
+    $('gPaymentsList').innerHTML=items.length?items.map(x=>`
+      <div class="data-row ${x.activo?'':'off'}"><div class="data-row-main"><strong>${esc(x.medio)}</strong><small>${esc(x.detalle||'Sin detalle')} ${x.preferido?'· Preferido':''}</small></div><div class="data-row-side"><span class="status ${x.activo?'good':'warn'}">${x.activo?'Activo':'Inactivo'}</span>${x.activo?`<button class="btn-xs danger" onclick="disableGastroPayment(${Number(x.fila||0)})">Desactivar</button>`:''}</div></div>`).join(''):'<div class="empty">Sin medios de pago.</div>';
+
+    const zonas=entrega.zonas||[];
+    $('gZonesList').innerHTML=zonas.length?zonas.map(x=>`
+      <div class="data-row ${x.activa?'':'off'}"><div class="data-row-main"><strong>${esc(x.nombre)}</strong><small>${esc(x.referencias||'Sin referencias')}</small></div><div class="data-row-side"><strong>${money(x.costo||0)}</strong><div class="mini-actions"><button class="btn-xs" onclick="editGastroZoneById('${esc(x.idZona)}')">Editar</button><button class="btn-xs danger" onclick="deleteGastroZone('${esc(x.idZona)}')">Eliminar</button></div></div></div>`).join(''):'<div class="empty">No hay zonas cargadas.</div>';
+  }
+
+  async function saveGastroMenuConfig(){
+    try{
+      const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/menu/config`,{method:'POST',body:JSON.stringify({auto:$('gMenuAuto').checked})});
+      gastroSettingsData={menu:r.menu||{},pagos:r.pagos||{},entrega:r.entrega||{}};
+      renderGastroSettings();
+    }catch(err){alert(err.message||String(err))}
+  }
+
+  function imageFileToData(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
+  async function prepareMenuImage(file){
+    if(!file.type.startsWith('image/'))throw new Error('Archivo no válido: '+file.name);
+    const original=await imageFileToData(file);
+    if(file.size<=1450*1024)return{name:file.name,mime:file.type||'image/jpeg',base64:original};
+    const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=original});
+    const maxW=1440,maxH=2400,scale=Math.min(1,maxW/img.width,maxH/img.height);
+    const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    const data=canvas.toDataURL('image/jpeg',0.82);
+    return{name:file.name.replace(/\.[^.]+$/,'.jpg'),mime:'image/jpeg',base64:data};
+  }
+
+  async function uploadGastroMenuImages(){
+    const files=[...($('gMenuFiles').files||[])];
+    if(!files.length){alert('Seleccioná una o más imágenes.');return}
+    showLoading(true);$('gMenuUploadStatus').textContent='Preparando imágenes…';
+    try{
+      for(let i=0;i<files.length;i++){
+        $('gMenuUploadStatus').textContent=`Subiendo ${i+1} de ${files.length}: ${files[i].name}`;
+        const data=await prepareMenuImage(files[i]);
+        await api(`/api/company/${encodeURIComponent(companyId)}/gastro/menu/upload`,{method:'POST',body:JSON.stringify(data)});
+      }
+      $('gMenuFiles').value='';$('gMenuUploadStatus').textContent='Imágenes cargadas correctamente ✓';
+      await loadGastro();
+    }catch(err){$('gMenuUploadStatus').textContent='Error: '+(err.message||String(err));alert(err.message||String(err))}
+    finally{showLoading(false)}
+  }
+
+  async function toggleGastroMenuImage(id,activa){
+    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/menu/${encodeURIComponent(id)}/toggle`,{method:'POST',body:JSON.stringify({activa})});await loadGastro();
+  }
+  async function moveGastroMenuImage(id,direccion){
+    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/menu/${encodeURIComponent(id)}/move`,{method:'POST',body:JSON.stringify({direccion})});await loadGastro();
+  }
+  async function deleteGastroMenuImage(id){
+    if(!confirm('¿Eliminar esta imagen del menú?'))return;
+    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/menu/${encodeURIComponent(id)}/delete`,{method:'POST',body:'{}'});await loadGastro();
+  }
+  async function previewGastroMenuImage(id){
+    showLoading(true);try{const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/menu/${encodeURIComponent(id)}/preview`);$('gMenuPreviewImg').src=r.dataUrl||'';$('gMenuLightbox').classList.remove('hidden')}catch(err){alert(err.message||String(err))}finally{showLoading(false)}
+  }
+  function closeGastroMenuPreview(){$('gMenuLightbox').classList.add('hidden');$('gMenuPreviewImg').src=''}
+
+  async function saveGastroCommercialConfig(){
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/config`,{method:'POST',body:JSON.stringify({deliveryHabilitado:$('gDeliveryEnabled').checked,retiroHabilitado:$('gPickupEnabled').checked,efectivoHabilitado:$('gCashEnabled').checked,transferenciaHabilitada:$('gTransferEnabled').checked})});
+    gastroSettingsData={menu:r.menu||{},pagos:r.pagos||{},entrega:r.entrega||{}};renderGastroSettings();
+  }
+  async function saveGastroPayment(){
+    const medio=$('gPayName').value.trim();if(!medio){alert('Ingresá el medio de pago.');return}
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/payment`,{method:'POST',body:JSON.stringify({medio,detalle:$('gPayDetail').value.trim(),preferido:$('gPayPreferred').checked,activo:true,orden:Number($('gPayOrder').value||100)})});
+    $('gPayName').value='';$('gPayDetail').value='';$('gPayPreferred').checked=false;
+    gastroSettingsData={menu:r.menu||{},pagos:r.pagos||{},entrega:r.entrega||{}};renderGastroSettings();
+  }
+  async function disableGastroPayment(fila){
+    if(!confirm('¿Desactivar este medio de pago?'))return;
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/payment/${fila}/disable`,{method:'POST',body:'{}'});gastroSettingsData={menu:r.menu||{},pagos:r.pagos||{},entrega:r.entrega||{}};renderGastroSettings();
+  }
+
+  function clearGastroZoneForm(){$('gZoneId').value='';$('gZoneName').value='';$('gZoneCost').value='0';$('gZoneOrder').value='100';$('gZoneRefs').value=''}
+  function editGastroZoneById(id){const x=(gastroSettingsData.entrega?.zonas||[]).find(z=>String(z.idZona)===String(id));if(!x)return;$('gZoneId').value=x.idZona||'';$('gZoneName').value=x.nombre||'';$('gZoneCost').value=Number(x.costo||0);$('gZoneOrder').value=Number(x.posicion||100);$('gZoneRefs').value=x.referencias||'';window.scrollTo({top:$('gZoneName').getBoundingClientRect().top+window.scrollY-120,behavior:'smooth'})}
+  async function saveGastroZone(){
+    const nombre=$('gZoneName').value.trim();if(!nombre){alert('Ingresá el nombre de la zona.');return}
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/zone`,{method:'POST',body:JSON.stringify({idZona:$('gZoneId').value,nombre,costo:Number($('gZoneCost').value||0),posicion:Number($('gZoneOrder').value||100),referencias:$('gZoneRefs').value.trim(),activa:true})});clearGastroZoneForm();gastroSettingsData={menu:r.menu||{},pagos:r.pagos||{},entrega:r.entrega||{}};renderGastroSettings();
+  }
+  async function deleteGastroZone(id){
+    if(!confirm('¿Eliminar esta zona de delivery?'))return;
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/zone/${encodeURIComponent(id)}/delete`,{method:'POST',body:'{}'});gastroSettingsData={menu:r.menu||{},pagos:r.pagos||{},entrega:r.entrega||{}};renderGastroSettings();
   }
 
   async function saveGastroCategory(){
@@ -1904,5 +2088,7 @@
 
   start().catch(showLogin);
 </script>
+
+  <div id="gMenuLightbox" class="lightbox hidden" onclick="if(event.target===this)closeGastroMenuPreview()"><div class="lightbox-card"><button class="lightbox-close" onclick="closeGastroMenuPreview()">×</button><img id="gMenuPreviewImg" alt="Vista previa del menú"></div></div>
 </body>
 </html>
