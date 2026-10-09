@@ -1,0 +1,17 @@
+{
+  "name": "DLL ONE Panel Cloud",
+  "short_name": "DLL ONE",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7f3",
+  "theme_color": "#78b748",
+  "description": "Panel Central DLL ONE",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

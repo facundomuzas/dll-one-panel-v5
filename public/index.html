@@ -4,6 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#78b748">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="DLL ONE">
+  <link rel="manifest" href="/manifest.webmanifest">
   <title>DLL ONE · Panel Cloud</title>
   <style>
     :root{
@@ -302,30 +306,172 @@
       box-shadow:var(--shadow);
       font-size:13px;
     }
+    .mobile-bottom-nav{display:none}
+    .mobile-records{display:none}
+    .refresh-btn{min-width:44px;min-height:44px;padding:9px 12px}
+    .logout-label{display:inline}
+    .mobile-record{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      margin:0 0 10px;
+      box-shadow:0 2px 10px rgba(29,48,22,.035);
+    }
+    .mobile-record .row{
+      display:grid;
+      grid-template-columns:112px minmax(0,1fr);
+      gap:10px;
+      padding:7px 0;
+      border-bottom:1px solid #eef1ec;
+      align-items:start;
+    }
+    .mobile-record .row:last-child{border-bottom:0}
+    .mobile-record .key{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.03em;
+      overflow-wrap:anywhere;
+    }
+    .mobile-record .val{
+      min-width:0;
+      font-size:14px;
+      line-height:1.35;
+      overflow-wrap:anywhere;
+      word-break:break-word;
+    }
     @media(max-width:1050px){
       .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
     }
     @media(max-width:760px){
-      .app{grid-template-columns:1fr}
-      aside{
-        position:relative;
-        height:auto;
+      body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+      .app{display:block;min-height:100vh}
+      aside{display:none}
+      main{width:100%;min-width:0}
+      header{
+        position:sticky;
+        top:0;
+        z-index:20;
+        min-height:auto;
+        padding:10px 12px;
+        gap:8px;
+        background:rgba(255,255,255,.96);
       }
-      .nav{
-        display:flex;
-        gap:6px;
-        overflow:auto;
+      .head-left{
+        flex:1;
+        display:grid;
+        grid-template-columns:minmax(0,1fr);
+        gap:4px;
       }
-      .nav button{
-        width:auto;
+      .company{
+        width:100%;
+        min-width:0;
+        max-width:none;
+        padding:10px 11px;
+        min-height:44px;
+        font-weight:750;
+      }
+      header>.btn{min-width:44px;min-height:44px;padding:9px 11px}
+      .logout-label{display:none}
+      .sync{
+        font-size:10px;
         white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        max-width:68vw;
       }
-      .soon{display:none}
-      header{position:relative;padding:12px}
-      .company{min-width:0;width:100%}
-      .content{padding:14px}
-      .cards{grid-template-columns:1fr 1fr}
-      .hero{align-items:flex-start;flex-direction:column}
+      .content{padding:14px 12px 16px}
+      .hero{
+        align-items:flex-start;
+        flex-direction:column;
+        gap:10px;
+        margin-bottom:14px;
+      }
+      .hero h1{font-size:22px;line-height:1.15}
+      .hero p{font-size:13px;line-height:1.4;margin-top:5px}
+      .pill{font-size:10px;padding:6px 8px}
+      .cards{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:9px;
+        margin-bottom:14px;
+      }
+      .card{padding:13px;border-radius:15px}
+      .metric .label{font-size:10px;line-height:1.2}
+      .metric .value{font-size:26px;margin-top:6px}
+      .table-card{
+        padding:0;
+        background:transparent;
+        border:0;
+        box-shadow:none;
+        overflow:visible;
+      }
+      .table-head{
+        padding:10px 2px 12px;
+        border-bottom:0;
+      }
+      .table-head h3{font-size:15px}
+      .table-wrap{max-height:none;overflow:visible}
+      .table-wrap table{display:none}
+      .mobile-records{display:block}
+      .empty{
+        background:#fff;
+        border:1px solid var(--line);
+        border-radius:15px;
+        padding:30px 16px;
+      }
+      .mobile-bottom-nav{
+        position:fixed;
+        left:0;
+        right:0;
+        bottom:0;
+        z-index:40;
+        display:grid;
+        grid-template-columns:repeat(5,minmax(0,1fr));
+        gap:2px;
+        padding:7px 6px calc(7px + env(safe-area-inset-bottom));
+        background:rgba(23,32,24,.98);
+        border-top:1px solid rgba(255,255,255,.08);
+        box-shadow:0 -8px 28px rgba(20,28,20,.12);
+        backdrop-filter:blur(14px);
+      }
+      .mobile-bottom-nav button{
+        min-width:0;
+        min-height:54px;
+        border:0;
+        border-radius:12px;
+        background:transparent;
+        color:#cbd6c9;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        gap:3px;
+        padding:5px 2px;
+      }
+      .mobile-bottom-nav button .ico{font-size:18px;line-height:1}
+      .mobile-bottom-nav button .txt{
+        font-size:9px;
+        font-weight:750;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        max-width:100%;
+      }
+      .mobile-bottom-nav button.active{
+        background:rgba(120,183,72,.20);
+        color:#fff;
+      }
+      .loading{
+        right:12px;
+        bottom:calc(84px + env(safe-area-inset-bottom));
+        font-size:12px;
+      }
+      .login{padding:16px}
+      .login-card{padding:22px;border-radius:22px}
+      .field input{min-height:46px;font-size:16px}
+      .login .btn{min-height:48px}
     }
   </style>
 </head>
@@ -336,7 +482,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5 · Alpha segura</small>
+          <small>Panel Cloud V5 · Mobile</small>
         </div>
       </div>
 
@@ -361,7 +507,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5</small>
+          <small>Panel Cloud V5.0.2</small>
         </div>
       </div>
 
@@ -387,7 +533,10 @@
             <div id="syncText" class="sync">Sin sincronizar</div>
           </div>
         </div>
-        <button class="btn btn-light" onclick="logout()">Salir</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-light refresh-btn" title="Actualizar" aria-label="Actualizar" onclick="loadTab(currentTab)">↻</button>
+          <button class="btn btn-light" title="Cerrar sesión" aria-label="Cerrar sesión" onclick="logout()">⎋ <span class="logout-label">Salir</span></button>
+        </div>
       </header>
 
       <div class="content">
@@ -411,7 +560,7 @@
           <div class="card">
             <strong>Qué es esta versión</strong>
             <p style="color:var(--muted);line-height:1.55;margin-bottom:0">
-              V5.0 es una migración paralela: copia la información operativa a PostgreSQL para que el Panel lea rápido.
+              V5 es una migración paralela: copia la información operativa a PostgreSQL para que el Panel lea rápido.
               No reemplaza todavía al Panel V4 para acciones críticas. Primero medimos velocidad y estabilidad; después movemos las acciones una por una.
             </p>
           </div>
@@ -458,6 +607,14 @@
         </section>
       </div>
     </main>
+
+    <nav class="mobile-bottom-nav" aria-label="Navegación principal móvil">
+      <button class="active" data-tab="dashboard" onclick="go('dashboard',this)"><span class="ico">⌂</span><span class="txt">Inicio</span></button>
+      <button data-tab="conversations" onclick="go('conversations',this)"><span class="ico">💬</span><span class="txt">Chats</span></button>
+      <button data-tab="orders" onclick="go('orders',this)"><span class="ico">🧾</span><span class="txt">Pedidos</span></button>
+      <button data-tab="delivery" onclick="go('delivery',this)"><span class="ico">🚚</span><span class="txt">Delivery</span></button>
+      <button data-tab="customers" onclick="go('customers',this)"><span class="ico">👥</span><span class="txt">Clientes</span></button>
+    </nav>
   </div>
 
   <div id="loading" class="loading hidden">Cargando…</div>
@@ -589,8 +746,10 @@
     currentTab=tab;
     document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
     $(tab).classList.add('active');
-    document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
-    if(button)button.classList.add('active');
+    document.querySelectorAll('.nav button,.mobile-bottom-nav button').forEach(x=>{
+      x.classList.toggle('active',x.dataset.tab===tab);
+    });
+    window.scrollTo({top:0,behavior:'smooth'});
     await loadTab(tab);
   }
 
@@ -630,6 +789,12 @@
     $('mPayments').textContent=s.pendingPayment??0;
   }
 
+  function labelColumn(c){
+    return String(c||'')
+      .replaceAll('_',' ')
+      .replace(/\b\w/g,m=>m.toUpperCase());
+  }
+
   function renderGenericTable(target, items, preferredColumns){
     const box=$(target);
 
@@ -644,9 +809,9 @@
       ...allKeys.filter(x=>!preferredColumns.includes(x)).slice(0,5)
     ].slice(0,8);
 
-    box.innerHTML=`
+    const desktop=`
       <table>
-        <thead><tr>${columns.map(c=>`<th>${esc(c.replaceAll('_',' '))}</th>`).join('')}</tr></thead>
+        <thead><tr>${columns.map(c=>`<th>${esc(labelColumn(c))}</th>`).join('')}</tr></thead>
         <tbody>
           ${items.map(row=>`
             <tr>
@@ -658,8 +823,22 @@
             </tr>
           `).join('')}
         </tbody>
-      </table>
-    `;
+      </table>`;
+
+    const mobile=`
+      <div class="mobile-records">
+        ${items.map(row=>`
+          <article class="mobile-record">
+            ${columns.map(c=>{
+              const value=row?.[c]??'';
+              if(String(value).trim()==='')return '';
+              return `<div class="row"><div class="key">${esc(labelColumn(c))}</div><div class="val">${esc(value)}</div></div>`;
+            }).join('')}
+          </article>
+        `).join('')}
+      </div>`;
+
+    box.innerHTML=desktop+mobile;
   }
 
   async function loadConversations(){
@@ -704,6 +883,12 @@
       r.items||[],
       ['ID_CLIENTE','NOMBRE','TELEFONO','EMAIL','ESTADO','ULTIMA_INTERACCION']
     );
+  }
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    });
   }
 
   document.addEventListener('keydown',e=>{

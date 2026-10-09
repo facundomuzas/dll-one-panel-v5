@@ -143,7 +143,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.0.1",
+      version: "5.0.2",
       mode: "POSTGRES_SHADOW",
       db
     });
@@ -400,6 +400,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.0.1 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.0.2 escuchando en puerto ${PORT}`
   );
 });

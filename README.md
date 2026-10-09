@@ -276,3 +276,15 @@ con su propia estructura de:
 - derivación humana.
 
 No se debe mezclar información clínica con el módulo Gastro.
+
+
+## V5.0.2 Mobile First
+
+- Barra inferior fija para navegar con una mano en celular.
+- Inicio, Chats, Pedidos, Delivery y Clientes siempre accesibles.
+- Tablas convertidas automáticamente en tarjetas verticales en pantallas chicas.
+- Selector de empresa compacto y fijo arriba.
+- Botón actualizar accesible.
+- Mejor tamaño de botones y campos táctiles.
+- Soporte básico PWA para agregar el Panel a la pantalla de inicio.
+- No cambia el motor, PostgreSQL, credenciales ni sincronización.
