@@ -81,6 +81,78 @@ function normalizeState(value) {
   return String(value || "").trim().toUpperCase();
 }
 
+
+function bridgeUrl(companyRow) {
+  const snapshot = companyRow?.snapshot || {};
+  const raw = String(
+    snapshot.bridgeUrl ||
+    process.env.APPS_SCRIPT_BRIDGE_URL ||
+    ""
+  ).trim();
+
+  if (!raw) {
+    throw new Error(
+      "Falta bridgeUrl. Actualizá PanelV5Sync.gs y ejecutá sincronizarPanelCloudV510()."
+    );
+  }
+
+  return raw.replace(/\/+$/, "") + "?dllone_v4=1";
+}
+
+async function postBridge(companyRow, operation, payload = {}, actor = "PANEL_V5") {
+  const key = String(process.env.PANEL_SYNC_KEY || "").trim();
+  if (!key) throw new Error("Falta PANEL_SYNC_KEY en Railway.");
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25000);
+
+  try {
+    const target =
+      bridgeUrl(companyRow) +
+      "&key=" +
+      encodeURIComponent(key);
+
+    const response = await fetch(
+      target,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-dll-one-key": key
+        },
+        body: JSON.stringify({
+          action: "panel_v5",
+          operation,
+          idEmpresa: companyRow.company_id,
+          actor,
+          ...payload
+        }),
+        signal: controller.signal
+      }
+    );
+
+    const text = await response.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch {}
+
+    if (!response.ok || !data || data.ok !== true) {
+      throw new Error(
+        data?.error ||
+        `Bridge HTTP ${response.status}: ${text.slice(0, 500)}`
+      );
+    }
+
+    return data.result;
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      throw new Error("Apps Script tardó demasiado en responder.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function summarize(companyRow) {
   const snapshot = companyRow?.snapshot || {};
   const pedidos = rows(snapshot, "pedidos");
@@ -143,15 +215,15 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.0.2",
-      mode: "POSTGRES_SHADOW",
+      version: "5.1.0",
+      mode: "HYBRID_CONVERSATIONS",
       db
     });
   } catch (err) {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.0.0",
+      version: "5.1.0",
       error: String(err?.message || err)
     });
   }
@@ -181,7 +253,7 @@ app.post("/sync/company", async (req, res) => {
     return res.json({
       ok: true,
       ...result,
-      version: "5.0.0"
+      version: "5.1.0"
     });
   } catch (err) {
     return res.status(400).json({
@@ -278,6 +350,141 @@ app.get(
         ok: false,
         error: String(err?.message || err)
       });
+    }
+  }
+);
+
+
+app.get(
+  "/api/company/:companyId/inbox-live",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company = await getCompany(req.params.companyId);
+      if (!company) {
+        return res.status(404).json({ ok:false, error:"Empresa no encontrada." });
+      }
+
+      const result = await postBridge(
+        company,
+        "inbox",
+        {
+          filter: String(req.query.filter || "TODOS"),
+          search: String(req.query.q || "")
+        },
+        req.session?.sub || "PANEL_V5"
+      );
+
+      return res.json({ ok:true, ...result });
+    } catch (err) {
+      return res.status(502).json({ ok:false, error:String(err?.message || err) });
+    }
+  }
+);
+
+app.get(
+  "/api/company/:companyId/conversation/:clientId/thread",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company = await getCompany(req.params.companyId);
+      if (!company) {
+        return res.status(404).json({ ok:false, error:"Empresa no encontrada." });
+      }
+
+      const result = await postBridge(
+        company,
+        "thread",
+        {
+          idCliente: req.params.clientId,
+          limit: Math.max(10, Math.min(100, Number(req.query.limit || 60)))
+        },
+        req.session?.sub || "PANEL_V5"
+      );
+
+      return res.json({ ok:true, ...result });
+    } catch (err) {
+      return res.status(502).json({ ok:false, error:String(err?.message || err) });
+    }
+  }
+);
+
+app.post(
+  "/api/company/:companyId/conversation/:clientId/take",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company = await getCompany(req.params.companyId);
+      if (!company) {
+        return res.status(404).json({ ok:false, error:"Empresa no encontrada." });
+      }
+
+      const result = await postBridge(
+        company,
+        "take",
+        { idCliente:req.params.clientId },
+        req.session?.sub || "PANEL_V5"
+      );
+
+      return res.json({ ok:true, ...result });
+    } catch (err) {
+      return res.status(502).json({ ok:false, error:String(err?.message || err) });
+    }
+  }
+);
+
+app.post(
+  "/api/company/:companyId/conversation/:clientId/send",
+  authRequired,
+  async (req, res) => {
+    const message = String(req.body?.message || "").trim();
+    if (!message) {
+      return res.status(400).json({ ok:false, error:"Escribí un mensaje." });
+    }
+    if (message.length > 4096) {
+      return res.status(400).json({ ok:false, error:"El mensaje supera 4096 caracteres." });
+    }
+
+    try {
+      const company = await getCompany(req.params.companyId);
+      if (!company) {
+        return res.status(404).json({ ok:false, error:"Empresa no encontrada." });
+      }
+
+      const result = await postBridge(
+        company,
+        "send",
+        { idCliente:req.params.clientId, message },
+        req.session?.sub || "PANEL_V5"
+      );
+
+      return res.json({ ok:true, ...result });
+    } catch (err) {
+      return res.status(502).json({ ok:false, error:String(err?.message || err) });
+    }
+  }
+);
+
+app.post(
+  "/api/company/:companyId/conversation/:clientId/return-bot",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company = await getCompany(req.params.companyId);
+      if (!company) {
+        return res.status(404).json({ ok:false, error:"Empresa no encontrada." });
+      }
+
+      const result = await postBridge(
+        company,
+        "return_bot",
+        { idCliente:req.params.clientId },
+        req.session?.sub || "PANEL_V5"
+      );
+
+      return res.json({ ok:true, ...result });
+    } catch (err) {
+      return res.status(502).json({ ok:false, error:String(err?.message || err) });
     }
   }
 );
@@ -400,6 +607,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.0.2 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.1.0 escuchando en puerto ${PORT}`
   );
 });

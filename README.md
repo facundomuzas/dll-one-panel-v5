@@ -1,4 +1,4 @@
-# DLL ONE Panel Cloud V5.0.0
+# DLL ONE Panel Cloud V5.1.0 — Conversaciones reales
 
 ## Objetivo
 
@@ -288,3 +288,24 @@ No se debe mezclar información clínica con el módulo Gastro.
 - Mejor tamaño de botones y campos táctiles.
 - Soporte básico PWA para agregar el Panel a la pantalla de inicio.
 - No cambia el motor, PostgreSQL, credenciales ni sincronización.
+
+
+## V5.1 — Conversaciones reales
+
+El Panel Cloud ya puede operar la bandeja de WhatsApp:
+
+- Ver conversaciones en vivo.
+- Buscar y filtrar BOT / HUMANO.
+- Abrir historial.
+- Tomar conversación: pausa la IA para ese cliente.
+- Responder desde el Panel Cloud usando el WhatsApp del negocio.
+- Devolver al bot.
+- Respeta la ventana de 24 horas de WhatsApp.
+
+La seguridad de las acciones usa el mismo `DLL_ONE_BRIDGE_KEY` / `PANEL_SYNC_KEY`.
+La clave nunca se entrega al navegador; Railway llama al Bridge de Apps Script.
+
+### Todavía en V4
+
+Pedidos, cocina, delivery, comprobantes y configuración continúan operándose en V4.
+Eso se migra en V5.2.
