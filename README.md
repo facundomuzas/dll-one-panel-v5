@@ -172,3 +172,17 @@ Agrega al Panel Cloud:
 - autogestión desde celular o PC sin abrir Google Sheets.
 
 Los cambios se guardan todavía a través del Bridge seguro en las hojas que usa el bot actual. Así el comportamiento productivo no se rompe durante la migración.
+
+
+## V5.4.0 — ONE Gastro lee desde PostgreSQL
+
+La apertura de ONE Gastro ya NO llama a Apps Script.
+
+`GET /api/company/:companyId/gastro/bundle`
+lee `snapshot.data.gastroBundle` directamente desde PostgreSQL.
+
+Apps Script queda temporalmente para:
+- escrituras/ediciones;
+- sincronización de fondo hacia PostgreSQL.
+
+Esto elimina el timeout al abrir ONE Gastro.

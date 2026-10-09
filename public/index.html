@@ -666,7 +666,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.3.1 · Autogestión</small>
+          <small>Panel Cloud V5.4.0 · Autogestión</small>
         </div>
       </div>
 
@@ -691,7 +691,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.3.1</small>
+          <small>Panel Cloud V5.4.0</small>
         </div>
       </div>
 
@@ -912,8 +912,8 @@
 
         <section id="gastro" class="section">
           <div class="hero">
-            <div><h1>ONE Gastro</h1><p>Menú, precios, imágenes, pagos y delivery desde un solo lugar.</p></div>
-            <span class="pill">● GASTRO RÁPIDO</span>
+            <div><h1>ONE Gastro</h1><p>Menú, precios, imágenes, pagos y delivery desde PostgreSQL. Sin esperar Apps Script para abrir.</p></div>
+            <span class="pill">● GASTRO POSTGRES</span>
           </div>
 
           <h2 class="subsection-title">Productos del menú</h2>
@@ -1863,20 +1863,31 @@
   }
 
   async function loadGastro(){
+    const started=performance.now();
     const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/bundle`);
+
     gastroData={
       categorias:r.categorias||[],
       productos:r.productos||[],
       variantes:r.variantes||[],
       extras:r.extras||[]
     };
+
     gastroSettingsData={
       menu:r.menu||{imagenes:[]},
       pagos:r.pagos||{items:[]},
       entrega:r.entrega||{zonas:[]}
     };
+
     renderGastro();
     renderGastroSettings();
+
+    console.info(
+      "ONE Gastro cargado desde",
+      r.source||"POSTGRES",
+      Math.round(performance.now()-started)+"ms",
+      r.syncedAt||""
+    );
   }
 
   function renderGastroSettings(){

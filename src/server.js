@@ -406,8 +406,8 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.3.1",
-      mode: "GASTRO_BUNDLE_FAST",
+      version: "5.4.0",
+      mode: "GASTRO_POSTGRES_READ",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
         source: String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim()
@@ -943,24 +943,38 @@ app.get(
   async (req, res) => {
     try {
       const company = await getCompany(req.params.companyId);
-      if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
 
-      const startedAt = Date.now();
-      const result = await postBridge(
-        company,
-        "gastro_bundle_get",
-        {},
-        req.session?.sub || "PANEL_V5",
-        45000
-      );
+      if (!company) {
+        return res.status(404).json({
+          ok:false,
+          error:"Empresa no encontrada."
+        });
+      }
+
+      const bundle =
+        company?.snapshot?.data?.gastroBundle ||
+        null;
+
+      if (!bundle) {
+        return res.status(409).json({
+          ok:false,
+          error:
+            "ONE Gastro todavía no fue copiado a PostgreSQL. " +
+            "Ejecutá sincronizarPanelCloudV500() una vez en Apps Script."
+        });
+      }
 
       return res.json({
         ok:true,
-        elapsedMs:Date.now()-startedAt,
-        ...result
+        source:"POSTGRES",
+        syncedAt:company.synced_at,
+        ...bundle
       });
     } catch (err) {
-      return res.status(502).json({ok:false,error:String(err?.message || err)});
+      return res.status(500).json({
+        ok:false,
+        error:String(err?.message || err)
+      });
     }
   }
 );
@@ -1237,6 +1251,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.3.1 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.4.0 escuchando en puerto ${PORT}`
   );
 });
