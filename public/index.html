@@ -666,7 +666,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.3.0 · Autogestión</small>
+          <small>Panel Cloud V5.3.1 · Autogestión</small>
         </div>
       </div>
 
@@ -691,7 +691,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.3.0</small>
+          <small>Panel Cloud V5.3.1</small>
         </div>
       </div>
 
@@ -913,7 +913,7 @@
         <section id="gastro" class="section">
           <div class="hero">
             <div><h1>ONE Gastro</h1><p>Menú, precios, imágenes, pagos y delivery desde un solo lugar.</p></div>
-            <span class="pill">● GASTRO AUTOGESTIÓN</span>
+            <span class="pill">● GASTRO RÁPIDO</span>
           </div>
 
           <h2 class="subsection-title">Productos del menú</h2>
@@ -1863,10 +1863,7 @@
   }
 
   async function loadGastro(){
-    const [r,s]=await Promise.all([
-      api(`/api/company/${encodeURIComponent(companyId)}/gastro`),
-      api(`/api/company/${encodeURIComponent(companyId)}/gastro/settings`)
-    ]);
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/bundle`);
     gastroData={
       categorias:r.categorias||[],
       productos:r.productos||[],
@@ -1874,9 +1871,9 @@
       extras:r.extras||[]
     };
     gastroSettingsData={
-      menu:s.menu||{imagenes:[]},
-      pagos:s.pagos||{items:[]},
-      entrega:s.entrega||{zonas:[]}
+      menu:r.menu||{imagenes:[]},
+      pagos:r.pagos||{items:[]},
+      entrega:r.entrega||{zonas:[]}
     };
     renderGastro();
     renderGastroSettings();

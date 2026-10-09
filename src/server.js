@@ -132,12 +132,12 @@ function bridgeUrl(companyRow) {
     "?dllone_v4=1";
 }
 
-async function postBridge(companyRow, operation, payload = {}, actor = "PANEL_V5") {
+async function postBridge(companyRow, operation, payload = {}, actor = "PANEL_V5", timeoutMs = 25000) {
   const key = String(process.env.PANEL_SYNC_KEY || "").trim();
   if (!key) throw new Error("Falta PANEL_SYNC_KEY en Railway.");
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 25000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const target =
@@ -406,8 +406,8 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.3.0",
-      mode: "GASTRO_AUTOGESTION",
+      version: "5.3.1",
+      mode: "GASTRO_BUNDLE_FAST",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
         source: String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim()
@@ -420,7 +420,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.3.0",
+      version: "5.3.1",
       error: String(err?.message || err)
     });
   }
@@ -450,7 +450,7 @@ app.post("/sync/company", async (req, res) => {
     return res.json({
       ok: true,
       ...result,
-      version: "5.3.0"
+      version: "5.3.1"
     });
   } catch (err) {
     return res.status(400).json({
@@ -938,6 +938,34 @@ app.post(
 );
 
 app.get(
+  "/api/company/:companyId/gastro/bundle",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company = await getCompany(req.params.companyId);
+      if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+
+      const startedAt = Date.now();
+      const result = await postBridge(
+        company,
+        "gastro_bundle_get",
+        {},
+        req.session?.sub || "PANEL_V5",
+        45000
+      );
+
+      return res.json({
+        ok:true,
+        elapsedMs:Date.now()-startedAt,
+        ...result
+      });
+    } catch (err) {
+      return res.status(502).json({ok:false,error:String(err?.message || err)});
+    }
+  }
+);
+
+app.get(
   "/api/company/:companyId/gastro",
   authRequired,
   async (req, res) => {
@@ -1209,6 +1237,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.3.0 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.3.1 escuchando en puerto ${PORT}`
   );
 });
