@@ -27,6 +27,19 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT || 8080);
 
+// Protección corta contra doble click / reintento del mismo mensaje.
+const recentHumanSends = new Map();
+const HUMAN_SEND_DEDUPE_MS = 10000;
+
+function cleanupRecentHumanSends() {
+  const cutoff = Date.now() - (HUMAN_SEND_DEDUPE_MS * 2);
+  for (const [key, value] of recentHumanSends.entries()) {
+    if (!value || value.at < cutoff) {
+      recentHumanSends.delete(key);
+    }
+  }
+}
+
 app.disable("x-powered-by");
 
 app.use(
@@ -227,7 +240,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.1.2",
+      version: "5.1.3",
       mode: "HYBRID_CONVERSATIONS",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -241,7 +254,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.1.0",
+      version: "5.1.3",
       error: String(err?.message || err)
     });
   }
@@ -271,7 +284,7 @@ app.post("/sync/company", async (req, res) => {
     return res.json({
       ok: true,
       ...result,
-      version: "5.1.0"
+      version: "5.1.3"
     });
   } catch (err) {
     return res.status(400).json({
@@ -463,21 +476,79 @@ app.post(
       return res.status(400).json({ ok:false, error:"El mensaje supera 4096 caracteres." });
     }
 
+    cleanupRecentHumanSends();
+
+    const dedupeKey = [
+      String(req.params.companyId || ""),
+      String(req.params.clientId || ""),
+      message.toLowerCase()
+    ].join("|");
+
+    const previous = recentHumanSends.get(dedupeKey);
+    const now = Date.now();
+
+    // Si el mismo operador repite exactamente el mismo mensaje a ese mismo
+    // cliente pocos segundos después, no volvemos a disparar WhatsApp.
+    if (
+      previous &&
+      previous.state === "sent" &&
+      now - previous.at < HUMAN_SEND_DEDUPE_MS
+    ) {
+      return res.json({
+        ok: true,
+        duplicateSuppressed: true,
+        wamid: previous.wamid || ""
+      });
+    }
+
+    if (
+      previous &&
+      previous.state === "sending" &&
+      now - previous.at < HUMAN_SEND_DEDUPE_MS
+    ) {
+      return res.status(409).json({
+        ok: false,
+        error: "Ese mensaje ya se está enviando."
+      });
+    }
+
+    recentHumanSends.set(dedupeKey, {
+      state: "sending",
+      at: now,
+      wamid: ""
+    });
+
     try {
       const company = await getCompany(req.params.companyId);
       if (!company) {
+        recentHumanSends.delete(dedupeKey);
         return res.status(404).json({ ok:false, error:"Empresa no encontrada." });
       }
 
       const result = await postBridge(
         company,
         "send",
-        { idCliente:req.params.clientId, message },
+        {
+          idCliente:req.params.clientId,
+          message,
+          clientRequestId:String(req.body?.clientRequestId || "")
+        },
         req.session?.sub || "PANEL_V5"
       );
 
-      return res.json({ ok:true, ...result });
+      recentHumanSends.set(dedupeKey, {
+        state: "sent",
+        at: Date.now(),
+        wamid: String(result?.wamid || "")
+      });
+
+      return res.json({
+        ok:true,
+        duplicateSuppressed:false,
+        ...result
+      });
     } catch (err) {
+      recentHumanSends.delete(dedupeKey);
       return res.status(502).json({ ok:false, error:String(err?.message || err) });
     }
   }
@@ -625,6 +696,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.1.2 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.1.3 escuchando en puerto ${PORT}`
   );
 });

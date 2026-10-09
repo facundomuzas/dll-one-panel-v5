@@ -583,7 +583,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.1 · Conversaciones</small>
+          <small>Panel Cloud V5.1.3 · Conversaciones</small>
         </div>
       </div>
 
@@ -608,7 +608,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.0.2</small>
+          <small>Panel Cloud V5.1.3</small>
         </div>
       </div>
 
@@ -669,7 +669,7 @@
         <section id="conversations" class="section">
           <div class="hero">
             <div><h1>Conversaciones</h1><p>WhatsApp en vivo · tomá el chat, respondé y devolvelo al bot.</p></div>
-            <span class="pill">● V5.1 OPERATIVO</span>
+            <span class="pill">● V5.1.3 OPERATIVO</span>
           </div>
 
           <div class="card conversation-shell">
@@ -764,6 +764,11 @@
   let companies=[];
   let companyId='';
   let currentTab='dashboard';
+  let sendMessageBusy=false;
+  let lastSentMessage={
+    key:'',
+    at:0
+  };
   let selectedChat=null;
   let inboxTimer=null;
   let inboxSearchTimer=null;
@@ -1145,23 +1150,141 @@
     finally{showLoading(false)}
   }
 
+  function appendPendingHumanBubble(message){
+    const box=$('chatMessages');
+    if(!box)return null;
+
+    const id=
+      'pending-'+
+      Date.now()+
+      '-'+
+      Math.random().toString(36).slice(2,8);
+
+    const row=document.createElement('div');
+    row.className='bubble-row out';
+    row.dataset.pendingId=id;
+    row.innerHTML=
+      `<div class="bubble">
+        <div class="bubble-meta">Humano · enviando…</div>
+        <div class="bubble-text">${esc(message)}</div>
+      </div>`;
+
+    const empty=box.querySelector('.empty');
+    if(empty)empty.remove();
+
+    box.appendChild(row);
+    box.scrollTop=box.scrollHeight;
+    return id;
+  }
+
+  function setPendingBubbleStatus(id,status){
+    if(!id)return;
+    const row=document.querySelector(`[data-pending-id="${CSS.escape(id)}"]`);
+    if(!row)return;
+
+    const meta=row.querySelector('.bubble-meta');
+    if(!meta)return;
+
+    if(status==='sent'){
+      meta.textContent='Humano · enviado ✓';
+    }else if(status==='error'){
+      meta.textContent='Humano · error al enviar';
+    }
+  }
+
   async function sendConversationMessage(){
     if(!selectedChat?.idCliente)return;
+    if(sendMessageBusy)return;
+
     const input=$('chatComposer');
+    const btn=$('sendChatBtn');
     const message=input.value.trim();
     if(!message)return;
-    $('sendChatBtn').disabled=true;
+
+    const duplicateKey=
+      String(selectedChat.idCliente||'')+
+      '|' +
+      message.toLowerCase();
+
+    const now=Date.now();
+
+    if(
+      lastSentMessage.key===duplicateKey &&
+      now-lastSentMessage.at<8000
+    ){
+      alert('Ese mismo mensaje ya se acaba de enviar. Esperá unos segundos antes de repetirlo.');
+      return;
+    }
+
+    sendMessageBusy=true;
+    lastSentMessage={
+      key:duplicateKey,
+      at:now
+    };
+
+    const originalButtonText=btn.textContent;
+    const pendingId=appendPendingHumanBubble(message);
+
+    // Feedback inmediato: así el usuario ve que el click fue tomado.
+    input.value='';
+    input.disabled=true;
+    btn.disabled=true;
+    btn.textContent='Enviando…';
+
     try{
-      await api(
+      const result=await api(
         `/api/company/${encodeURIComponent(companyId)}/conversation/${encodeURIComponent(selectedChat.idCliente)}/send`,
-        {method:'POST',body:JSON.stringify({message})}
+        {
+          method:'POST',
+          body:JSON.stringify({
+            message,
+            clientRequestId:
+              'web-'+
+              now+
+              '-'+
+              Math.random().toString(36).slice(2,10)
+          })
+        }
       );
-      input.value='';
-      await refreshSelectedThread(false);
+
+      setPendingBubbleStatus(pendingId,'sent');
+      btn.textContent=
+        result?.duplicateSuppressed
+          ?'Ya enviado ✓'
+          :'Enviado ✓';
+
+      // El bridge guarda la conversación antes de responder.
+      // Una pequeña pausa evita que el refresco visual "pise" el feedback.
+      await new Promise(resolve=>setTimeout(resolve,650));
+
+      await refreshSelectedThread(true);
       await loadConversationsLive(true);
-    }catch(err){alert(err.message||String(err))}
-    finally{
-      $('sendChatBtn').disabled=!(selectedChat&&selectedChat.modo==='HUMANO'&&selectedChat.ventana24hAbierta);
+
+      setTimeout(()=>{
+        if(btn){
+          btn.textContent='Enviar';
+        }
+      },900);
+
+    }catch(err){
+      setPendingBubbleStatus(pendingId,'error');
+
+      // Restauramos el texto para que el usuario no tenga que escribirlo de nuevo.
+      if(!input.value){
+        input.value=message;
+      }
+
+      btn.textContent='Reintentar';
+      alert(err.message||String(err));
+
+    }finally{
+      sendMessageBusy=false;
+      input.disabled=!(selectedChat&&selectedChat.modo==='HUMANO'&&selectedChat.ventana24hAbierta);
+      btn.disabled=!(selectedChat&&selectedChat.modo==='HUMANO'&&selectedChat.ventana24hAbierta);
+
+      if(btn.textContent==='Enviando…'){
+        btn.textContent=originalButtonText||'Enviar';
+      }
     }
   }
 
