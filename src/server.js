@@ -102,6 +102,342 @@ function normalizeState(value) {
   return String(value || "").trim().toUpperCase();
 }
 
+function snapshotRows(companyRow, key) {
+  const snapshot = companyRow?.snapshot || {};
+  const value = snapshot?.data?.[key];
+  return Array.isArray(value) ? value : [];
+}
+
+function rowValue(row, keys) {
+  for (const key of keys) {
+    if (
+      row &&
+      row[key] !== undefined &&
+      row[key] !== null &&
+      String(row[key]).trim() !== ""
+    ) {
+      return row[key];
+    }
+  }
+  return "";
+}
+
+function dateMs(value) {
+  if (!value) return 0;
+  const d = value instanceof Date ? value : new Date(value);
+  const ms = d.getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function formatDateAr(value, withSeconds = false) {
+  const ms = dateMs(value);
+  if (!ms) return String(value || "");
+
+  const d = new Date(ms);
+  const parts = new Intl.DateTimeFormat(
+    "es-AR",
+    {
+      timeZone: "America/Argentina/Mendoza",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      ...(withSeconds ? { second: "2-digit" } : {}),
+      hour12: false
+    }
+  ).formatToParts(d);
+
+  const p = Object.fromEntries(parts.map(x => [x.type, x.value]));
+  return withSeconds
+    ? `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}:${p.second}`
+    : `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
+}
+
+const recentConversationModes = new Map();
+const CONVERSATION_MODE_OVERLAY_MS = 2 * 60 * 1000;
+
+function modeOverlayKey(companyId, clientId) {
+  return `${String(companyId || "")}|${String(clientId || "")}`;
+}
+
+function setConversationModeOverlay(companyId, clientId, mode) {
+  recentConversationModes.set(
+    modeOverlayKey(companyId, clientId),
+    {
+      mode: String(mode || "").toUpperCase(),
+      at: Date.now()
+    }
+  );
+}
+
+function getConversationModeOverlay(companyId, clientId) {
+  const key = modeOverlayKey(companyId, clientId);
+  const value = recentConversationModes.get(key);
+  if (!value) return "";
+
+  if (Date.now() - value.at > CONVERSATION_MODE_OVERLAY_MS) {
+    recentConversationModes.delete(key);
+    return "";
+  }
+
+  return value.mode || "";
+}
+
+function companyClientsMap(companyRow) {
+  const out = new Map();
+
+  for (const row of snapshotRows(companyRow, "clientes")) {
+    const id = String(rowValue(row, ["ID_CLIENTE", "idCliente"]) || "").trim();
+    if (!id) continue;
+
+    out.set(
+      id,
+      {
+        nombre: String(rowValue(row, ["NOMBRE", "nombre"]) || "").trim(),
+        telefono: String(rowValue(row, ["TELEFONO", "telefono"]) || "").trim()
+      }
+    );
+  }
+
+  return out;
+}
+
+function companyHumanMap(companyRow) {
+  const out = new Map();
+  const rows = snapshotRows(companyRow, "atencionHumana");
+
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const row = rows[i] || {};
+    const id = String(rowValue(row, ["ID_CLIENTE", "idCliente"]) || "").trim();
+    if (!id || out.has(id)) continue;
+
+    const estado = normalizeState(rowValue(row, ["ESTADO", "estado"]));
+    if (estado !== "PENDIENTE") continue;
+
+    out.set(
+      id,
+      {
+        asignadoA: String(
+          rowValue(row, ["ASIGNADO_A", "asignadoA"]) || ""
+        ).trim()
+      }
+    );
+  }
+
+  return out;
+}
+
+function companyChatIndexMap(companyRow) {
+  const out = new Map();
+
+  for (const row of snapshotRows(companyRow, "chats")) {
+    const id = String(rowValue(row, ["ID_CLIENTE", "idCliente"]) || "").trim();
+    if (!id) continue;
+    out.set(id, row);
+  }
+
+  return out;
+}
+
+function inboxFromPostgres(companyRow, filter = "TODOS", search = "") {
+  const clients = companyClientsMap(companyRow);
+  const human = companyHumanMap(companyRow);
+  const rows = snapshotRows(companyRow, "chats").slice();
+
+  const wanted = normalizeState(filter || "TODOS");
+  const q = String(search || "").trim().toLowerCase();
+  const companyId = companyRow?.company_id || "";
+
+  rows.sort(
+    (a, b) =>
+      dateMs(rowValue(b, ["FECHA_ULTIMO", "fechaUltimo"])) -
+      dateMs(rowValue(a, ["FECHA_ULTIMO", "fechaUltimo"]))
+  );
+
+  const items = [];
+
+  for (const row of rows) {
+    if (items.length >= 300) break;
+
+    const idCliente = String(
+      rowValue(row, ["ID_CLIENTE", "idCliente"]) || ""
+    ).trim();
+
+    if (!idCliente || !idCliente.startsWith("WA_")) continue;
+
+    const cli = clients.get(idCliente) || {
+      nombre: "",
+      telefono: ""
+    };
+
+    const pendingHuman = human.get(idCliente) || null;
+    const overlayMode = getConversationModeOverlay(companyId, idCliente);
+
+    const modo =
+      overlayMode ||
+      (pendingHuman ? "HUMANO" : "BOT");
+
+    if (wanted !== "TODOS" && wanted !== modo) continue;
+
+    const ultimoMensaje = String(
+      rowValue(row, ["ULTIMO_MENSAJE", "ultimoMensaje"]) || ""
+    );
+
+    const assigned = pendingHuman?.asignadoA || "";
+
+    const searchable = [
+      cli.nombre,
+      cli.telefono,
+      idCliente,
+      ultimoMensaje,
+      modo,
+      assigned
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    if (q && !searchable.includes(q)) continue;
+
+    const lastInbound = rowValue(
+      row,
+      ["ULTIMA_ENTRADA_WA", "ultimaEntradaWa"]
+    );
+
+    const inboundMs = dateMs(lastInbound);
+
+    items.push({
+      idCliente,
+      nombre: cli.nombre,
+      telefono: cli.telefono,
+      fechaUltimo: formatDateAr(
+        rowValue(row, ["FECHA_ULTIMO", "fechaUltimo"])
+      ),
+      tipoUltimo: normalizeState(
+        rowValue(row, ["TIPO_ULTIMO", "tipoUltimo"])
+      ),
+      ultimoMensaje,
+      modo,
+      filaHumana: pendingHuman ? 1 : 0,
+      asignadoA: assigned,
+      ventana24hAbierta:
+        !!inboundMs &&
+        Date.now() - inboundMs < 24 * 60 * 60 * 1000
+    });
+  }
+
+  return items;
+}
+
+function recentHumanMessagesForThread(companyId, clientId) {
+  const now = Date.now();
+  const out = [];
+
+  for (const [key, value] of recentHumanSends.entries()) {
+    if (!value || value.state !== "sent") continue;
+    if (now - value.at > 2 * 60 * 1000) continue;
+
+    const expectedPrefix =
+      `${String(companyId || "")}|${String(clientId || "")}|`;
+
+    if (!key.startsWith(expectedPrefix)) continue;
+    if (!value.message) continue;
+
+    out.push({
+      fecha: formatDateAr(value.at, true),
+      tipo: "VENDEDOR",
+      mensaje: value.message,
+      _localRecent: true,
+      _at: value.at
+    });
+  }
+
+  return out.sort((a, b) => a._at - b._at);
+}
+
+function threadFromPostgres(companyRow, clientId, limit = 60) {
+  const id = String(clientId || "").trim();
+  const max = Math.max(10, Math.min(100, Number(limit || 60)));
+  const clients = companyClientsMap(companyRow);
+  const humans = companyHumanMap(companyRow);
+  const chats = companyChatIndexMap(companyRow);
+  const companyId = companyRow?.company_id || "";
+
+  const cli = clients.get(id) || {
+    nombre: "",
+    telefono: ""
+  };
+
+  const pendingHuman = humans.get(id) || null;
+  const overlayMode = getConversationModeOverlay(companyId, id);
+
+  const chatIndex = chats.get(id) || {};
+  const inboundMs = dateMs(
+    rowValue(chatIndex, ["ULTIMA_ENTRADA_WA", "ultimaEntradaWa"])
+  );
+
+  const rawMessages = snapshotRows(companyRow, "conversaciones")
+    .filter(
+      row =>
+        String(
+          rowValue(row, ["ID_CLIENTE", "idCliente"]) || ""
+        ).trim() === id
+    )
+    .map(row => ({
+      fecha: formatDateAr(
+        rowValue(row, ["FECHA_HORA", "fechaHora"]),
+        true
+      ),
+      tipo: normalizeState(
+        rowValue(row, ["TIPO", "tipo"])
+      ),
+      mensaje: String(
+        rowValue(row, ["MENSAJE", "mensaje"]) || ""
+      ),
+      _at: dateMs(
+        rowValue(row, ["FECHA_HORA", "fechaHora"])
+      )
+    }))
+    .sort((a, b) => a._at - b._at);
+
+  const localRecent = recentHumanMessagesForThread(companyId, id);
+
+  // Evita duplicar un mensaje optimista cuando ya entró al snapshot.
+  for (const local of localRecent) {
+    const duplicate = rawMessages.some(
+      m =>
+        m.tipo === "VENDEDOR" &&
+        m.mensaje === local.mensaje &&
+        Math.abs((m._at || 0) - (local._at || 0)) < 120000
+    );
+
+    if (!duplicate) rawMessages.push(local);
+  }
+
+  rawMessages.sort((a, b) => (a._at || 0) - (b._at || 0));
+
+  const messages = rawMessages
+    .slice(-max)
+    .map(({ _at, _localRecent, ...rest }) => rest);
+
+  return {
+    chat: {
+      idCliente: id,
+      nombre: cli.nombre,
+      telefono: cli.telefono,
+      modo:
+        overlayMode ||
+        (pendingHuman ? "HUMANO" : "BOT"),
+      filaHumana: pendingHuman ? 1 : 0,
+      asignadoA: pendingHuman?.asignadoA || "",
+      ventana24hAbierta:
+        !!inboundMs &&
+        Date.now() - inboundMs < 24 * 60 * 60 * 1000
+    },
+    messages
+  };
+}
+
 
 function bridgeUrl(companyRow) {
   const snapshot = companyRow?.snapshot || {};
@@ -406,8 +742,8 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.4.0",
-      mode: "GASTRO_POSTGRES_READ",
+      version: "5.4.1",
+      mode: "POSTGRES_READ_CORE",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
         source: String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim()
@@ -651,23 +987,32 @@ app.get(
   async (req, res) => {
     try {
       const company = await getCompany(req.params.companyId);
+
       if (!company) {
-        return res.status(404).json({ ok:false, error:"Empresa no encontrada." });
+        return res.status(404).json({
+          ok:false,
+          error:"Empresa no encontrada."
+        });
       }
 
-      const result = await postBridge(
+      const items = inboxFromPostgres(
         company,
-        "inbox",
-        {
-          filter: String(req.query.filter || "TODOS"),
-          search: String(req.query.q || "")
-        },
-        req.session?.sub || "PANEL_V5"
+        String(req.query.filter || "TODOS"),
+        String(req.query.q || "")
       );
 
-      return res.json({ ok:true, ...result });
+      return res.json({
+        ok:true,
+        source:"POSTGRES",
+        syncedAt:company.synced_at,
+        items,
+        generatedAt:new Date().toISOString()
+      });
     } catch (err) {
-      return res.status(502).json({ ok:false, error:String(err?.message || err) });
+      return res.status(500).json({
+        ok:false,
+        error:String(err?.message || err)
+      });
     }
   }
 );
@@ -678,23 +1023,31 @@ app.get(
   async (req, res) => {
     try {
       const company = await getCompany(req.params.companyId);
+
       if (!company) {
-        return res.status(404).json({ ok:false, error:"Empresa no encontrada." });
+        return res.status(404).json({
+          ok:false,
+          error:"Empresa no encontrada."
+        });
       }
 
-      const result = await postBridge(
+      const result = threadFromPostgres(
         company,
-        "thread",
-        {
-          idCliente: req.params.clientId,
-          limit: Math.max(10, Math.min(100, Number(req.query.limit || 60)))
-        },
-        req.session?.sub || "PANEL_V5"
+        req.params.clientId,
+        req.query.limit
       );
 
-      return res.json({ ok:true, ...result });
+      return res.json({
+        ok:true,
+        source:"POSTGRES",
+        syncedAt:company.synced_at,
+        ...result
+      });
     } catch (err) {
-      return res.status(502).json({ ok:false, error:String(err?.message || err) });
+      return res.status(500).json({
+        ok:false,
+        error:String(err?.message || err)
+      });
     }
   }
 );
@@ -714,6 +1067,12 @@ app.post(
         "take",
         { idCliente:req.params.clientId },
         req.session?.sub || "PANEL_V5"
+      );
+
+      setConversationModeOverlay(
+        req.params.companyId,
+        req.params.clientId,
+        "HUMANO"
       );
 
       return res.json({ ok:true, ...result });
@@ -798,7 +1157,8 @@ app.post(
       recentHumanSends.set(dedupeKey, {
         state: "sent",
         at: Date.now(),
-        wamid: String(result?.wamid || "")
+        wamid: String(result?.wamid || ""),
+        message
       });
 
       return res.json({
@@ -828,6 +1188,12 @@ app.post(
         "return_bot",
         { idCliente:req.params.clientId },
         req.session?.sub || "PANEL_V5"
+      );
+
+      setConversationModeOverlay(
+        req.params.companyId,
+        req.params.clientId,
+        "BOT"
       );
 
       return res.json({ ok:true, ...result });
@@ -1251,6 +1617,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.4.0 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.4.1 escuchando en puerto ${PORT}`
   );
 });

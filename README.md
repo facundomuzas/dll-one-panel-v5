@@ -186,3 +186,22 @@ Apps Script queda temporalmente para:
 - sincronización de fondo hacia PostgreSQL.
 
 Esto elimina el timeout al abrir ONE Gastro.
+
+
+## V5.4.1 — Conversaciones desde PostgreSQL
+
+Las lecturas de:
+- bandeja de conversaciones;
+- historial de mensajes;
+
+ya no llaman Apps Script.
+
+Se leen desde el snapshot PostgreSQL existente:
+- Clientes
+- Chats
+- Conversaciones
+- AtencionHumana
+
+Tomar chat, enviar mensaje y devolver al bot siguen pasando temporalmente
+por el Bridge, pero las lecturas frecuentes ya no pueden provocar timeout
+de Apps Script.
