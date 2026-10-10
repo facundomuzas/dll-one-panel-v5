@@ -78,6 +78,56 @@ export async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_panel_user_companies_company
       ON panel_user_companies (company_id)
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS panel_chat_state (
+      company_id TEXT NOT NULL,
+      client_id TEXT NOT NULL,
+      phone_number_id TEXT NOT NULL DEFAULT '',
+      wa_id TEXT NOT NULL DEFAULT '',
+      customer_name TEXT NOT NULL DEFAULT '',
+      mode TEXT NOT NULL DEFAULT 'BOT',
+      assigned_to TEXT NOT NULL DEFAULT '',
+      last_inbound_at TIMESTAMPTZ,
+      last_message_at TIMESTAMPTZ,
+      last_message_type TEXT NOT NULL DEFAULT '',
+      last_message TEXT NOT NULL DEFAULT '',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (company_id, client_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_panel_chat_state_company_updated
+      ON panel_chat_state (company_id, updated_at DESC)
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS panel_conversation_messages (
+      id BIGSERIAL PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      client_id TEXT NOT NULL,
+      phone_number_id TEXT NOT NULL DEFAULT '',
+      wa_id TEXT NOT NULL DEFAULT '',
+      customer_name TEXT NOT NULL DEFAULT '',
+      sender_type TEXT NOT NULL,
+      message TEXT NOT NULL DEFAULT '',
+      wamid TEXT NOT NULL DEFAULT '',
+      source TEXT NOT NULL DEFAULT 'MOTOR',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_panel_conversation_messages_thread
+      ON panel_conversation_messages (company_id, client_id, created_at ASC)
+  `);
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_panel_conversation_messages_wamid
+      ON panel_conversation_messages (wamid)
+      WHERE wamid <> ''
+  `);
 }
 
 export async function upsertCompanySnapshot(payload) {
@@ -422,4 +472,249 @@ export async function dbHealth() {
     now: rows[0]?.now,
     companies: rows[0]?.companies || 0
   };
+}
+
+
+export async function upsertConversationEvent({
+  companyId,
+  clientId,
+  phoneNumberId = "",
+  waId = "",
+  customerName = "",
+  senderType,
+  message = "",
+  wamid = "",
+  source = "MOTOR",
+  createdAt = null
+}) {
+  const company = String(companyId || "").trim();
+  const client = String(clientId || "").trim();
+  const sender = String(senderType || "").trim().toUpperCase();
+
+  if (!company || !client || !sender) {
+    throw new Error("Evento de conversación incompleto.");
+  }
+
+  const ts = createdAt ? new Date(createdAt) : new Date();
+  const safeTs = Number.isFinite(ts.getTime()) ? ts : new Date();
+
+  const sqlInsert = `
+    INSERT INTO panel_conversation_messages (
+      company_id,
+      client_id,
+      phone_number_id,
+      wa_id,
+      customer_name,
+      sender_type,
+      message,
+      wamid,
+      source,
+      created_at
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+    ON CONFLICT (wamid) WHERE wamid <> ''
+    DO NOTHING
+  `;
+
+  await pool.query(
+    sqlInsert,
+    [
+      company,
+      client,
+      String(phoneNumberId || ""),
+      String(waId || ""),
+      String(customerName || ""),
+      sender,
+      String(message || ""),
+      String(wamid || ""),
+      String(source || "MOTOR"),
+      safeTs
+    ]
+  );
+
+  const inbound =
+    sender === "CLIENTE"
+      ? safeTs
+      : null;
+
+  await pool.query(
+    `
+      INSERT INTO panel_chat_state (
+        company_id,
+        client_id,
+        phone_number_id,
+        wa_id,
+        customer_name,
+        mode,
+        assigned_to,
+        last_inbound_at,
+        last_message_at,
+        last_message_type,
+        last_message,
+        updated_at
+      )
+      VALUES (
+        $1,$2,$3,$4,$5,'BOT','',$6,$7,$8,$9,NOW()
+      )
+      ON CONFLICT (company_id, client_id)
+      DO UPDATE SET
+        phone_number_id =
+          CASE
+            WHEN EXCLUDED.phone_number_id <> '' THEN EXCLUDED.phone_number_id
+            ELSE panel_chat_state.phone_number_id
+          END,
+        wa_id =
+          CASE
+            WHEN EXCLUDED.wa_id <> '' THEN EXCLUDED.wa_id
+            ELSE panel_chat_state.wa_id
+          END,
+        customer_name =
+          CASE
+            WHEN EXCLUDED.customer_name <> '' THEN EXCLUDED.customer_name
+            ELSE panel_chat_state.customer_name
+          END,
+        last_inbound_at =
+          COALESCE(EXCLUDED.last_inbound_at, panel_chat_state.last_inbound_at),
+        last_message_at = EXCLUDED.last_message_at,
+        last_message_type = EXCLUDED.last_message_type,
+        last_message = EXCLUDED.last_message,
+        updated_at = NOW()
+    `,
+    [
+      company,
+      client,
+      String(phoneNumberId || ""),
+      String(waId || ""),
+      String(customerName || ""),
+      inbound,
+      safeTs,
+      sender,
+      String(message || "")
+    ]
+  );
+
+  return {
+    ok: true,
+    companyId: company,
+    clientId: client
+  };
+}
+
+export async function setConversationMode(
+  companyId,
+  clientId,
+  mode,
+  assignedTo = ""
+) {
+  const company = String(companyId || "").trim();
+  const client = String(clientId || "").trim();
+  const normalizedMode =
+    String(mode || "").trim().toUpperCase() === "HUMANO"
+      ? "HUMANO"
+      : "BOT";
+
+  if (!company || !client) {
+    throw new Error("Falta empresa o cliente para cambiar modo.");
+  }
+
+  await pool.query(
+    `
+      INSERT INTO panel_chat_state (
+        company_id,
+        client_id,
+        mode,
+        assigned_to,
+        updated_at
+      )
+      VALUES ($1,$2,$3,$4,NOW())
+      ON CONFLICT (company_id, client_id)
+      DO UPDATE SET
+        mode = EXCLUDED.mode,
+        assigned_to = EXCLUDED.assigned_to,
+        updated_at = NOW()
+    `,
+    [
+      company,
+      client,
+      normalizedMode,
+      normalizedMode === "HUMANO"
+        ? String(assignedTo || "")
+        : ""
+    ]
+  );
+
+  return {
+    ok: true,
+    companyId: company,
+    clientId: client,
+    mode: normalizedMode
+  };
+}
+
+export async function getConversationState(companyId, clientId) {
+  const { rows } = await pool.query(
+    `
+      SELECT *
+      FROM panel_chat_state
+      WHERE company_id=$1 AND client_id=$2
+      LIMIT 1
+    `,
+    [
+      String(companyId || ""),
+      String(clientId || "")
+    ]
+  );
+
+  return rows[0] || null;
+}
+
+export async function listConversationStates(companyId) {
+  const { rows } = await pool.query(
+    `
+      SELECT *
+      FROM panel_chat_state
+      WHERE company_id=$1
+      ORDER BY updated_at DESC
+      LIMIT 500
+    `,
+    [String(companyId || "")]
+  );
+
+  return rows;
+}
+
+export async function listConversationRuntimeMessages(
+  companyId,
+  clientId,
+  limit = 100
+) {
+  const max = Math.max(10, Math.min(200, Number(limit || 100)));
+
+  const { rows } = await pool.query(
+    `
+      SELECT
+        id,
+        company_id,
+        client_id,
+        phone_number_id,
+        wa_id,
+        customer_name,
+        sender_type,
+        message,
+        wamid,
+        source,
+        created_at
+      FROM panel_conversation_messages
+      WHERE company_id=$1 AND client_id=$2
+      ORDER BY created_at DESC, id DESC
+      LIMIT $3
+    `,
+    [
+      String(companyId || ""),
+      String(clientId || ""),
+      max
+    ]
+  );
+
+  return rows.reverse();
 }

@@ -205,3 +205,17 @@ Se leen desde el snapshot PostgreSQL existente:
 Tomar chat, enviar mensaje y devolver al bot siguen pasando temporalmente
 por el Bridge, pero las lecturas frecuentes ya no pueden provocar timeout
 de Apps Script.
+
+
+## V5.5.0 — Conversaciones 100% Railway
+
+Conversaciones deja de usar Apps Script para:
+- tomar chat;
+- enviar mensaje humano;
+- devolver al bot;
+- leer bandeja;
+- leer historial.
+
+El Panel guarda estado/mensajes en PostgreSQL.
+El Motor V4.2 envía WhatsApp directamente por Meta y consulta el modo
+BOT/HUMANO al Panel V5.
