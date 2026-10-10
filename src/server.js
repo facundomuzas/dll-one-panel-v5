@@ -24,6 +24,16 @@ import {
   getConversationState,
   listConversationStates,
   listConversationRuntimeMessages,
+  createOrGetDirectOrder,
+  getDirectOrder,
+  listDirectOrders,
+  updateDirectOrderAction,
+  upsertDirectDeliveryQuote,
+  listDirectDeliveryQuotes,
+  getDirectDeliveryQuote,
+  markDirectDeliveryQuoteQuoted,
+  closeDirectDeliveryQuotes,
+  directOperationsSummary,
   dbHealth
 } from "./db.js";
 
@@ -971,8 +981,8 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.5.0",
-      mode: "CONVERSATIONS_DIRECT",
+      version: "5.6.0",
+      mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
         source: String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim()
@@ -989,7 +999,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.3.1",
+      version: "5.6.0",
       error: String(err?.message || err)
     });
   }
@@ -1259,6 +1269,78 @@ app.post(
   }
 );
 
+
+app.post(
+  "/motor/order/confirm",
+  authenticateMotorRequest,
+  async (req, res) => {
+    try {
+      const result =
+        await createOrGetDirectOrder(
+          req.body || {}
+        );
+
+      return res.json({
+        ok: true,
+        ...result
+      });
+    } catch (err) {
+      return res.status(400).json({
+        ok: false,
+        error: String(err?.message || err)
+      });
+    }
+  }
+);
+
+app.post(
+  "/motor/delivery/quote/upsert",
+  authenticateMotorRequest,
+  async (req, res) => {
+    try {
+      const result =
+        await upsertDirectDeliveryQuote(
+          req.body || {}
+        );
+
+      return res.json({
+        ok: true,
+        ...result
+      });
+    } catch (err) {
+      return res.status(400).json({
+        ok: false,
+        error: String(err?.message || err)
+      });
+    }
+  }
+);
+
+app.post(
+  "/motor/delivery/quote/close",
+  authenticateMotorRequest,
+  async (req, res) => {
+    try {
+      const result =
+        await closeDirectDeliveryQuotes(
+          req.body?.companyId,
+          req.body?.clientId,
+          req.body?.state || "CANCELADA"
+        );
+
+      return res.json({
+        ok: true,
+        ...result
+      });
+    } catch (err) {
+      return res.status(400).json({
+        ok: false,
+        error: String(err?.message || err)
+      });
+    }
+  }
+);
+
 app.use(
   "/api/company/:companyId",
   authRequired,
@@ -1281,6 +1363,15 @@ app.get(
         });
       }
 
+      const summary = summarize(company);
+      const direct = await directOperationsSummary(
+        req.params.companyId
+      );
+
+      summary.activeOrders = direct.activeOrders;
+      summary.pendingQuotes = direct.pendingQuotes;
+      summary.pendingPayment = direct.pendingPayment;
+
       return res.json({
         ok: true,
         company: {
@@ -1289,7 +1380,7 @@ app.get(
           sourceVersion: company.source_version,
           syncedAt: company.synced_at
         },
-        summary: summarize(company)
+        summary
       });
     } catch (err) {
       return res.status(500).json({
@@ -1976,6 +2067,229 @@ app.post(
   }
 );
 
+
+app.get(
+  "/api/company/:companyId/pedidos",
+  authRequired,
+  async (req, res) => {
+    try {
+      const items = await listDirectOrders(
+        req.params.companyId,
+        req.query.filter || "ACTIVOS"
+      );
+
+      return res.json({
+        ok: true,
+        source: "POSTGRES_DIRECT",
+        items,
+        total: items.length,
+        generatedAt: new Date().toISOString()
+      });
+    } catch (err) {
+      return res.status(500).json({
+        ok: false,
+        error: String(err?.message || err)
+      });
+    }
+  }
+);
+
+app.post(
+  "/api/company/:companyId/pedidos/:orderId/action",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company =
+        await getCompany(
+          req.params.companyId
+        );
+
+      if (!company) {
+        return res.status(404).json({
+          ok: false,
+          error: "Empresa no encontrada."
+        });
+      }
+
+      const result =
+        await updateDirectOrderAction(
+          req.params.companyId,
+          req.params.orderId,
+          req.body?.action,
+          req.session?.sub || "PANEL_V5",
+          req.body?.notes || ""
+        );
+
+      let notification = {
+        sent: false,
+        reason: "SIN_CAMBIOS"
+      };
+
+      if (result.changed) {
+        const action =
+          String(req.body?.action || "")
+            .toUpperCase();
+
+        const actionsWithMessage =
+          new Set([
+            "CONFIRMAR_PAGO",
+            "RECHAZAR_PAGO",
+            "PREPARANDO",
+            "LISTO_RETIRO",
+            "EN_CAMINO",
+            "ENTREGADO",
+            "CANCELADO"
+          ]);
+
+        if (actionsWithMessage.has(action)) {
+          try {
+            notification = await postMotor(
+              "/admin/panel/order-status",
+              {
+                companyId: req.params.companyId,
+                phoneNumberId:
+                  result.order.phoneNumberId ||
+                  company.phone_number_id,
+                action,
+                order: result.order
+              }
+            );
+          } catch (err) {
+            notification = {
+              sent: false,
+              warning: String(err?.message || err)
+            };
+          }
+        }
+      }
+
+      return res.json({
+        ok: true,
+        ...result,
+        notification
+      });
+    } catch (err) {
+      return res.status(400).json({
+        ok: false,
+        error: String(err?.message || err)
+      });
+    }
+  }
+);
+
+app.get(
+  "/api/company/:companyId/deliveryQuotes",
+  authRequired,
+  async (req, res) => {
+    try {
+      const items =
+        await listDirectDeliveryQuotes(
+          req.params.companyId
+        );
+
+      return res.json({
+        ok: true,
+        source: "POSTGRES_DIRECT",
+        items,
+        total: items.length,
+        generatedAt: new Date().toISOString()
+      });
+    } catch (err) {
+      return res.status(500).json({
+        ok: false,
+        error: String(err?.message || err)
+      });
+    }
+  }
+);
+
+app.post(
+  "/api/company/:companyId/deliveryQuotes/:quoteId/quote",
+  authRequired,
+  async (req, res) => {
+    try {
+      const company =
+        await getCompany(
+          req.params.companyId
+        );
+
+      if (!company) {
+        return res.status(404).json({
+          ok: false,
+          error: "Empresa no encontrada."
+        });
+      }
+
+      const quote =
+        await getDirectDeliveryQuote(
+          req.params.companyId,
+          req.params.quoteId
+        );
+
+      if (!quote) {
+        return res.status(404).json({
+          ok: false,
+          error: "Cotización no encontrada."
+        });
+      }
+
+      if (
+        String(quote.estado || "")
+          .toUpperCase() !== "PENDIENTE"
+      ) {
+        return res.json({
+          ok: true,
+          changed: false,
+          quote
+        });
+      }
+
+      const cost = Number(req.body?.cost);
+
+      if (!Number.isFinite(cost) || cost < 0) {
+        return res.status(400).json({
+          ok: false,
+          error: "Ingresá un costo de delivery válido."
+        });
+      }
+
+      const motor = await postMotor(
+        "/admin/delivery-quote",
+        {
+          phoneNumberId:
+            quote.phoneNumberId ||
+            company.phone_number_id,
+          waId: quote.waId,
+          quoteId: quote.idCotizacion,
+          cost,
+          pedido: quote.pedidoJson
+        }
+      );
+
+      const updated =
+        await markDirectDeliveryQuoteQuoted(
+          req.params.companyId,
+          req.params.quoteId,
+          cost,
+          req.session?.sub || "PANEL_V5",
+          motor?.pedido || null
+        );
+
+      return res.json({
+        ok: true,
+        changed: true,
+        quote: updated,
+        motor
+      });
+    } catch (err) {
+      return res.status(400).json({
+        ok: false,
+        error: String(err?.message || err)
+      });
+    }
+  }
+);
+
 app.get(
   "/api/company/:companyId/:dataset",
   authRequired,
@@ -2094,6 +2408,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.5.0 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.6.0 escuchando en puerto ${PORT}`
   );
 });

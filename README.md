@@ -219,3 +219,6 @@ Conversaciones deja de usar Apps Script para:
 El Panel guarda estado/mensajes en PostgreSQL.
 El Motor V4.2 envía WhatsApp directamente por Meta y consulta el modo
 BOT/HUMANO al Panel V5.
+
+## V5.6.0
+Pedidos, cocina y delivery directo en PostgreSQL.

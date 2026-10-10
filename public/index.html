@@ -497,6 +497,27 @@
     @media(max-width:1050px){
       .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
     }
+
+    .orders-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px}
+    .order-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 8px 24px rgba(31,45,25,.05)}
+    .order-card-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+    .order-id{font-weight:900;font-size:17px;color:#172111}
+    .order-time{font-size:12px;color:var(--muted);white-space:nowrap}
+    .order-client{font-weight:800;margin-bottom:4px}
+    .order-products{white-space:pre-wrap;line-height:1.45;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:10px 0}
+    .order-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;margin:10px 0}
+    .order-meta>div{background:#f7faf5;border-radius:10px;padding:8px 10px}
+    .order-total{font-size:21px;font-weight:900;margin:8px 0}
+    .order-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .order-actions button{border:0;border-radius:10px;padding:9px 12px;cursor:pointer;font-weight:800}
+    .order-actions .primary{background:var(--brand);color:#fff}
+    .order-actions .soft{background:#edf5e8;color:#2e541d}
+    .order-actions .warn{background:#fff0df;color:#9a4f00}
+    .order-actions .danger{background:#ffe6e6;color:#a51f1f}
+    .status-chip{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;background:#eef5e9;color:#355c25}
+    .quote-cost-row{display:flex;gap:8px;margin-top:12px}
+    .quote-cost-row input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit}
+
     @media(max-width:760px){
       body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
       .app{display:block;min-height:100vh}
@@ -666,7 +687,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.5.0 · Autogestión</small>
+          <small>Panel Cloud V5.6.0 · Autogestión</small>
         </div>
       </div>
 
@@ -691,7 +712,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.5.0</small>
+          <small>Panel Cloud V5.6.0</small>
         </div>
       </div>
 
@@ -748,7 +769,7 @@
           <div class="card">
             <strong>Qué es esta versión</strong>
             <p style="color:var(--muted);line-height:1.55;margin-bottom:0">
-              V5.3 suma autogestión Gastro: menú visual, medios de pago y zonas de delivery. Pedidos operativos siguen temporalmente en V4 mientras completamos la migración.
+              V5.6 opera pedidos, cocina y cotización de delivery directamente en Railway + PostgreSQL. Apps Script queda fuera del flujo operativo de estos pedidos nuevos.
             </p>
           </div>
         </section>
@@ -756,7 +777,7 @@
         <section id="conversations" class="section">
           <div class="hero">
             <div><h1>Conversaciones</h1><p>Conversaciones directas: PostgreSQL + Motor Railway, sin Apps Script.</p></div>
-            <span class="pill">● 100% RAILWAY</span>
+            <span class="pill">● OPERACIÓN DIRECTA</span>
           </div>
 
           <div class="card conversation-shell">
@@ -806,21 +827,21 @@
 
         <section id="orders" class="section">
           <div class="hero">
-            <div><h1>Pedidos</h1><p>Pedidos activos sincronizados desde DLL ONE.</p></div>
+            <div><h1>Pedidos · Cocina</h1><p>Operación directa desde PostgreSQL. Los pedidos nuevos aparecen sin esperar Apps Script.</p></div>
           </div>
           <div class="card table-card">
             <div class="table-head"><h3>Pedidos activos</h3><span id="countOrders" class="sync"></span></div>
-            <div id="ordersTable" class="table-wrap"></div>
+            <div id="ordersTable" class="orders-grid"></div>
           </div>
         </section>
 
         <section id="delivery" class="section">
           <div class="hero">
-            <div><h1>Delivery por cotizar</h1><p>Lectura instantánea de cotizaciones pendientes.</p></div>
+            <div><h1>Delivery por cotizar</h1><p>Cotizá el envío desde el Panel y el cliente recibe el valor por WhatsApp.</p></div>
           </div>
           <div class="card table-card">
             <div class="table-head"><h3>Pendientes</h3><span id="countDelivery" class="sync"></span></div>
-            <div id="deliveryTable" class="table-wrap"></div>
+            <div id="deliveryTable" class="orders-grid"></div>
           </div>
         </section>
 
@@ -1403,6 +1424,12 @@
     inboxSearchTimer=setTimeout(()=>loadConversationsLive(),350);
   }
 
+  setInterval(()=>{
+    if(!companyId||document.hidden)return;
+    if(currentTab==='orders')loadOrders().catch(()=>{});
+    if(currentTab==='delivery')loadDelivery().catch(()=>{});
+  },5000);
+
   async function loadConversations(){
     await loadConversationsLive();
     clearInterval(inboxTimer);
@@ -1658,26 +1685,165 @@
     }
   }
 
+  function money(value){
+    return new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}).format(Number(value||0));
+  }
+
+  function ago(value){
+    const ms=new Date(value||0).getTime();
+    if(!Number.isFinite(ms)||!ms)return '—';
+    const min=Math.max(0,Math.floor((Date.now()-ms)/60000));
+    if(min<1)return 'recién';
+    if(min<60)return `${min} min`;
+    const h=Math.floor(min/60),rest=min%60;
+    return rest?`${h} h ${rest} min`:`${h} h`;
+  }
+
+  function orderButtons(order){
+    const state=String(order.estadoPedido||'').toUpperCase();
+    const payment=String(order.estadoPago||'').toUpperCase();
+    const delivery=String(order.tipoEntrega||'').toUpperCase()==='DELIVERY';
+    const buttons=[];
+
+    if(state==='ESPERANDO_PAGO'&&!['CONFIRMADO','EFECTIVO_AL_RETIRAR'].includes(payment)){
+      buttons.push(
+        `<button class="soft" onclick="orderAction('${esc(order.idPedido)}','CONFIRMAR_PAGO')">✓ Confirmar pago</button>`,
+        `<button class="warn" onclick="orderAction('${esc(order.idPedido)}','RECHAZAR_PAGO')">Rechazar pago</button>`
+      );
+    }
+    if(state==='PENDIENTE_PREPARACION'){
+      buttons.push(`<button class="primary" onclick="orderAction('${esc(order.idPedido)}','PREPARANDO')">👨‍🍳 Empezar preparación</button>`);
+    }
+    if(state==='PREPARANDO'){
+      buttons.push(`<button class="primary" onclick="orderAction('${esc(order.idPedido)}','LISTO_RETIRO')">✅ Marcar listo</button>`);
+    }
+    if(state==='LISTO_RETIRO'){
+      buttons.push(
+        delivery
+          ? `<button class="primary" onclick="orderAction('${esc(order.idPedido)}','EN_CAMINO')">🚚 Salió delivery</button>`
+          : `<button class="primary" onclick="orderAction('${esc(order.idPedido)}','ENTREGADO')">✓ Entregado</button>`
+      );
+    }
+    if(state==='EN_CAMINO'){
+      buttons.push(`<button class="primary" onclick="orderAction('${esc(order.idPedido)}','ENTREGADO')">✓ Entregado</button>`);
+    }
+    if(!['ENTREGADO','CANCELADO'].includes(state)){
+      buttons.push(`<button class="danger" onclick="orderAction('${esc(order.idPedido)}','CANCELADO')">Cancelar</button>`);
+    }
+    return buttons.join('');
+  }
+
+  function renderOrders(items){
+    const box=$('ordersTable');
+    if(!items.length){
+      box.innerHTML='<div class="empty">No hay pedidos activos.</div>';
+      return;
+    }
+
+    box.innerHTML=items.map(order=>{
+      const state=String(order.estadoPedido||'').toUpperCase();
+      const delivery=String(order.tipoEntrega||'').toUpperCase();
+      const address=String(order.direccion||'').trim();
+
+      return `
+        <article class="order-card">
+          <div class="order-card-head">
+            <div>
+              <div class="order-id">🧾 ${esc(order.idPedido||'Pedido')}</div>
+              <div class="order-client">${esc(order.nombreCliente||order.idCliente||'Cliente')}</div>
+            </div>
+            <div class="order-time">⏱ ${esc(ago(order.fecha))}</div>
+          </div>
+          <span class="status-chip">${esc(state||'SIN ESTADO')}</span>
+          <div class="order-products">${esc(order.productos||'Sin detalle')}</div>
+          <div class="order-total">$${money(order.total)}</div>
+          <div class="order-meta">
+            <div><strong>Pago</strong><br>${esc(order.medioPago||'—')} · ${esc(order.estadoPago||'—')}</div>
+            <div><strong>Entrega</strong><br>${esc(delivery||'—')}</div>
+            ${address?`<div style="grid-column:1/-1"><strong>Dirección</strong><br>${esc(address)}</div>`:''}
+            ${Number(order.costoDelivery||0)>0?`<div><strong>Delivery</strong><br>$${money(order.costoDelivery)}</div>`:''}
+          </div>
+          <div class="order-actions">${orderButtons(order)}</div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  async function orderAction(orderId,action){
+    if(action==='CANCELADO'&&!confirm('¿Cancelar este pedido?'))return;
+    if(action==='RECHAZAR_PAGO'&&!confirm('¿Marcar el pago como rechazado?'))return;
+
+    const r=await api(
+      `/api/company/${encodeURIComponent(companyId)}/pedidos/${encodeURIComponent(orderId)}/action`,
+      {method:'POST',body:JSON.stringify({action})}
+    );
+
+    if(r.notification?.warning){
+      alert('El estado se guardó, pero WhatsApp no pudo avisar al cliente: '+r.notification.warning);
+    }
+
+    await loadOrders();
+    loadSummary().catch(()=>{});
+  }
+
   async function loadOrders(){
     const r=await api(`/api/company/${encodeURIComponent(companyId)}/pedidos?filter=ACTIVOS`);
-    $('syncText').textContent=syncLabel(r.syncedAt);
     $('countOrders').textContent=(r.total||0)+' activos';
-    renderGenericTable(
-      'ordersTable',
-      r.items||[],
-      ['ID_PEDIDO','FECHA','NOMBRE_CLIENTE','PRODUCTOS','TOTAL','ESTADO_PAGO','ESTADO_PEDIDO','TIPO_ENTREGA']
+    renderOrders(r.items||[]);
+  }
+
+  function renderDeliveryQuotes(items){
+    const box=$('deliveryTable');
+    if(!items.length){
+      box.innerHTML='<div class="empty">No hay deliveries pendientes de cotizar.</div>';
+      return;
+    }
+
+    box.innerHTML=items.map(q=>`
+      <article class="order-card">
+        <div class="order-card-head">
+          <div>
+            <div class="order-id">🚚 ${esc(q.idCotizacion||'Delivery')}</div>
+            <div class="order-client">${esc(q.nombreCliente||q.idCliente||'Cliente')}</div>
+          </div>
+          <span class="status-chip">PENDIENTE</span>
+        </div>
+        <div class="order-meta">
+          <div style="grid-column:1/-1"><strong>Dirección</strong><br>${esc(q.direccion||'—')}</div>
+        </div>
+        <div class="order-products">${esc(q.pedidoResumen||'Sin detalle')}</div>
+        <div class="order-total">Productos: $${money(q.subtotal)}</div>
+        <div class="quote-cost-row">
+          <input id="quote-${esc(q.idCotizacion)}" type="number" min="0" placeholder="Costo delivery">
+          <button class="btn btn-primary" onclick="quoteDelivery('${esc(q.idCotizacion)}')">Cotizar</button>
+        </div>
+      </article>
+    `).join('');
+  }
+
+  async function quoteDelivery(quoteId){
+    const input=$(`quote-${quoteId}`);
+    const cost=Number(input?.value);
+
+    if(!Number.isFinite(cost)||cost<0){
+      alert('Ingresá un costo de delivery válido.');
+      return;
+    }
+    if(!confirm(`¿Cotizar el delivery en $${money(cost)}?`))return;
+
+    await api(
+      `/api/company/${encodeURIComponent(companyId)}/deliveryQuotes/${encodeURIComponent(quoteId)}/quote`,
+      {method:'POST',body:JSON.stringify({cost})}
     );
+
+    await loadDelivery();
+    loadSummary().catch(()=>{});
   }
 
   async function loadDelivery(){
     const r=await api(`/api/company/${encodeURIComponent(companyId)}/deliveryQuotes`);
-    $('syncText').textContent=syncLabel(r.syncedAt);
     $('countDelivery').textContent=(r.total||0)+' pendientes';
-    renderGenericTable(
-      'deliveryTable',
-      r.items||[],
-      ['ID_COTIZACION','FECHA','NOMBRE_CLIENTE','DIRECCION','PEDIDO_RESUMEN','SUBTOTAL','ESTADO']
-    );
+    renderDeliveryQuotes(r.items||[]);
   }
 
   async function loadCustomers(){
