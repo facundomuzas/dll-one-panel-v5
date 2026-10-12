@@ -18,6 +18,13 @@ export const pool = new Pool({
 });
 
 export async function initDb() {
+  // Configuración de retiro independiente de los snapshots de Apps Script.
+  await pool.query(`CREATE TABLE IF NOT EXISTS panel_pickup_settings (
+    company_id TEXT PRIMARY KEY,
+    address TEXT NOT NULL DEFAULT '',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS panel_companies (
       company_id TEXT PRIMARY KEY,

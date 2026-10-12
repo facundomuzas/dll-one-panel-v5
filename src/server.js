@@ -1,3 +1,4 @@
+import {getPickup, savePickup} from "./pickup.js";
 import express from "express";
 import helmet from "helmet";
 import compression from "compression";
@@ -982,7 +983,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.2",
+      version: "5.6.3",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -1000,7 +1001,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.2",
+      version: "5.6.3",
       error: String(err?.message || err)
     });
   }
@@ -1183,6 +1184,20 @@ app.post("/api/admin/companies", authRequired, requireSuperadmin, async (req, re
 });
 
 
+
+app.get("/motor/company/:companyId/pickup", authenticateMotorRequest, async (req,res) => {
+  try {
+    const company=await getCompany(req.params.companyId);
+    if(!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+    // Evita enlazar por error un número de otra empresa.
+    if(String(req.query.phoneNumberId || "") !== String(company.phone_number_id || ""))
+      return res.status(409).json({ok:false,error:"El número no corresponde a esta empresa."});
+    res.set("Cache-Control", "no-store");
+    return res.json({ok:true,pickup:await getPickup(pool,company)});
+  } catch(err) {
+    return res.status(503).json({ok:false,error:"No se pudo consultar la ubicación."});
+  }
+});
 
 app.post(
   "/motor/conversation/event",
@@ -1787,6 +1802,8 @@ app.get(
         req.session?.sub || "PANEL_V5"
       );
 
+      const pickup=await getPickup(pool,company);
+      result.config={...(result.config || {}),DIRECCION:pickup.address};
       return res.json({ok:true,...result});
     } catch (err) {
       return res.status(502).json({ok:false,error:String(err?.message || err)});
@@ -1813,6 +1830,11 @@ app.post(
         60000
       );
 
+      // La dirección confirmada se persiste antes de anunciar éxito. Un snapshot
+      // posterior no puede restaurar una dirección anterior.
+      if(Object.prototype.hasOwnProperty.call(req.body || {},"DIRECCION")) {
+        await savePickup(pool,company.company_id,req.body.DIRECCION);
+      }
       let warning = "";
       try {
         await pool.query(
@@ -2422,6 +2444,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.6.2 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.6.3 escuchando en puerto ${PORT}`
   );
 });
