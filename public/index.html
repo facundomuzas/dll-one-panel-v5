@@ -678,6 +678,11 @@
     .upload-status{margin-top:9px;color:var(--muted);font-size:12px}.subsection-title{margin:22px 0 10px;font-size:18px}.lightbox{position:fixed;inset:0;background:rgba(15,20,15,.78);z-index:50;display:grid;place-items:center;padding:20px}.lightbox.hidden{display:none}.lightbox-card{position:relative;max-width:min(92vw,900px);max-height:92vh}.lightbox-card img{max-width:100%;max-height:88vh;border-radius:16px;background:#fff;box-shadow:0 20px 70px rgba(0,0,0,.35)}.lightbox-close{position:absolute;right:-10px;top:-10px;width:36px;height:36px;border:0;border-radius:50%;background:#fff;font-size:20px;box-shadow:var(--shadow)}
     @media(max-width:760px){.compact-grid{grid-template-columns:1fr}.mini-actions .btn-xs{flex:1}.toggle-line{align-items:center}}
 
+
+.notice-badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:999px;background:#d72c3b;color:white;font-size:12px;font-weight:800;padding:0 6px;margin-left:auto;flex-shrink:0;line-height:1}
+.notice-badge[hidden]{display:none}.nav button{display:flex;align-items:center;gap:7px}.mobile-bottom-nav button{position:relative}.mobile-bottom-nav .notice-badge{position:absolute;top:2px;right:10px;min-width:18px;height:18px;font-size:10px}
+.notice-status{font-size:11px;color:var(--muted);margin-top:4px}.notice-offline{color:#b42318}.tasks-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:14px}.task-link{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:16px;text-align:left;cursor:pointer}.task-link strong{color:#c32434;font-size:22px}.task-link:hover{border-color:var(--brand)}
+@media(max-width:760px){#noticeSoundButton{font-size:11px;padding:8px}.notice-status{max-width:170px}.conversation-name .notice-badge{height:18px;font-size:10px}}
 </style>
 </head>
 <body>
@@ -687,7 +692,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.4 · Autogestión</small>
+          <small>Panel Cloud V5.6.5 · Autogestión</small>
         </div>
       </div>
 
@@ -712,15 +717,15 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.4</small>
+          <small>Panel Cloud V5.6.5</small>
         </div>
       </div>
 
       <div class="nav">
-        <button class="active" data-tab="dashboard" onclick="go('dashboard',this)">⌂ Dashboard</button>
-        <button data-tab="conversations" onclick="go('conversations',this)">💬 Conversaciones</button>
-        <button data-tab="orders" onclick="go('orders',this)">🧾 Pedidos</button>
-        <button data-tab="delivery" onclick="go('delivery',this)">🚚 Delivery</button>
+        <button class="active" data-tab="dashboard" onclick="go('dashboard',this)">⌂ Dashboard<span class="notice-badge" data-notice="dashboard" hidden></span></button>
+        <button data-tab="conversations" onclick="go('conversations',this)">💬 Conversaciones<span class="notice-badge" data-notice="conversations" hidden></span></button>
+        <button data-tab="orders" onclick="go('orders',this)">🧾 Pedidos<span class="notice-badge" data-notice="orders" hidden></span></button>
+        <button data-tab="delivery" onclick="go('delivery',this)">🚚 Delivery<span class="notice-badge" data-notice="delivery" hidden></span></button>
         <button data-tab="customers" onclick="go('customers',this)">👥 Clientes</button>
         <button data-tab="business" onclick="go('business',this)">🏢 Mi negocio</button>
         <button data-tab="catalog" onclick="go('catalog',this)">💲 Catálogo / precios</button>
@@ -739,10 +744,11 @@
         <div class="head-left">
           <select id="companySelect" class="company" onchange="changeCompany()"></select>
           <div>
-            <div id="syncText" class="sync">Sin sincronizar</div>
+            <div id="syncText" class="sync">Sin sincronizar</div><div id="noticeStatus" class="notice-status" role="status">Avisos pendientes de conexión</div>
           </div>
         </div>
         <div style="display:flex;gap:6px">
+          <button id="noticeSoundButton" class="btn btn-light" onclick="toggleNoticeSound()" aria-pressed="false">🔇 Activar sonido</button>
           <button class="btn btn-light refresh-btn" title="Actualizar" aria-label="Actualizar" onclick="loadTab(currentTab)">↻</button>
           <button class="btn btn-light" title="Cerrar sesión" aria-label="Cerrar sesión" onclick="logout()">⎋ <span class="logout-label">Salir</span></button>
         </div>
@@ -753,24 +759,24 @@
           <div class="hero">
             <div>
               <h1 id="companyTitle">Panel Central</h1>
-              <p>Lecturas rápidas desde PostgreSQL. El bot actual sigue funcionando sin cambios.</p>
+              <p>Revisá los pedidos, conversaciones y tareas pendientes de tu negocio.</p>
             </div>
-            <span class="pill">● POSTGRES SHADOW</span>
+            <span class="pill">● PANEL CENTRAL</span>
           </div>
 
           <div class="cards">
             <div class="card metric"><div class="label">Conversaciones</div><div id="mChats" class="value">—</div></div>
-            <div class="card metric"><div class="label">Pedidos activos</div><div id="mOrders" class="value">—</div></div>
+            <div class="card metric"><div class="label">Pedidos pendientes</div><div id="mOrders" class="value">—</div></div>
             <div class="card metric"><div class="label">Delivery a cotizar</div><div id="mQuotes" class="value">—</div></div>
             <div class="card metric"><div class="label">Atención humana</div><div id="mHuman" class="value">—</div></div>
             <div class="card metric"><div class="label">Pagos pendientes</div><div id="mPayments" class="value">—</div></div>
           </div>
 
           <div class="card">
-            <strong>Qué es esta versión</strong>
-            <p style="color:var(--muted);line-height:1.55;margin-bottom:0">
-              V5.6 opera pedidos, cocina y cotización de delivery directamente en Railway + PostgreSQL. Apps Script queda fuera del flujo operativo de estos pedidos nuevos.
-            </p>
+            <strong>Pendientes del negocio</strong>
+            <p style="color:var(--muted)">Los avisos se actualizan cada pocos segundos, aunque estés en otra sección. Las conversaciones respondidas por el bot también cuentan hasta que las revises. Los pedidos y delivery siguen pendientes hasta que los resuelvas.</p>
+            <div id="pendingTasks" class="tasks-grid"></div>
+            <p style="color:var(--muted);font-size:12px">Activá el sonido con el botón superior. Para recibir avisos, mantené abierto el panel; el navegador puede pausar la actualización si el equipo entra en reposo.</p>
           </div>
         </section>
 
@@ -830,7 +836,7 @@
             <div><h1>Pedidos · Cocina</h1><p>Operación directa desde PostgreSQL. Los pedidos nuevos aparecen sin esperar Apps Script.</p></div>
           </div>
           <div class="card table-card">
-            <div class="table-head"><h3>Pedidos activos</h3><span id="countOrders" class="sync"></span></div>
+            <div class="table-head"><h3>Pedidos por completar o cobrar</h3><span id="countOrders" class="sync"></span></div>
             <div id="ordersTable" class="orders-grid"></div>
           </div>
         </section>
@@ -1100,16 +1106,18 @@
     </main>
 
     <nav class="mobile-bottom-nav" aria-label="Navegación principal móvil">
-      <button class="active" data-tab="dashboard" onclick="go('dashboard',this)"><span class="ico">⌂</span><span class="txt">Inicio</span></button>
-      <button data-tab="conversations" onclick="go('conversations',this)"><span class="ico">💬</span><span class="txt">Chats</span></button>
-      <button data-tab="orders" onclick="go('orders',this)"><span class="ico">🧾</span><span class="txt">Pedidos</span></button>
-      <button data-tab="delivery" onclick="go('delivery',this)"><span class="ico">🚚</span><span class="txt">Delivery</span></button>
+      <button class="active" data-tab="dashboard" onclick="go('dashboard',this)"><span class="ico">⌂</span><span class="txt">Inicio</span><span class="notice-badge" data-notice="dashboard" hidden></span></button>
+      <button data-tab="conversations" onclick="go('conversations',this)"><span class="ico">💬</span><span class="txt">Chats</span><span class="notice-badge" data-notice="conversations" hidden></span></button>
+      <button data-tab="orders" onclick="go('orders',this)"><span class="ico">🧾</span><span class="txt">Pedidos</span><span class="notice-badge" data-notice="orders" hidden></span></button>
+      <button data-tab="delivery" onclick="go('delivery',this)"><span class="ico">🚚</span><span class="txt">Delivery</span><span class="notice-badge" data-notice="delivery" hidden></span></button>
       <button data-tab="more" onclick="go('more',this)"><span class="ico">☰</span><span class="txt">Más</span></button>
     </nav>
   </div>
 
   <div id="loading" class="loading hidden">Cargando…</div>
 
+<script src="/notification_state.js"></script>
+<script src="/notifications.js"></script>
 <script>
   let companies=[];
   let companyId='';
@@ -1207,6 +1215,9 @@
   }
 
   function showLogin(){
+    stopNotifications();
+    clearInterval(inboxTimer);
+    currentUser=null;companyId="";selectedChat=null;
     $('app').classList.add('hidden');
     $('login').classList.remove('hidden');
   }
@@ -1238,6 +1249,7 @@
 
       showApp();
       updateModuleNavigation();
+      startNotifications();
 
       if(!companyId){
         if(isSuperadmin){
@@ -1267,6 +1279,9 @@
 
   async function changeCompany(){
     companyId=$('companySelect').value;
+    selectedChat=null;
+    $('chatContent').classList.add('hidden');$('chatEmpty').classList.remove('hidden');
+    startNotifications();
     updateModuleNavigation();
     await loadTab(currentTab==='admin'?'dashboard':currentTab);
   }
@@ -1333,6 +1348,7 @@
     $('mQuotes').textContent=s.pendingQuotes??0;
     $('mHuman').textContent=s.humanAttention??0;
     $('mPayments').textContent=s.pendingPayment??0;
+    if(noticeData)paintNotices(noticeData);
   }
 
   function labelColumn(c){
@@ -1410,7 +1426,7 @@
       return `
         <article class="conversation-item ${active?'active':''}" onclick="openConversation('${esc(chat.idCliente)}')">
           <div class="conversation-item-top">
-            <div class="conversation-name">${esc(chat.nombre||chat.telefono||chat.idCliente)}</div>
+            <div class="conversation-name">${esc(chat.nombre||chat.telefono||chat.idCliente)} <span class="notice-badge" data-chat-notice="${esc(chat.idCliente)}" hidden></span></div>
             <div class="conversation-date">${esc(chat.fechaUltimo||'')}</div>
           </div>
           <div class="conversation-last">${esc(chat.ultimoMensaje||'')}</div>
@@ -1440,19 +1456,22 @@
           refreshSelectedThread(true).catch(()=>{});
         }
       }
-    },15000);
+    },5000);
   }
 
   async function loadConversationsLive(silent=false){
     if(inboxBusy)return;
     inboxBusy=true;
+    const inboxCompany=companyId;
     try{
       const filter=$('chatFilter')?.value||'TODOS';
       const q=$('chatSearch')?.value||'';
       const r=await api(
         `/api/company/${encodeURIComponent(companyId)}/inbox-live?filter=${encodeURIComponent(filter)}&q=${encodeURIComponent(q)}`
       );
+      if(inboxCompany!==companyId)return;
       renderInbox(r.items||[]);
+      if(noticeData)paintNotices(noticeData);
     }catch(err){
       if(!silent)throw err;
     }finally{
@@ -1473,7 +1492,7 @@
     $('chatPane').classList.remove('mobile-open');
   }
 
-  function renderThread(r){
+  function renderThread(r,stickToBottom=true){
     selectedChat={
       ...(selectedChat||{}),
       ...(r.chat||{})
@@ -1503,19 +1522,23 @@
       const label=incoming?'Cliente':(tipo==='VENDEDOR'?'Humano':'Bot');
       return `<div class="bubble-row ${incoming?'in':'out'}"><div class="bubble"><div class="bubble-meta">${esc(label)} · ${esc(m.fecha||'')}</div><div class="bubble-text">${esc(m.mensaje||'')}</div></div></div>`;
     }).join(''):'<div class="empty">Todavía no hay mensajes.</div>';
-    requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight});
+    displayedThread={company:companyId,client:selectedChat.idCliente,id:String(r.lastMessageId||'0')};
+    requestAnimationFrame(()=>{if(stickToBottom){box.scrollTop=box.scrollHeight;acknowledgeDisplayedThread();}});
   }
 
+  let threadRequest=0;
   async function refreshSelectedThread(silent=false){
     if(!selectedChat?.idCliente)return;
+    const company=companyId,client=selectedChat.idCliente,request=++threadRequest;
+    const box=$('chatMessages');
+    const stick=!silent || box.scrollHeight-box.scrollTop-box.clientHeight<60;
+    const oldScroll=box.scrollTop;
     try{
-      const r=await api(
-        `/api/company/${encodeURIComponent(companyId)}/conversation/${encodeURIComponent(selectedChat.idCliente)}/thread?limit=70`
-      );
-      renderThread(r);
-    }catch(err){
-      if(!silent)throw err;
-    }
+      const r=await api(`/api/company/${encodeURIComponent(company)}/conversation/${encodeURIComponent(client)}/thread?limit=70`);
+      if(request!==threadRequest || company!==companyId || client!==selectedChat?.idCliente || currentTab!=='conversations')return;
+      renderThread(r,stick);
+      if(!stick)box.scrollTop=oldScroll;
+    }catch(err){if(!silent)throw err;}
   }
 
   async function takeConversation(){
@@ -1705,7 +1728,7 @@
     const delivery=String(order.tipoEntrega||'').toUpperCase()==='DELIVERY';
     const buttons=[];
 
-    if(state==='ESPERANDO_PAGO'&&!['CONFIRMADO','EFECTIVO_AL_RETIRAR'].includes(payment)){
+    if(state!=='CANCELADO'&&['PENDIENTE','COMPROBANTE_RECIBIDO','RECHAZADO'].includes(payment)){
       buttons.push(
         `<button class="soft" onclick="orderAction('${esc(order.idPedido)}','CONFIRMAR_PAGO')">✓ Confirmar pago</button>`,
         `<button class="warn" onclick="orderAction('${esc(order.idPedido)}','RECHAZAR_PAGO')">Rechazar pago</button>`
@@ -1783,12 +1806,12 @@
     }
 
     await loadOrders();
-    loadSummary().catch(()=>{});
+    pollNotifications();
   }
 
   async function loadOrders(){
-    const r=await api(`/api/company/${encodeURIComponent(companyId)}/pedidos?filter=ACTIVOS`);
-    $('countOrders').textContent=(r.total||0)+' activos';
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/pedidos?filter=PENDIENTES`);
+    $('countOrders').textContent=(r.total||0)+' pendientes';
     renderOrders(r.items||[]);
   }
 
@@ -1837,7 +1860,7 @@
     );
 
     await loadDelivery();
-    loadSummary().catch(()=>{});
+    pollNotifications();
   }
 
   async function loadDelivery(){

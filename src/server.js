@@ -1,3 +1,5 @@
+import {getNotifications, markThreadRead, notificationActor} from "./notifications.js";
+import {liveCustomers} from "./customers.js";
 import {mergeThreadMessages} from "./thread_messages.js";
 import {dateMs, formatDateAr} from "./dates.js";
 import {getPickup, savePickup} from "./pickup.js";
@@ -898,7 +900,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.4",
+      version: "5.6.5",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -916,7 +918,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.4",
+      version: "5.6.5",
       error: String(err?.message || err)
     });
   }
@@ -1278,6 +1280,27 @@ app.use(
   companyAccessRequired
 );
 
+app.get("/api/company/:companyId/notifications", authRequired, async(req,res)=>{
+  try {
+    res.set("Cache-Control","no-store");
+    return res.json({ok:true,...await getNotifications(pool,req.params.companyId,notificationActor(req.session))});
+  } catch(err) {return res.status(500).json({ok:false,error:"No se pudieron actualizar los avisos."});}
+});
+app.post("/api/company/:companyId/conversation/:clientId/read", authRequired, async(req,res)=>{
+  try {
+    await markThreadRead(pool,req.params.companyId,notificationActor(req.session),req.params.clientId,req.body?.lastMessageId);
+    return res.json({ok:true});
+  } catch(err) {return res.status(400).json({ok:false,error:String(err.message || err)});}
+});
+app.get("/api/company/:companyId/clientes", authRequired, async(req,res)=>{
+  try {
+    const company=await getCompany(req.params.companyId);
+    if(!company)return res.status(404).json({ok:false,error:"Empresa no encontrada."});
+    const items=await liveCustomers(pool,company.company_id,rows(company.snapshot,"clientes"));
+    return res.json({ok:true,source:"POSTGRES_DIRECT",items,total:items.length,syncedAt:new Date().toISOString()});
+  }catch(err){return res.status(500).json({ok:false,error:String(err.message || err)});}
+});
+
 app.get(
   "/api/company/:companyId/summary",
   authRequired,
@@ -1440,7 +1463,8 @@ app.get(
         source:"POSTGRES_DIRECT",
         syncedAt:company.synced_at,
         chat,
-        messages
+        messages,
+        lastMessageId: runtimeMessages.reduce((max,m)=>BigInt(m.id || 0)>BigInt(max)?String(m.id):max,"0")
       });
     } catch (err) {
       return res.status(500).json({
@@ -2359,6 +2383,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.6.4 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.6.5 escuchando en puerto ${PORT}`
   );
 });

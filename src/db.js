@@ -1,3 +1,4 @@
+import {initNotifications} from "./notifications.js";
 import pg from "pg";
 
 const { Pool } = pg;
@@ -18,6 +19,7 @@ export const pool = new Pool({
 });
 
 export async function initDb() {
+  await initNotifications(pool);
   // Configuración de retiro independiente de los snapshots de Apps Script.
   await pool.query(`CREATE TABLE IF NOT EXISTS panel_pickup_settings (
     company_id TEXT PRIMARY KEY,
@@ -997,10 +999,12 @@ export async function listDirectOrders(
       SELECT *
       FROM panel_orders
       WHERE company_id=$1
+        AND ($2 <> 'PENDIENTES' OR (order_state<>'CANCELADO' AND
+          (order_state<>'ENTREGADO' OR payment_state IN ('PENDIENTE','COMPROBANTE_RECIBIDO'))))
       ORDER BY created_at DESC
       LIMIT 500
     `,
-    [String(companyId || "")]
+    [String(companyId || ""),String(filter || "ACTIVOS").trim().toUpperCase()]
   );
 
   const wanted =
@@ -1019,7 +1023,7 @@ export async function listDirectOrders(
         String(order.estadoPago || "")
           .toUpperCase();
 
-      if (wanted === "TODOS") return true;
+      if (wanted === "TODOS" || wanted === "PENDIENTES") return true;
 
       if (wanted === "ACTIVOS") {
         return !["ENTREGADO", "CANCELADO"].includes(state);
