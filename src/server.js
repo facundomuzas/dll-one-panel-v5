@@ -1,3 +1,5 @@
+import {mergeThreadMessages} from "./thread_messages.js";
+import {dateMs, formatDateAr} from "./dates.js";
 import {getPickup, savePickup} from "./pickup.js";
 import express from "express";
 import helmet from "helmet";
@@ -202,38 +204,6 @@ function rowValue(row, keys) {
     }
   }
   return "";
-}
-
-function dateMs(value) {
-  if (!value) return 0;
-  const d = value instanceof Date ? value : new Date(value);
-  const ms = d.getTime();
-  return Number.isFinite(ms) ? ms : 0;
-}
-
-function formatDateAr(value, withSeconds = false) {
-  const ms = dateMs(value);
-  if (!ms) return String(value || "");
-
-  const d = new Date(ms);
-  const parts = new Intl.DateTimeFormat(
-    "es-AR",
-    {
-      timeZone: "America/Argentina/Mendoza",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      ...(withSeconds ? { second: "2-digit" } : {}),
-      hour12: false
-    }
-  ).formatToParts(d);
-
-  const p = Object.fromEntries(parts.map(x => [x.type, x.value]));
-  return withSeconds
-    ? `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}:${p.second}`
-    : `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
 }
 
 const recentConversationModes = new Map();
@@ -500,7 +470,7 @@ function threadFromPostgres(companyRow, clientId, limit = 60) {
 
   const messages = rawMessages
     .slice(-max)
-    .map(({ _at, _localRecent, ...rest }) => rest);
+    .map(({ _at, _localRecent, ...rest }) => ({...rest, timestamp: _at}));
 
   return {
     chat: {
@@ -847,61 +817,6 @@ function mergeInboxItems(snapshotItems, runtimeStates, filter = "TODOS", search 
     .map(({ _sortTs, ...rest }) => rest);
 }
 
-function mergeThreadMessages(snapshotMessages, runtimeMessages) {
-  const combined = [];
-
-  for (const m of snapshotMessages || []) {
-    combined.push({
-      fecha: String(m?.fecha || ""),
-      tipo: normalizeState(m?.tipo),
-      mensaje: String(m?.mensaje || ""),
-      _at: dateMs(m?.fecha),
-      _source: "SNAPSHOT"
-    });
-  }
-
-  for (const m of runtimeMessages || []) {
-    combined.push({
-      fecha: formatDateAr(m?.created_at, true),
-      tipo: normalizeState(m?.sender_type),
-      mensaje: String(m?.message || ""),
-      wamid: String(m?.wamid || ""),
-      _at: dateMs(m?.created_at),
-      _source: "RUNTIME"
-    });
-  }
-
-  combined.sort((a, b) => Number(a._at || 0) - Number(b._at || 0));
-
-  const out = [];
-
-  for (const item of combined) {
-    const duplicate = out.some(prev => {
-      if (
-        item.wamid &&
-        prev.wamid &&
-        item.wamid === prev.wamid
-      ) {
-        return true;
-      }
-
-      return (
-        normalizeState(prev.tipo) === normalizeState(item.tipo) &&
-        String(prev.mensaje || "") === String(item.mensaje || "") &&
-        Math.abs(Number(prev._at || 0) - Number(item._at || 0)) < 180000
-      );
-    });
-
-    if (!duplicate) {
-      out.push(item);
-    }
-  }
-
-  return out
-    .slice(-100)
-    .map(({ _at, _source, ...rest }) => rest);
-}
-
 async function authenticateMotorRequest(req, res, next) {
   const supplied = String(
     req.headers["x-dll-one-key"] || ""
@@ -983,7 +898,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.3",
+      version: "5.6.4",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -1001,7 +916,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.3",
+      version: "5.6.4",
       error: String(err?.message || err)
     });
   }
@@ -2444,6 +2359,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.6.3 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.6.4 escuchando en puerto ${PORT}`
   );
 });
