@@ -10,6 +10,7 @@ import { fileURLToPath } from "url";
 
 import {
   initDb,
+  pool,
   upsertCompanySnapshot,
   listCompanies,
   listCompaniesForUser,
@@ -981,7 +982,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.0",
+      version: "5.6.2",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -999,7 +1000,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.0",
+      version: "5.6.2",
       error: String(err?.message || err)
     });
   }
@@ -1808,10 +1809,23 @@ app.post(
           data: req.body || {},
           allowModules: String(req.session?.role || "").toUpperCase() === "SUPERADMIN"
         },
-        req.session?.sub || "PANEL_V5"
+        req.session?.sub || "PANEL_V5",
+        60000
       );
 
-      return res.json({ok:true,...result});
+      let warning = "";
+      try {
+        await pool.query(
+          `UPDATE panel_companies SET company_name=$2, phone_number_id=$3,
+           config=config || $4::jsonb, modules=$5::jsonb WHERE company_id=$1`,
+          [company.company_id, result.empresa.nombreEmpresa, result.empresa.phoneNumberId || "",
+           JSON.stringify(result.config || {}), JSON.stringify(result.modulos || {})]
+        );
+      } catch (err) {
+        console.error("[PROFILE] copia local:", err?.message || err);
+        warning = "Los datos se guardaron en la configuración, pero falta actualizar la copia del panel. Ejecutá la sincronización del panel.";
+      }
+      return res.json({ok:true,...result,warning});
     } catch (err) {
       return res.status(502).json({ok:false,error:String(err?.message || err)});
     }
@@ -2408,6 +2422,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.6.0 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.6.2 escuchando en puerto ${PORT}`
   );
 });

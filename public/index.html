@@ -687,7 +687,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.0 · Autogestión</small>
+          <small>Panel Cloud V5.6.2 · Autogestión</small>
         </div>
       </div>
 
@@ -712,7 +712,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.0</small>
+          <small>Panel Cloud V5.6.2</small>
         </div>
       </div>
 
@@ -872,7 +872,7 @@
                 <div class="form-field full"><label>Email</label><input id="bizEmail" type="email"></div>
                 <div id="bizPhoneNumberWrap" class="form-field full admin-only hidden-admin"><label>WhatsApp Phone Number ID</label><input id="bizPhoneNumberId"></div>
               </div>
-              <div class="actions-row"><button class="btn btn-primary" onclick="saveBusiness()">Guardar cambios</button></div>
+              <div class="actions-row"><button id="saveBusinessButton" class="btn btn-primary" onclick="saveBusiness()">Guardar cambios</button></div><p id="businessSaveStatus" role="status" aria-live="polite" style="margin-top:12px"></p>
             </div>
 
             <div class="card">
@@ -1893,26 +1893,45 @@
   }
 
   async function saveBusiness(){
+    const button=$('saveBusinessButton');
+    const status=$('businessSaveStatus');
+    if(button.disabled)return;
+    status.style.color='#a32626';
+    if(!$('bizName').value.trim()){
+      status.textContent='Ingresá el nombre comercial.';return;
+    }
+    const email=$('bizEmail');
+    if(email.value.trim() && !email.checkValidity()){
+      status.textContent='Revisá el email: debe incluir @ y un dominio, o dejalo vacío.';
+      email.reportValidity();return;
+    }
+    const selectedCompany=companyId;
     const isSuper=String(currentUser?.role||'').toUpperCase()==='SUPERADMIN';
     const body={
-      NOMBRE_EMPRESA:$('bizName').value.trim(),
-      TIPO_NEGOCIO:$('bizType').value,
-      TELEFONO:$('bizPhone').value.trim(),
-      DIRECCION:$('bizAddress').value.trim(),
-      EMAIL:$('bizEmail').value.trim()
+      NOMBRE_EMPRESA:$('bizName').value.trim(), TIPO_NEGOCIO:$('bizType').value,
+      TELEFONO:$('bizPhone').value.trim(), DIRECCION:$('bizAddress').value.trim(), EMAIL:email.value.trim()
     };
     if(isSuper){
       body.PHONE_NUMBER_ID=$('bizPhoneNumberId').value.trim();
-      body.modulos={
-        ventas:$('modVentas').checked,
-        gastro:$('modGastro').checked,
-        eventos:$('modEventos').checked,
-        servicios:$('modServicios').checked
-      };
+      body.modulos={ventas:$('modVentas').checked,gastro:$('modGastro').checked,
+        eventos:$('modEventos').checked,servicios:$('modServicios').checked};
     }
-    await api(`/api/company/${encodeURIComponent(companyId)}/profile`,{method:'POST',body:JSON.stringify(body)});
-    await refreshCompanies();
-    alert('Datos guardados.');
+    button.disabled=true;button.textContent='Guardando…';
+    status.style.color='#40523d';status.textContent='Guardando los datos del negocio…';
+    try{
+      const result=await api(`/api/company/${encodeURIComponent(selectedCompany)}/profile`,{method:'POST',body:JSON.stringify(body)});
+      status.style.color='#28652a';
+      status.textContent=result.warning || 'Datos guardados correctamente.';
+      try{await refreshCompanies();}catch(error){
+        status.textContent='Datos guardados. No se pudo actualizar el listado; recargá el panel.';
+      }
+    }catch(error){
+      status.style.color='#a32626';
+      status.textContent='No se pudo confirmar el guardado: '+(error?.message||error)+
+        ' Si hubo una demora, recargá el perfil para comprobar los datos antes de reintentar.';
+    }finally{
+      button.disabled=false;button.textContent='Guardar cambios';
+    }
   }
 
   function clearCatalogForm(){
