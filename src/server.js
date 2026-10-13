@@ -1,4 +1,5 @@
-import {getGastroCatalog, saveGastroItem, motorCatalog, isGastro} from "./gastro_catalog.js";
+import {getGastroSettings,changeSettings,getMenuFile,motorSettings} from "./gastro_settings.js";
+import {ensureGastroCatalog, getGastroCatalog, saveGastroItem, motorCatalog, isGastro} from "./gastro_catalog.js";
 import {storeReceipt,listReceipts,reviewReceipt,candidates} from "./receipts.js";
 import {getNotifications, markThreadRead, notificationActor} from "./notifications.js";
 import {liveCustomers} from "./customers.js";
@@ -902,7 +903,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.7",
+      version: "5.6.8",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -920,7 +921,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.7",
+      version: "5.6.8",
       error: String(err?.message || err)
     });
   }
@@ -1125,9 +1126,22 @@ app.get("/motor/company/:companyId/catalog",authenticateMotorRequest,async(req,r
     if(String(req.query.phoneNumberId||'')!==String(company.phone_number_id||''))return res.status(409).json({ok:false,error:'El número no corresponde a esta empresa.'});
     res.set('Cache-Control','no-store');
     const stored=isGastro(company)?await getGastroCatalog(pool,company,false):null;
+    const config=(await pool.query('SELECT settings FROM panel_gastro_settings WHERE company_id=$1',[company.company_id])).rows[0];
     return res.json({ok:true,companyId:company.company_id,native:!!stored,
+      ...(config&&isGastro(company)?{settings:motorSettings(config.settings)}:{}),
       ...(stored?{catalog: motorCatalog(stored.catalog),revision:stored.revision}:{})});
   }catch(err){return res.status(503).json({ok:false,error:'No se pudo consultar el catálogo vigente.'});}
+});
+
+app.get('/motor/company/:companyId/menu/:imageId',authenticateMotorRequest,async(req,res)=>{
+ try{
+  const company=await getCompany(req.params.companyId);
+  if(!company||String(company.phone_number_id)!==String(req.query.phoneNumberId))return res.status(403).json({ok:false,error:'Empresa o número incorrecto.'});
+  const settings=await getGastroSettings(pool,company);
+  if(!settings.settings.menu.auto||!settings.settings.menu.imagenes.some(x=>x.idImagen===req.params.imageId&&x.activa))throw new Error('Imagen desactivada.');
+  const file=await getMenuFile(pool,company,req.params.imageId,id=>postBridge(company,'gastro_menu_preview',{idImagen:id}));
+  res.set('Cache-Control','no-store');res.json({ok:true,companyId:company.company_id,...file});
+ }catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
 });
 
 app.post("/motor/media/receive",authenticateMotorRequest,async(req,res)=>{
@@ -1912,6 +1926,21 @@ app.post(
   }
 );
 
+async function ensureCatalog(company){
+  return ensureGastroCatalog(pool,company,()=>postBridge(company,'gastro_get'));
+}
+async function ensureSettings(company){
+  return getGastroSettings(pool,company,()=>postBridge(company,'gastro_settings_get'));
+}
+async function canEditGastro(req,res,next){
+  if(String(req.session?.role||'').toUpperCase()==='SUPERADMIN')return next();
+  try{
+    const {rows}=await pool.query('SELECT permissions FROM panel_user_companies WHERE user_id=$1 AND company_id=$2',[Number(req.session?.uid||0),req.params.companyId]);
+    if(!rows[0]||rows[0].permissions?.editCatalog===false)return res.status(403).json({ok:false,error:'No tenés permiso para editar Gastro.'});
+    next();
+  }catch(err){res.status(500).json({ok:false,error:'No se pudo verificar el permiso.'});}
+}
+
 app.get(
   "/api/company/:companyId/gastro/bundle",
   authRequired,
@@ -1926,7 +1955,7 @@ app.get(
         });
       }
 
-      const stored=await getGastroCatalog(pool,company);
+      const stored=await ensureCatalog(company);
       return res.json({ok:true,...(company.snapshot?.data?.gastroBundle||{}),...stored.catalog,
         source:"PANEL",revision:stored.revision,syncedAt:stored.updated_at});
     } catch (err) {
@@ -1945,7 +1974,7 @@ app.get(
     try {
       const company = await getCompany(req.params.companyId);
       if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-      const result = (await getGastroCatalog(pool,company)).catalog;
+      const result = (await ensureCatalog(company)).catalog;
       return res.json({ok:true,...result});
     } catch (err) {
       return res.status(502).json({ok:false,error:String(err?.message || err)});
@@ -1970,6 +1999,7 @@ for (const [pathName, operation] of [
           const access=await pool.query('SELECT permissions FROM panel_user_companies WHERE user_id=$1 AND company_id=$2',[Number(req.session?.uid||0),company.company_id]);
           if(!access.rows[0]||access.rows[0].permissions?.editCatalog===false)return res.status(403).json({ok:false,error:'No tenés permiso para editar el catálogo.'});
         }
+        await ensureCatalog(company);
         const result = await saveGastroItem(pool,company,pathName,req.body||{});
         return res.json({ok:true,...result});
       } catch (err) {
@@ -1980,121 +2010,34 @@ for (const [pathName, operation] of [
 }
 
 
-app.get(
-  "/api/company/:companyId/gastro/settings",
-  authRequired,
-  async (req, res) => {
-    try {
-      const company = await getCompany(req.params.companyId);
-      if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-      const result = await postBridge(company,"gastro_settings_get",{},req.session?.sub || "PANEL_V5");
-      return res.json({ok:true,...result});
-    } catch (err) {
-      return res.status(502).json({ok:false,error:String(err?.message || err)});
-    }
-  }
-);
-
-for (const [pathName, operation] of [
-  ["menu/config","gastro_menu_config"],
-  ["menu/upload","gastro_menu_upload"],
-  ["payment","gastro_payment_save"],
-  ["config","gastro_config_save"],
-  ["zone","gastro_zone_save"]
-]) {
-  app.post(
-    `/api/company/:companyId/gastro/${pathName}`,
-    authRequired,
-    async (req, res) => {
-      try {
-        const company = await getCompany(req.params.companyId);
-        if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-        const result = await postBridge(company,operation,{data:req.body || {}},req.session?.sub || "PANEL_V5");
-        return res.json({ok:true,...result});
-      } catch (err) {
-        return res.status(502).json({ok:false,error:String(err?.message || err)});
-      }
-    }
-  );
+app.get('/api/company/:companyId/gastro/settings',authRequired,async(req,res)=>{
+  try{
+    const company=await getCompany(req.params.companyId);if(!company)throw new Error('Empresa no encontrada.');
+    const row=await ensureSettings(company);res.json({ok:true,...row.settings,settingsRevision:row.revision});
+  }catch(err){res.status(503).json({ok:false,error:String(err.message||err)});}
+});
+for(const [path,operation] of [
+ ['config','config'],['payment','payment'],['payment/:id/toggle','payment/toggle'],
+ ['zone','zone'],['zone/:id/delete','zone/delete'],['menu/config','menu/config'],
+ ['menu/upload','menu/upload'],['menu/:id/toggle','menu/toggle'],
+ ['menu/:id/move','menu/move'],['menu/:id/delete','menu/delete']]){
+ app.post('/api/company/:companyId/gastro/'+path,authRequired,canEditGastro,async(req,res)=>{
+  try{
+   const company=await getCompany(req.params.companyId);if(!company)throw new Error('Empresa no encontrada.');
+   await ensureSettings(company);
+   const row=await changeSettings(pool,company,operation,req.body||{},req.params.id||'');
+   res.json({ok:true,...row.settings,settingsRevision:row.revision});
+  }catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
+ });
 }
-
-app.post(
-  "/api/company/:companyId/gastro/menu/:id/toggle",
-  authRequired,
-  async (req,res)=>{
-    try{
-      const company=await getCompany(req.params.companyId);
-      if(!company)return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-      const result=await postBridge(company,"gastro_menu_toggle",{idImagen:req.params.id,activa:req.body?.activa===true},req.session?.sub||"PANEL_V5");
-      return res.json({ok:true,...result});
-    }catch(err){return res.status(502).json({ok:false,error:String(err?.message||err)});}
-  }
-);
-
-app.post(
-  "/api/company/:companyId/gastro/menu/:id/move",
-  authRequired,
-  async (req,res)=>{
-    try{
-      const company=await getCompany(req.params.companyId);
-      if(!company)return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-      const result=await postBridge(company,"gastro_menu_move",{idImagen:req.params.id,direccion:String(req.body?.direccion||"")},req.session?.sub||"PANEL_V5");
-      return res.json({ok:true,...result});
-    }catch(err){return res.status(502).json({ok:false,error:String(err?.message||err)});}
-  }
-);
-
-app.post(
-  "/api/company/:companyId/gastro/menu/:id/delete",
-  authRequired,
-  async (req,res)=>{
-    try{
-      const company=await getCompany(req.params.companyId);
-      if(!company)return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-      const result=await postBridge(company,"gastro_menu_delete",{idImagen:req.params.id},req.session?.sub||"PANEL_V5");
-      return res.json({ok:true,...result});
-    }catch(err){return res.status(502).json({ok:false,error:String(err?.message||err)});}
-  }
-);
-
-app.get(
-  "/api/company/:companyId/gastro/menu/:id/preview",
-  authRequired,
-  async (req,res)=>{
-    try{
-      const company=await getCompany(req.params.companyId);
-      if(!company)return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-      const result=await postBridge(company,"gastro_menu_preview",{idImagen:req.params.id},req.session?.sub||"PANEL_V5");
-      return res.json({ok:true,...result});
-    }catch(err){return res.status(502).json({ok:false,error:String(err?.message||err)});}
-  }
-);
-
-app.post(
-  "/api/company/:companyId/gastro/payment/:fila/disable",
-  authRequired,
-  async (req,res)=>{
-    try{
-      const company=await getCompany(req.params.companyId);
-      if(!company)return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-      const result=await postBridge(company,"gastro_payment_disable",{fila:Number(req.params.fila)},req.session?.sub||"PANEL_V5");
-      return res.json({ok:true,...result});
-    }catch(err){return res.status(502).json({ok:false,error:String(err?.message||err)});}
-  }
-);
-
-app.post(
-  "/api/company/:companyId/gastro/zone/:id/delete",
-  authRequired,
-  async (req,res)=>{
-    try{
-      const company=await getCompany(req.params.companyId);
-      if(!company)return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-      const result=await postBridge(company,"gastro_zone_delete",{idZona:req.params.id},req.session?.sub||"PANEL_V5");
-      return res.json({ok:true,...result});
-    }catch(err){return res.status(502).json({ok:false,error:String(err?.message||err)});}
-  }
-);
+app.get('/api/company/:companyId/gastro/menu/:id/preview',authRequired,async(req,res)=>{
+ try{
+  const company=await getCompany(req.params.companyId);if(!company)throw new Error('Empresa no encontrada.');
+  await ensureSettings(company);
+  const file=await getMenuFile(pool,company,req.params.id,id=>postBridge(company,'gastro_menu_preview',{idImagen:id}));
+  res.set('Cache-Control','no-store');res.json({ok:true,dataUrl:`data:${file.mime};base64,${file.base64}`});
+ }catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
+});
 
 
 app.get(
@@ -2442,6 +2385,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.6.7 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.6.8 escuchando en puerto ${PORT}`
   );
 });

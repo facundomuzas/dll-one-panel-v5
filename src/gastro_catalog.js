@@ -79,3 +79,12 @@ export function motorCatalog(c){
   const extras=c.extras.filter(x=>enabled(x.activo)).map(x=>({id:x.idExtra,nombre:x.nombre,precio:Number(x.precio),aplica_a:x.aplicaA,referencia_id:x.referenciaId,max_cantidad:Number(x.maxCantidad||1)}));
   return {categorias,productos,variantes,extras};
 }
+
+export async function ensureGastroCatalog(db,company,readLegacy){
+ const existing=await getGastroCatalog(db,company,false);if(existing)return existing;
+ const unwrap=raw=>[raw,raw?.catalogo,raw?.catalog,raw?.data].find(x=>x&&Object.values(specs).every(([key])=>Array.isArray(x[key])));
+ let source=unwrap(company.snapshot?.data?.gastroBundle);
+ if(!source)source=unwrap(await readLegacy());
+ if(!source)throw new Error('No se pudo importar el catálogo completo. Reintentá la carga; los datos existentes se conservaron.');
+ return getGastroCatalog(db,{...company,snapshot:{data:{gastroBundle:source}}});
+}

@@ -692,7 +692,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.7 · Autogestión</small>
+          <small>Panel Cloud V5.6.8 · Autogestión</small>
         </div>
       </div>
 
@@ -717,7 +717,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.7</small>
+          <small>Panel Cloud V5.6.8</small>
         </div>
       </div>
 
@@ -949,7 +949,16 @@
             <span class="pill">● ONE GASTRO</span>
           </div>
 
-          <h2 class="subsection-title">Productos del menú</h2>
+          <div class="actions-row" style="flex-wrap:wrap;margin-bottom:18px">
+            <button class="btn btn-light" onclick="document.getElementById('gCatalogHeading').scrollIntoView({behavior:'smooth'})">Productos y precios</button>
+            <button class="btn btn-light" onclick="document.getElementById('gPaymentsHeading').scrollIntoView({behavior:'smooth'})">Alias y medios de pago</button>
+            <button class="btn btn-light" onclick="document.getElementById('gImagesHeading').scrollIntoView({behavior:'smooth'})">Fotos del menú</button>
+            <button class="btn btn-light" onclick="document.getElementById('gZonesHeading').scrollIntoView({behavior:'smooth'})">Delivery</button>
+            <button class="btn btn-light" onclick="loadGastro()">Recargar / reintentar importación</button>
+          </div>
+          <p id="gCatalogStatus" role="status"></p>
+          <h2 id="gCatalogHeading" class="subsection-title">Productos del menú</h2>
+          <fieldset id="gCatalogFields" disabled style="border:0;padding:0;margin:0;min-width:0">
           <div class="section-grid">
             <div class="stack">
               <div class="card">
@@ -993,7 +1002,10 @@
             </div>
           </div>
 
-          <h2 class="subsection-title">Menú visual</h2>
+          </fieldset>
+          <p id="gSettingsStatus" role="status"></p>
+          <fieldset id="gSettingsFields" disabled style="border:0;padding:0;margin:0;min-width:0">
+          <h2 id="gImagesHeading" class="subsection-title">Menú visual</h2>
           <div class="section-grid">
             <div class="stack">
               <div class="card">
@@ -1008,32 +1020,35 @@
             <div class="stack"><div class="card"><h3 class="card-title">Imágenes cargadas</h3><div id="gMenuImagesList" class="compact-grid"></div></div></div>
           </div>
 
-          <h2 class="subsection-title">Cobro y entrega</h2>
+          <h2 id="gPaymentsHeading" class="subsection-title">Alias, cobro y entrega</h2>
           <div class="section-grid">
             <div class="stack">
               <div class="card">
                 <h3 class="card-title">Opciones comerciales</h3>
                 <div class="toggle-line"><div><strong>Delivery</strong><small>Permitir pedidos con envío.</small></div><label class="switch"><input id="gDeliveryEnabled" type="checkbox"><span></span></label></div>
                 <div class="toggle-line"><div><strong>Retiro por el local</strong><small>Permitir que el cliente pase a buscarlo.</small></div><label class="switch"><input id="gPickupEnabled" type="checkbox"><span></span></label></div>
-                <div class="toggle-line"><div><strong>Efectivo</strong><small>La IA puede ofrecer efectivo como forma de pago.</small></div><label class="switch"><input id="gCashEnabled" type="checkbox"><span></span></label></div>
-                <div class="toggle-line"><div><strong>Transferencia</strong><small>La IA puede ofrecer transferencia.</small></div><label class="switch"><input id="gTransferEnabled" type="checkbox"><span></span></label></div>
-                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroCommercialConfig()">Guardar opciones</button></div>
+                <div class="toggle-line"><div><strong>Efectivo</strong><small>Ofrecer efectivo como forma de pago.</small></div><label class="switch"><input id="gCashEnabled" type="checkbox"><span></span></label></div>
+                <div class="toggle-line"><div><strong>Transferencia</strong><small>Ofrecer transferencia y mostrar los datos guardados.</small></div><label class="switch"><input id="gTransferEnabled" type="checkbox"><span></span></label></div>
+                <div class="form-field"><label>Tiempo estimado de preparación</label><input id="gPreparationTime" placeholder="Ej.: 30 a 40 minutos"></div><div class="actions-row"><button class="btn btn-primary" onclick="saveGastroCommercialConfig()">Guardar opciones</button></div>
               </div>
               <div class="card">
-                <h3 class="card-title">Agregar medio de pago</h3>
+                <h3 id="gPaymentFormTitle" class="card-title">Agregar medio de pago</h3><input id="gPayId" type="hidden">
                 <div class="form-grid">
                   <div class="form-field"><label>Medio</label><input id="gPayName" placeholder="Transferencia, Efectivo…"></div>
                   <div class="form-field"><label>Orden</label><input id="gPayOrder" type="number" value="100"></div>
-                  <div class="form-field full"><label>Detalle</label><textarea id="gPayDetail" placeholder="Alias, CBU, instrucciones…"></textarea></div>
+                  <div class="form-field full"><label>Alias</label><input id="gPayAlias" placeholder="mi.negocio.alias"></div>
+                  <div class="form-field full"><label>CBU / CVU (opcional)</label><input id="gPayCbu" inputmode="numeric" maxlength="22" placeholder="22 dígitos"></div>
+                  <div class="form-field full"><label>Titular (opcional)</label><input id="gPayHolder"></div>
+                  <div class="form-field full"><label>Otras instrucciones / datos anteriores</label><textarea id="gPayDetail" placeholder="Banco o instrucciones adicionales"></textarea></div>
                   <div class="form-field full"><label><input id="gPayPreferred" type="checkbox"> Marcar como preferido</label></div>
                 </div>
-                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroPayment()">Guardar medio de pago</button></div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroPayment()">Guardar medio de pago</button><button class="btn btn-light" onclick="clearGastroPayment()">Nuevo / cancelar edición</button></div>
               </div>
             </div>
             <div class="stack"><div class="card"><h3 class="card-title">Medios configurados</h3><div id="gPaymentsList" class="data-list"></div></div></div>
           </div>
 
-          <h2 class="subsection-title">Zonas de delivery</h2>
+          <h2 id="gZonesHeading" class="subsection-title">Zonas de delivery</h2>
           <div class="section-grid">
             <div class="stack">
               <div class="card">
@@ -1051,6 +1066,7 @@
             </div>
             <div class="stack"><div class="card"><h3 class="card-title">Zonas configuradas</h3><div id="gZonesList" class="data-list"></div></div></div>
           </div>
+          </fieldset>
         </section>
 
         <section id="admin" class="section">
@@ -1297,7 +1313,8 @@
     $('chatContent').classList.add('hidden');$('chatEmpty').classList.remove('hidden');
     startNotifications();
     updateModuleNavigation();
-    resetGastroForms();
+    resetGastroForms();closeGastroMenuPreview();clearGastroPayment();clearGastroZoneForm();settingsRevision=null;
+    $('gCatalogFields').disabled=true;$('gSettingsFields').disabled=true;
     gastroData={categorias:[],productos:[],variantes:[],extras:[]};
     gastroSettingsData={menu:{imagenes:[]},pagos:{items:[]},entrega:{zonas:[]}};
     renderGastro();renderGastroSettings();
@@ -2122,75 +2139,54 @@
     await persistGastroItem(kind,{...item,[active]:item[active]==='SI'?'NO':'SI'});
   }
 
-  async function loadGastro(){
-    const started=performance.now();
-    const requestedCompany=companyId;
-    const r=await api(`/api/company/${encodeURIComponent(requestedCompany)}/gastro/bundle`);
-    if(companyId!==requestedCompany)return;
-    gastroRevision=r.revision;
-
-    gastroData={
-      categorias:r.categorias||[],
-      productos:r.productos||[],
-      variantes:r.variantes||[],
-      extras:r.extras||[]
-    };
-
-    gastroSettingsData={
-      menu:r.menu||{imagenes:[]},
-      pagos:r.pagos||{items:[]},
-      entrega:r.entrega||{zonas:[]}
-    };
-
-    renderGastro();
-    renderGastroSettings();
-
-    console.info(
-      "ONE Gastro cargado desde",
-      r.source||"POSTGRES",
-      Math.round(performance.now()-started)+"ms",
-      r.syncedAt||""
-    );
+  let settingsRevision=null,settingsSaving=false;
+  function acceptGastroSettings(r){
+    settingsRevision=r.settingsRevision;
+    gastroSettingsData={menu:r.menu,pagos:r.pagos,entrega:r.entrega};
+    $('gSettingsFields').disabled=false;renderGastroSettings();
   }
-
+  async function loadGastro(){
+    const target=companyId;
+    gastroRevision=null;settingsRevision=null;
+    $('gCatalogFields').disabled=true;$('gSettingsFields').disabled=true;
+    $('gCatalogStatus').textContent='Cargando productos…';$('gSettingsStatus').textContent='Cargando cobro, entrega e imágenes…';
+    await Promise.allSettled([
+      (async()=>{try{
+        const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/bundle`);if(target!==companyId)return;
+        gastroRevision=r.revision;gastroData={categorias:r.categorias||[],productos:r.productos||[],variantes:r.variantes||[],extras:r.extras||[]};
+        renderGastro();$('gCatalogFields').disabled=false;$('gCatalogStatus').textContent='Productos y precios listos.';
+      }catch(err){if(target===companyId){gastroData={categorias:[],productos:[],variantes:[],extras:[]};renderGastro();$('gCatalogStatus').textContent='Productos: '+(err.message||err);}}})(),
+      (async()=>{try{
+        const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/settings`);if(target!==companyId)return;
+        acceptGastroSettings(r);$('gSettingsStatus').textContent='Cobro, entrega e imágenes listos.';
+      }catch(err){if(target===companyId){gastroSettingsData={menu:{imagenes:[]},pagos:{items:[]},entrega:{zonas:[]}};renderGastroSettings();$('gSettingsStatus').textContent='Configuración: '+(err.message||err);}}})()
+    ]);
+  }
   function renderGastroSettings(){
-    const menu=gastroSettingsData.menu||{};
-    const pagos=gastroSettingsData.pagos||{};
-    const entrega=gastroSettingsData.entrega||{};
+    const {menu={},pagos={},entrega={}}=gastroSettingsData;
     $('gMenuAuto').checked=menu.auto!==false;
     $('gDeliveryEnabled').checked=entrega.deliveryHabilitado!==false;
     $('gPickupEnabled').checked=entrega.retiroHabilitado!==false;
     $('gCashEnabled').checked=pagos.efectivoHabilitado!==false;
     $('gTransferEnabled').checked=pagos.transferenciaHabilitada!==false;
-
-    const imgs=menu.imagenes||[];
-    $('gMenuImagesList').innerHTML=imgs.length?imgs.map((x,i)=>`
-      <div class="mini-card ${x.activa?'':'off'}">
-        <div class="mini-title"><div><strong>${esc(x.nombre||('Menú '+(i+1)))}</strong><small>Posición ${esc(x.posicion||0)} · ${x.activa?'Activa':'Desactivada'}</small></div><span class="status ${x.activa?'good':'warn'}">${x.activa?'Activa':'Off'}</span></div>
-        <div class="mini-actions">
-          <button class="btn-xs" onclick="previewGastroMenuImage('${esc(x.idImagen)}')">Ver</button>
-          <button class="btn-xs" onclick="moveGastroMenuImage('${esc(x.idImagen)}','SUBIR')">↑</button>
-          <button class="btn-xs" onclick="moveGastroMenuImage('${esc(x.idImagen)}','BAJAR')">↓</button>
-          <button class="btn-xs" onclick="toggleGastroMenuImage('${esc(x.idImagen)}',${x.activa?'false':'true'})">${x.activa?'Desactivar':'Activar'}</button>
-          <button class="btn-xs danger" onclick="deleteGastroMenuImage('${esc(x.idImagen)}')">Eliminar</button>
-        </div>
-      </div>`).join(''):'<div class="empty">Todavía no hay imágenes cargadas.</div>';
-
-    const items=pagos.items||[];
-    $('gPaymentsList').innerHTML=items.length?items.map(x=>`
-      <div class="data-row ${x.activo?'':'off'}"><div class="data-row-main"><strong>${esc(x.medio)}</strong><small>${esc(x.detalle||'Sin detalle')} ${x.preferido?'· Preferido':''}</small></div><div class="data-row-side"><span class="status ${x.activo?'good':'warn'}">${x.activo?'Activo':'Inactivo'}</span>${x.activo?`<button class="btn-xs danger" onclick="disableGastroPayment(${Number(x.fila||0)})">Desactivar</button>`:''}</div></div>`).join(''):'<div class="empty">Sin medios de pago.</div>';
-
-    const zonas=entrega.zonas||[];
-    $('gZonesList').innerHTML=zonas.length?zonas.map(x=>`
-      <div class="data-row ${x.activa?'':'off'}"><div class="data-row-main"><strong>${esc(x.nombre)}</strong><small>${esc(x.referencias||'Sin referencias')}</small></div><div class="data-row-side"><strong>${money(x.costo||0)}</strong><div class="mini-actions"><button class="btn-xs" onclick="editGastroZoneById('${esc(x.idZona)}')">Editar</button><button class="btn-xs danger" onclick="deleteGastroZone('${esc(x.idZona)}')">Eliminar</button></div></div></div>`).join(''):'<div class="empty">No hay zonas cargadas.</div>';
+    $('gPreparationTime').value=entrega.tiempoPreparacion||'';
+    $('gMenuImagesList').innerHTML=(menu.imagenes||[]).map((x,i)=>`<div class="mini-card"><strong>${esc(x.nombre||'Menú')}</strong><small> · ${x.activa?'Activa':'Desactivada'}</small><div class="mini-actions"><button class="btn-xs" onclick="menuIndexAction(${i},'preview')">Ver</button><button class="btn-xs" onclick="menuIndexAction(${i},'SUBIR')">↑</button><button class="btn-xs" onclick="menuIndexAction(${i},'BAJAR')">↓</button><button class="btn-xs" onclick="menuIndexAction(${i},'toggle')">${x.activa?'Desactivar':'Activar'}</button><button class="btn-xs danger" onclick="menuIndexAction(${i},'delete')">Eliminar</button></div></div>`).join('')||'<div class="empty">Sin imágenes cargadas.</div>';
+    $('gPaymentsList').innerHTML=(pagos.items||[]).map((x,i)=>`<div class="data-row"><div class="data-row-main"><strong>${esc(x.medio)}</strong><small>${esc([x.alias&&'Alias: '+x.alias,x.cbu&&'CBU/CVU: '+x.cbu,x.titular,x.detalle].filter(Boolean).join(' · '))}</small><small>${x.activo?'Activo':'Inactivo'} ${x.preferido?'· Preferido':''}</small></div><div class="data-row-side"><button class="btn-xs" onclick="editGastroPayment(${i})">Editar</button><button class="btn-xs" onclick="toggleGastroPayment(${i})">${x.activo?'Desactivar':'Activar'}</button></div></div>`).join('')||'<div class="empty">Sin medios de pago. Agregá Transferencia y su alias.</div>';
+    $('gZonesList').innerHTML=(entrega.zonas||[]).map((x,i)=>`<div class="data-row"><div class="data-row-main"><strong>${esc(x.nombre)}</strong><small>${esc(x.referencias||'')} · ${x.activa?'Activa':'Inactiva'}</small></div><div class="data-row-side">${money(x.costo)}<button class="btn-xs" onclick="editGastroZoneIndex(${i})">Editar</button><button class="btn-xs" onclick="toggleGastroZone(${i})">${x.activa?'Desactivar':'Activar'}</button><button class="btn-xs danger" onclick="deleteGastroZoneIndex(${i})">Eliminar</button></div></div>`).join('')||'<div class="empty">Sin zonas cargadas.</div>';
   }
-
-  async function saveGastroMenuConfig(){
+  async function settingsRequest(path,data={},message='Cambios guardados.'){
+    if(settingsSaving)return false;
+    if(settingsRevision===null){alert('Primero cargá la configuración de Gastro.');return false;}
+    const target=companyId;settingsSaving=true;$('gSettingsFields').disabled=true;
     try{
-      const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/menu/config`,{method:'POST',body:JSON.stringify({auto:$('gMenuAuto').checked})});
-      gastroSettingsData={menu:r.menu||{},pagos:r.pagos||{},entrega:r.entrega||{}};
-      renderGastroSettings();
-    }catch(err){alert(err.message||String(err))}
+      const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/${path}`,{method:'POST',body:JSON.stringify({...data,revision:settingsRevision})});
+      if(target!==companyId)return false;
+      acceptGastroSettings(r);$('gSettingsStatus').textContent=message;return true;
+    }catch(err){if(target===companyId){$('gSettingsStatus').textContent='No se guardó: '+(err.message||err);alert(err.message||String(err));}return false;}
+    finally{settingsSaving=false;if(target===companyId)$('gSettingsFields').disabled=settingsRevision===null;}
+  }
+  async function saveGastroMenuConfig(){
+    const ok=await settingsRequest('menu/config',{auto:$('gMenuAuto').checked});if(!ok)renderGastroSettings();
   }
 
   function imageFileToData(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
@@ -2206,62 +2202,59 @@
     return{name:file.name.replace(/\.[^.]+$/,'.jpg'),mime:'image/jpeg',base64:data};
   }
 
+  let menuUploading=false;
   async function uploadGastroMenuImages(){
-    const files=[...($('gMenuFiles').files||[])];
-    if(!files.length){alert('Seleccioná una o más imágenes.');return}
-    showLoading(true);$('gMenuUploadStatus').textContent='Preparando imágenes…';
+    if(menuUploading)return;
+    const files=[...($('gMenuFiles').files||[])],target=companyId;
+    if(!files.length){alert('Seleccioná una imagen JPG o PNG.');return;}
+    menuUploading=true;
     try{
       for(let i=0;i<files.length;i++){
-        $('gMenuUploadStatus').textContent=`Subiendo ${i+1} de ${files.length}: ${files[i].name}`;
-        const data=await prepareMenuImage(files[i]);
-        await api(`/api/company/${encodeURIComponent(companyId)}/gastro/menu/upload`,{method:'POST',body:JSON.stringify(data)});
+        if(target!==companyId)return;
+        $('gMenuUploadStatus').textContent=`Subiendo ${i+1} de ${files.length}…`;
+        const data=await prepareMenuImage(files[i]);if(target!==companyId)return;
+        if(!await settingsRequest('menu/upload',data,'Imagen guardada.'))return;
       }
-      $('gMenuFiles').value='';$('gMenuUploadStatus').textContent='Imágenes cargadas correctamente ✓';
-      await loadGastro();
-    }catch(err){$('gMenuUploadStatus').textContent='Error: '+(err.message||String(err));alert(err.message||String(err))}
-    finally{showLoading(false)}
+      if(target===companyId){$('gMenuFiles').value='';$('gMenuUploadStatus').textContent='Imágenes guardadas.';}
+    }catch(err){if(target===companyId){$('gMenuUploadStatus').textContent='No se pudo subir: '+err.message;alert(err.message);}}
+    finally{menuUploading=false;}
   }
-
-  async function toggleGastroMenuImage(id,activa){
-    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/menu/${encodeURIComponent(id)}/toggle`,{method:'POST',body:JSON.stringify({activa})});await loadGastro();
+  async function menuIndexAction(index,action){
+    const image=gastroSettingsData.menu.imagenes[index],id=encodeURIComponent(image.idImagen),target=companyId;
+    if(action==='preview'){
+      try{const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/menu/${id}/preview`);if(target!==companyId)return;$('gMenuPreviewImg').src=r.dataUrl;$('gMenuLightbox').classList.remove('hidden');}catch(err){alert(err.message);}return;
+    }
+    if(action==='delete'&&!confirm('¿Eliminar esta imagen?'))return;
+    const op=['SUBIR','BAJAR'].includes(action)?'move':action;
+    await settingsRequest(`menu/${id}/${op}`,{activa:!image.activa,direccion:action});
   }
-  async function moveGastroMenuImage(id,direccion){
-    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/menu/${encodeURIComponent(id)}/move`,{method:'POST',body:JSON.stringify({direccion})});await loadGastro();
-  }
-  async function deleteGastroMenuImage(id){
-    if(!confirm('¿Eliminar esta imagen del menú?'))return;
-    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/menu/${encodeURIComponent(id)}/delete`,{method:'POST',body:'{}'});await loadGastro();
-  }
-  async function previewGastroMenuImage(id){
-    showLoading(true);try{const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/menu/${encodeURIComponent(id)}/preview`);$('gMenuPreviewImg').src=r.dataUrl||'';$('gMenuLightbox').classList.remove('hidden')}catch(err){alert(err.message||String(err))}finally{showLoading(false)}
-  }
-  function closeGastroMenuPreview(){$('gMenuLightbox').classList.add('hidden');$('gMenuPreviewImg').src=''}
-
+  function closeGastroMenuPreview(){$('gMenuLightbox').classList.add('hidden');$('gMenuPreviewImg').src='';}
   async function saveGastroCommercialConfig(){
-    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/config`,{method:'POST',body:JSON.stringify({deliveryHabilitado:$('gDeliveryEnabled').checked,retiroHabilitado:$('gPickupEnabled').checked,efectivoHabilitado:$('gCashEnabled').checked,transferenciaHabilitada:$('gTransferEnabled').checked})});
-    gastroSettingsData={menu:r.menu||{},pagos:r.pagos||{},entrega:r.entrega||{}};renderGastroSettings();
+    await settingsRequest('config',{deliveryHabilitado:$('gDeliveryEnabled').checked,retiroHabilitado:$('gPickupEnabled').checked,efectivoHabilitado:$('gCashEnabled').checked,transferenciaHabilitada:$('gTransferEnabled').checked,tiempoPreparacion:$('gPreparationTime').value.trim()});
+  }
+  function clearGastroPayment(){
+    ['gPayId','gPayName','gPayAlias','gPayCbu','gPayHolder','gPayDetail'].forEach(id=>$(id).value='');
+    $('gPayOrder').value='100';$('gPayPreferred').checked=false;$('gPaymentFormTitle').textContent='Agregar medio de pago';
+  }
+  function editGastroPayment(index){
+    const x=gastroSettingsData.pagos.items[index];
+    for(const [id,key] of Object.entries({gPayId:'idPago',gPayName:'medio',gPayAlias:'alias',gPayCbu:'cbu',gPayHolder:'titular',gPayDetail:'detalle',gPayOrder:'orden'}))$(id).value=x[key]??'';
+    $('gPayPreferred').checked=x.preferido;$('gPaymentFormTitle').textContent='Editar medio de pago';$('gPayName').focus();
   }
   async function saveGastroPayment(){
-    const medio=$('gPayName').value.trim();if(!medio){alert('Ingresá el medio de pago.');return}
-    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/payment`,{method:'POST',body:JSON.stringify({medio,detalle:$('gPayDetail').value.trim(),preferido:$('gPayPreferred').checked,activo:true,orden:Number($('gPayOrder').value||100)})});
-    $('gPayName').value='';$('gPayDetail').value='';$('gPayPreferred').checked=false;
-    gastroSettingsData={menu:r.menu||{},pagos:r.pagos||{},entrega:r.entrega||{}};renderGastroSettings();
+    const old=gastroSettingsData.pagos.items.find(x=>x.idPago===$('gPayId').value);
+    const ok=await settingsRequest('payment',{idPago:$('gPayId').value,medio:$('gPayName').value.trim(),alias:$('gPayAlias').value.trim(),cbu:$('gPayCbu').value.trim(),titular:$('gPayHolder').value.trim(),detalle:$('gPayDetail').value.trim(),orden:$('gPayOrder').value,preferido:$('gPayPreferred').checked,activo:old?old.activo:true},'Medio de pago guardado. El bot usará estos datos en los próximos mensajes.');
+    if(ok)clearGastroPayment();
   }
-  async function disableGastroPayment(fila){
-    if(!confirm('¿Desactivar este medio de pago?'))return;
-    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/payment/${fila}/disable`,{method:'POST',body:'{}'});gastroSettingsData={menu:r.menu||{},pagos:r.pagos||{},entrega:r.entrega||{}};renderGastroSettings();
-  }
-
-  function clearGastroZoneForm(){$('gZoneId').value='';$('gZoneName').value='';$('gZoneCost').value='0';$('gZoneOrder').value='100';$('gZoneRefs').value=''}
-  function editGastroZoneById(id){const x=(gastroSettingsData.entrega?.zonas||[]).find(z=>String(z.idZona)===String(id));if(!x)return;$('gZoneId').value=x.idZona||'';$('gZoneName').value=x.nombre||'';$('gZoneCost').value=Number(x.costo||0);$('gZoneOrder').value=Number(x.posicion||100);$('gZoneRefs').value=x.referencias||'';window.scrollTo({top:$('gZoneName').getBoundingClientRect().top+window.scrollY-120,behavior:'smooth'})}
+  async function toggleGastroPayment(index){const x=gastroSettingsData.pagos.items[index];await settingsRequest(`payment/${encodeURIComponent(x.idPago)}/toggle`,{activo:!x.activo});}
+  function clearGastroZoneForm(){['gZoneId','gZoneName','gZoneRefs'].forEach(id=>$(id).value='');$('gZoneCost').value='0';$('gZoneOrder').value='100';}
+  function editGastroZoneIndex(index){const x=gastroSettingsData.entrega.zonas[index];for(const [id,key] of Object.entries({gZoneId:'idZona',gZoneName:'nombre',gZoneCost:'costo',gZoneOrder:'posicion',gZoneRefs:'referencias'}))$(id).value=x[key]??'';$('gZoneName').focus();}
   async function saveGastroZone(){
-    const nombre=$('gZoneName').value.trim();if(!nombre){alert('Ingresá el nombre de la zona.');return}
-    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/zone`,{method:'POST',body:JSON.stringify({idZona:$('gZoneId').value,nombre,costo:Number($('gZoneCost').value||0),posicion:Number($('gZoneOrder').value||100),referencias:$('gZoneRefs').value.trim(),activa:true})});clearGastroZoneForm();gastroSettingsData={menu:r.menu||{},pagos:r.pagos||{},entrega:r.entrega||{}};renderGastroSettings();
+    const old=gastroSettingsData.entrega.zonas.find(x=>x.idZona===$('gZoneId').value);
+    const ok=await settingsRequest('zone',{idZona:$('gZoneId').value,nombre:$('gZoneName').value.trim(),costo:$('gZoneCost').value,posicion:$('gZoneOrder').value,referencias:$('gZoneRefs').value.trim(),activa:old?old.activa:true});if(ok)clearGastroZoneForm();
   }
-  async function deleteGastroZone(id){
-    if(!confirm('¿Eliminar esta zona de delivery?'))return;
-    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/zone/${encodeURIComponent(id)}/delete`,{method:'POST',body:'{}'});gastroSettingsData={menu:r.menu||{},pagos:r.pagos||{},entrega:r.entrega||{}};renderGastroSettings();
-  }
+  async function toggleGastroZone(index){const x=gastroSettingsData.entrega.zonas[index];await settingsRequest('zone',{...x,activa:!x.activa});}
+  async function deleteGastroZoneIndex(index){const x=gastroSettingsData.entrega.zonas[index];if(confirm('¿Eliminar esta zona?'))await settingsRequest(`zone/${encodeURIComponent(x.idZona)}/delete`);}
 
   async function saveGastroForm(kind){
     const data={...(gastroEdits[kind]||{})};
