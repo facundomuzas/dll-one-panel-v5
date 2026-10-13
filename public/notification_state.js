@@ -1,5 +1,5 @@
 (function(root){
-  const fields=['messages','orders','delivery','human','receipts'];
+  const fields=['messages','orders','delivery','human','receipts','files'];
   function nextSignals(previous,incoming){
     let changed=false;const next={};
     for(const key of fields){

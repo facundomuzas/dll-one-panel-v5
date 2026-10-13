@@ -692,7 +692,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.5 · Autogestión</small>
+          <small>Panel Cloud V5.6.6 · Autogestión</small>
         </div>
       </div>
 
@@ -717,7 +717,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.5</small>
+          <small>Panel Cloud V5.6.6</small>
         </div>
       </div>
 
@@ -726,6 +726,7 @@
         <button data-tab="conversations" onclick="go('conversations',this)">💬 Conversaciones<span class="notice-badge" data-notice="conversations" hidden></span></button>
         <button data-tab="orders" onclick="go('orders',this)">🧾 Pedidos<span class="notice-badge" data-notice="orders" hidden></span></button>
         <button data-tab="delivery" onclick="go('delivery',this)">🚚 Delivery<span class="notice-badge" data-notice="delivery" hidden></span></button>
+        <button data-tab="receipts" onclick="go('receipts',this)">📎 Comprobantes <span class="notice-badge" data-notice="receipts" hidden></span></button>
         <button data-tab="customers" onclick="go('customers',this)">👥 Clientes</button>
         <button data-tab="business" onclick="go('business',this)">🏢 Mi negocio</button>
         <button data-tab="catalog" onclick="go('catalog',this)">💲 Catálogo / precios</button>
@@ -821,6 +822,7 @@
 
                 <div id="chatMessages" class="chat-messages"></div>
 
+                <div id="chatAttachments" style="padding:8px;display:flex;gap:8px;flex-wrap:wrap"></div>
                 <div class="composer">
                   <textarea id="chatComposer" placeholder="Escribí un mensaje…" maxlength="4096"></textarea>
                   <button id="sendChatBtn" class="btn btn-primary" onclick="sendConversationMessage()">Enviar</button>
@@ -851,6 +853,10 @@
           </div>
         </section>
 
+        <section id="receipts" class="section">
+          <div class="hero"><div><h1>Comprobantes</h1><p>Abrí el archivo, verificá el ingreso del dinero y después confirmá el pago. Recibir una imagen no valida una transferencia.</p></div></div>
+          <div id="receiptsTable" class="orders-grid"></div>
+        </section>
         <section id="customers" class="section">
           <div class="hero">
             <div><h1>Clientes</h1><p>Base de clientes sincronizada.</p></div>
@@ -1093,7 +1099,7 @@
         </section>
 
         <section id="more" class="section">
-          <div class="hero"><div><h1>Más</h1><p>Configuración y administración.</p></div></div>
+          <div class="hero"><div><h1>Más</h1><p>Configuración y administración.</p><button class="btn btn-light" onclick="go('receipts')">📎 Comprobantes <span class="notice-badge" data-notice="receipts" hidden></span></button></div></div>
           <div class="more-grid">
             <button class="more-card" onclick="go('business')">🏢<strong>Mi negocio</strong><small>Datos generales y módulos.</small></button>
             <button class="more-card" onclick="go('catalog')">💲<strong>Catálogo</strong><small>Productos, servicios y listas de precios.</small></button>
@@ -1110,12 +1116,13 @@
       <button data-tab="conversations" onclick="go('conversations',this)"><span class="ico">💬</span><span class="txt">Chats</span><span class="notice-badge" data-notice="conversations" hidden></span></button>
       <button data-tab="orders" onclick="go('orders',this)"><span class="ico">🧾</span><span class="txt">Pedidos</span><span class="notice-badge" data-notice="orders" hidden></span></button>
       <button data-tab="delivery" onclick="go('delivery',this)"><span class="ico">🚚</span><span class="txt">Delivery</span><span class="notice-badge" data-notice="delivery" hidden></span></button>
-      <button data-tab="more" onclick="go('more',this)"><span class="ico">☰</span><span class="txt">Más</span></button>
+      <button data-tab="more" onclick="go('more',this)"><span class="ico">☰</span><span class="txt">Más</span><span class="notice-badge" data-notice="more" hidden></span></button>
     </nav>
   </div>
 
   <div id="loading" class="loading hidden">Cargando…</div>
 
+<script src="/receipts.js"></script>
 <script src="/notification_state.js"></script>
 <script src="/notifications.js"></script>
 <script>
@@ -1303,7 +1310,7 @@
   }
 
   async function loadTab(tab){
-    const companyTabs=new Set(['dashboard','conversations','orders','delivery','customers','business','catalog','gastro']);
+    const companyTabs=new Set(['dashboard','conversations','orders','delivery','customers','receipts','business','catalog','gastro']);
     if(companyTabs.has(tab)&&!companyId){
       if(String(currentUser?.role||'').toUpperCase()==='SUPERADMIN'){
         await go('admin');
@@ -1320,6 +1327,7 @@
       if(tab==='orders')await loadOrders();
       if(tab==='delivery')await loadDelivery();
       if(tab==='customers')await loadCustomers();
+      if(tab==='receipts')await loadReceipts();
       if(tab==='business')await loadBusiness();
       if(tab==='catalog')await loadCatalog();
       if(tab==='gastro')await loadGastro();
@@ -1444,6 +1452,7 @@
     if(!companyId||document.hidden)return;
     if(currentTab==='orders')loadOrders().catch(()=>{});
     if(currentTab==='delivery')loadDelivery().catch(()=>{});
+    if(currentTab==='receipts'&&!receiptActionBusy&&!document.querySelector('[id^=receiptSelect]'))loadReceipts().catch(()=>{});
   },5000);
 
   async function loadConversations(){
@@ -1514,6 +1523,7 @@
         ?'La ventana de 24 horas está cerrada. WhatsApp no permite texto libre hasta que el cliente vuelva a escribir.'
         :'IA pausada para este cliente. Tus mensajes salen por el WhatsApp del negocio.');
 
+    $('chatAttachments').innerHTML=(r.attachments||[]).map(a=>receiptFileLink(a)).join('');
     const messages=r.messages||[];
     const box=$('chatMessages');
     box.innerHTML=messages.length?messages.map(m=>{

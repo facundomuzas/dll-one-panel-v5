@@ -1,3 +1,4 @@
+import {initReceipts} from "./receipts.js";
 import {initNotifications} from "./notifications.js";
 import pg from "pg";
 
@@ -19,6 +20,7 @@ export const pool = new Pool({
 });
 
 export async function initDb() {
+  await initReceipts(pool);
   await initNotifications(pool);
   // Configuración de retiro independiente de los snapshots de Apps Script.
   await pool.query(`CREATE TABLE IF NOT EXISTS panel_pickup_settings (

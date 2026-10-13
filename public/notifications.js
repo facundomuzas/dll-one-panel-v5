@@ -14,9 +14,11 @@ function paintNotices(data){
   for(const [id,value] of [['mOrders',c.orders],['mQuotes',c.delivery],['mHuman',c.human],['mPayments',c.payments]]){const el=document.getElementById(id);if(el)el.textContent=Number(value||0);}
   setNoticeBadge('conversations',c.conversations||0,'conversaciones sin revisar o en atención humana');
   setNoticeBadge('orders',c.orders||0,'pedidos con preparación, entrega o pago pendientes');
+  setNoticeBadge('receipts',c.receipts||0,'archivos de pago por revisar');
+  setNoticeBadge('more',c.receipts||0,'comprobantes por revisar');
   setNoticeBadge('delivery',c.delivery||0,'delivery por cotizar');
-  setNoticeBadge('dashboard',(c.conversations||0)+(c.orders||0)+(c.delivery||0),'pendientes');
-  const entries=[['Conversaciones sin revisar',c.unread,'conversations'],['Atención humana',c.human,'conversations'],['Pedidos por completar o cobrar',c.orders,'orders'],['Delivery por cotizar',c.delivery,'delivery'],['Pagos pendientes',c.payments,'orders']];
+  setNoticeBadge('dashboard',(c.conversations||0)+(c.orders||0)+(c.delivery||0)+(c.receipts||0),'pendientes');
+  const entries=[['Conversaciones sin revisar',c.unread,'conversations'],['Atención humana',c.human,'conversations'],['Pedidos por completar o cobrar',c.orders,'orders'],['Delivery por cotizar',c.delivery,'delivery'],['Comprobantes por revisar',c.receipts,'receipts'],['Pagos pendientes',c.payments,'orders']];
   const box=document.getElementById('pendingTasks');
   if(box)box.innerHTML=entries.map(([label,count,tab])=>'<button class="task-link" onclick="go(\''+tab+'\')"><span>'+label+'</span><strong>'+Number(count||0)+'</strong></button>').join('');
   document.querySelectorAll('[data-chat-notice]').forEach(el=>{

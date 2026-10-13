@@ -40,10 +40,12 @@ export async function getNotifications(db, companyId, actor) {
       (SELECT COALESCE(MAX(id),0)::text FROM panel_orders WHERE company_id=$1) AS orders,
       (SELECT COALESCE(MAX(EXTRACT(EPOCH FROM updated_at)*1000),0)::bigint::text FROM panel_delivery_quotes WHERE company_id=$1 AND state='PENDIENTE') AS delivery,
       (SELECT COALESCE(MAX(EXTRACT(EPOCH FROM updated_at)*1000),0)::bigint::text FROM panel_chat_state WHERE company_id=$1 AND mode='HUMANO') AS human,
-      (SELECT COALESCE(MAX(EXTRACT(EPOCH FROM updated_at)*1000),0)::bigint::text FROM panel_orders WHERE company_id=$1 AND order_state<>'CANCELADO' AND payment_state='COMPROBANTE_RECIBIDO') AS receipts`,[companyId])
+      (SELECT COALESCE(MAX(EXTRACT(EPOCH FROM updated_at)*1000),0)::bigint::text FROM panel_orders WHERE company_id=$1 AND order_state<>'CANCELADO' AND payment_state='COMPROBANTE_RECIBIDO') AS receipts,
+      (SELECT COALESCE(MAX(EXTRACT(EPOCH FROM updated_at)*1000),0)::bigint::text FROM panel_receipts WHERE company_id=$1 AND state IN ('PENDIENTE','SIN_PEDIDO','DESCARGA_FALLIDA')) AS files,
+      (SELECT COUNT(*)::int FROM panel_receipts WHERE company_id=$1 AND state IN ('PENDIENTE','SIN_PEDIDO','DESCARGA_FALLIDA')) AS pending_receipts`,[companyId])
   ]);
   const items=chats.rows.map(x=>({clientId:x.client_id,lastMessageId:x.last_id,unread:Number(x.unread),human:x.human,name:x.name}));
-  const counts={conversations:items.length,unread:items.filter(x=>x.unread>0).length,
+  const counts={receipts:Number(signals.rows[0]?.pending_receipts||0),conversations:items.length,unread:items.filter(x=>x.unread>0).length,
     human:items.filter(x=>x.human).length, orders:orders.rows.length, delivery:quotes.rows.length,
     payments:orders.rows.filter(x=>['PENDIENTE','COMPROBANTE_RECIBIDO'].includes(x.payment_state)).length};
   return {counts,chats:items,signals:signals.rows[0],updatedAt:new Date().toISOString()};

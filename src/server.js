@@ -1,3 +1,4 @@
+import {storeReceipt,listReceipts,reviewReceipt,candidates} from "./receipts.js";
 import {getNotifications, markThreadRead, notificationActor} from "./notifications.js";
 import {liveCustomers} from "./customers.js";
 import {mergeThreadMessages} from "./thread_messages.js";
@@ -900,7 +901,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.5",
+      version: "5.6.6",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -918,7 +919,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.5",
+      version: "5.6.6",
       error: String(err?.message || err)
     });
   }
@@ -1116,6 +1117,11 @@ app.get("/motor/company/:companyId/pickup", authenticateMotorRequest, async (req
   }
 });
 
+app.post("/motor/media/receive",authenticateMotorRequest,async(req,res)=>{
+  try{return res.json({ok:true,...await storeReceipt(pool,req.body||{})});}
+  catch(err){return res.status(400).json({ok:false,error:String(err.message||err)});}
+});
+
 app.post(
   "/motor/conversation/event",
   authenticateMotorRequest,
@@ -1279,6 +1285,52 @@ app.use(
   authRequired,
   companyAccessRequired
 );
+
+app.get("/api/company/:companyId/receipts",authRequired,async(req,res)=>{
+ try{return res.json({ok:true,items:await listReceipts(pool,req.params.companyId)});}
+ catch(err){return res.status(500).json({ok:false,error:String(err.message||err)});}
+});
+app.get("/api/company/:companyId/receipts/:id/file",authRequired,async(req,res)=>{
+ try{
+  const r=(await pool.query('SELECT data,mime FROM panel_receipts WHERE company_id=$1 AND id=$2',[req.params.companyId,req.params.id])).rows[0];
+  if(!r?.data)return res.status(404).json({ok:false,error:"Archivo no disponible."});
+  const extension={"image/jpeg":"jpg","image/png":"png","image/webp":"webp","application/pdf":"pdf"}[r.mime];
+  if(!extension)return res.status(415).end();
+  res.set({"Content-Type":r.mime,"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff",
+   "Content-Security-Policy":"sandbox; default-src 'none'",
+   "Content-Disposition":`${r.mime==='application/pdf'?'attachment':'inline'}; filename="comprobante.${extension}"`});
+  return res.send(r.data);
+ }catch(err){return res.status(400).json({ok:false,error:"No se pudo abrir el archivo."});}
+});
+app.get("/api/company/:companyId/receipts/:id/orders",authRequired,async(req,res)=>{
+ try{
+  const r=(await pool.query('SELECT client_id FROM panel_receipts WHERE company_id=$1 AND id=$2',[req.params.companyId,req.params.id])).rows[0];
+  if(!r)return res.status(404).json({ok:false,error:"Archivo no encontrado."});
+  return res.json({ok:true,items:await candidates(pool,req.params.companyId,r.client_id)});
+ }catch(err){return res.status(400).json({ok:false,error:String(err.message||err)});}
+});
+app.post("/api/company/:companyId/receipts/:id/review",authRequired,async(req,res)=>{
+ try{
+  if(String(req.session?.role||'').toUpperCase()!=='SUPERADMIN') {
+    const allowed=(await pool.query("SELECT permissions FROM panel_user_companies WHERE company_id=$1 AND user_id=$2",[req.params.companyId,req.session?.uid])).rows[0];
+    if(!allowed || allowed.permissions?.operate===false)return res.status(403).json({ok:false,error:'No tenés permiso para operar pagos.'});
+  }
+  const action=String(req.body?.action||'');
+  const receipt=await reviewReceipt(pool,req.params.companyId,req.params.id,action,String(req.body?.orderId||''),req.session?.sub||'PANEL');
+  let warning='';
+  if(receipt.order_id && ['ACEPTAR','RECHAZAR'].includes(action)){
+    try {
+      const order=await getDirectOrder(req.params.companyId,receipt.order_id);
+      // No enviar rechazo si otro archivo mantiene el pago en revisión o ya se confirmó.
+      if(order && (action==='ACEPTAR'||order.estadoPago==='RECHAZADO')){
+        await postMotor('/admin/panel/order-status',{companyId:req.params.companyId,phoneNumberId:order.phoneNumberId,
+          action:action==='ACEPTAR'?'CONFIRMAR_PAGO':'RECHAZAR_PAGO',order});
+      }
+    }catch{warning='La revisión se guardó, pero no se pudo avisar al cliente por WhatsApp. Podés avisarle desde Conversaciones.';}
+  }
+  return res.json({ok:true,receipt,warning});
+ }catch(err){return res.status(400).json({ok:false,error:String(err.message||err)});}
+});
 
 app.get("/api/company/:companyId/notifications", authRequired, async(req,res)=>{
   try {
@@ -1464,6 +1516,7 @@ app.get(
         syncedAt:company.synced_at,
         chat,
         messages,
+        attachments:await listReceipts(pool,req.params.companyId,req.params.clientId),
         lastMessageId: runtimeMessages.reduce((max,m)=>BigInt(m.id || 0)>BigInt(max)?String(m.id):max,"0")
       });
     } catch (err) {
@@ -2095,6 +2148,11 @@ app.post(
           req.body?.notes || ""
         );
 
+      if(result.changed && ['CONFIRMAR_PAGO','RECHAZAR_PAGO','CANCELADO'].includes(String(req.body?.action||''))) {
+        await pool.query(`UPDATE panel_receipts SET state=$3,reviewed_by=$4,reviewed_at=NOW(),updated_at=NOW()
+          WHERE company_id=$1 AND order_id=$2 AND state='PENDIENTE'`,
+          [req.params.companyId,req.params.orderId,req.body.action==='CONFIRMAR_PAGO'?'CERRADO_PAGO':'ARCHIVADO',req.session?.sub||'PANEL']);
+      }
       let notification = {
         sent: false,
         reason: "SIN_CAMBIOS"
@@ -2383,6 +2441,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.6.5 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.6.6 escuchando en puerto ${PORT}`
   );
 });
