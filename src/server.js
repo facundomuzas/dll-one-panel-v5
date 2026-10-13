@@ -1,3 +1,4 @@
+import {getGastroCatalog, saveGastroItem, motorCatalog, isGastro} from "./gastro_catalog.js";
 import {storeReceipt,listReceipts,reviewReceipt,candidates} from "./receipts.js";
 import {getNotifications, markThreadRead, notificationActor} from "./notifications.js";
 import {liveCustomers} from "./customers.js";
@@ -901,7 +902,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.6",
+      version: "5.6.7",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -919,7 +920,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.6",
+      version: "5.6.7",
       error: String(err?.message || err)
     });
   }
@@ -1115,6 +1116,18 @@ app.get("/motor/company/:companyId/pickup", authenticateMotorRequest, async (req
   } catch(err) {
     return res.status(503).json({ok:false,error:"No se pudo consultar la ubicación."});
   }
+});
+
+app.get("/motor/company/:companyId/catalog",authenticateMotorRequest,async(req,res)=>{
+  try{
+    const company=await getCompany(req.params.companyId);
+    if(!company)return res.status(404).json({ok:false,error:'Empresa no encontrada.'});
+    if(String(req.query.phoneNumberId||'')!==String(company.phone_number_id||''))return res.status(409).json({ok:false,error:'El número no corresponde a esta empresa.'});
+    res.set('Cache-Control','no-store');
+    const stored=isGastro(company)?await getGastroCatalog(pool,company,false):null;
+    return res.json({ok:true,companyId:company.company_id,native:!!stored,
+      ...(stored?{catalog: motorCatalog(stored.catalog),revision:stored.revision}:{})});
+  }catch(err){return res.status(503).json({ok:false,error:'No se pudo consultar el catálogo vigente.'});}
 });
 
 app.post("/motor/media/receive",authenticateMotorRequest,async(req,res)=>{
@@ -1913,25 +1926,9 @@ app.get(
         });
       }
 
-      const bundle =
-        company?.snapshot?.data?.gastroBundle ||
-        null;
-
-      if (!bundle) {
-        return res.status(409).json({
-          ok:false,
-          error:
-            "ONE Gastro todavía no fue copiado a PostgreSQL. " +
-            "Ejecutá sincronizarPanelCloudV500() una vez en Apps Script."
-        });
-      }
-
-      return res.json({
-        ok:true,
-        source:"POSTGRES",
-        syncedAt:company.synced_at,
-        ...bundle
-      });
+      const stored=await getGastroCatalog(pool,company);
+      return res.json({ok:true,...(company.snapshot?.data?.gastroBundle||{}),...stored.catalog,
+        source:"PANEL",revision:stored.revision,syncedAt:stored.updated_at});
     } catch (err) {
       return res.status(500).json({
         ok:false,
@@ -1948,7 +1945,7 @@ app.get(
     try {
       const company = await getCompany(req.params.companyId);
       if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-      const result = await postBridge(company,"gastro_get",{},req.session?.sub || "PANEL_V5");
+      const result = (await getGastroCatalog(pool,company)).catalog;
       return res.json({ok:true,...result});
     } catch (err) {
       return res.status(502).json({ok:false,error:String(err?.message || err)});
@@ -1969,7 +1966,11 @@ for (const [pathName, operation] of [
       try {
         const company = await getCompany(req.params.companyId);
         if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-        const result = await postBridge(company,operation,{data:req.body || {}},req.session?.sub || "PANEL_V5");
+        if(String(req.session?.role||'').toUpperCase()!=='SUPERADMIN'){
+          const access=await pool.query('SELECT permissions FROM panel_user_companies WHERE user_id=$1 AND company_id=$2',[Number(req.session?.uid||0),company.company_id]);
+          if(!access.rows[0]||access.rows[0].permissions?.editCatalog===false)return res.status(403).json({ok:false,error:'No tenés permiso para editar el catálogo.'});
+        }
+        const result = await saveGastroItem(pool,company,pathName,req.body||{});
         return res.json({ok:true,...result});
       } catch (err) {
         return res.status(502).json({ok:false,error:String(err?.message || err)});
@@ -2441,6 +2442,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.6.6 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.6.7 escuchando en puerto ${PORT}`
   );
 });

@@ -1,3 +1,4 @@
+import {initGastroCatalog} from "./gastro_catalog.js";
 import {initReceipts} from "./receipts.js";
 import {initNotifications} from "./notifications.js";
 import pg from "pg";
@@ -20,6 +21,7 @@ export const pool = new Pool({
 });
 
 export async function initDb() {
+  await initGastroCatalog(pool);
   await initReceipts(pool);
   await initNotifications(pool);
   // Configuración de retiro independiente de los snapshots de Apps Script.

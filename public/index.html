@@ -692,7 +692,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.6 · Autogestión</small>
+          <small>Panel Cloud V5.6.7 · Autogestión</small>
         </div>
       </div>
 
@@ -717,7 +717,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.6</small>
+          <small>Panel Cloud V5.6.7</small>
         </div>
       </div>
 
@@ -729,7 +729,7 @@
         <button data-tab="receipts" onclick="go('receipts',this)">📎 Comprobantes <span class="notice-badge" data-notice="receipts" hidden></span></button>
         <button data-tab="customers" onclick="go('customers',this)">👥 Clientes</button>
         <button data-tab="business" onclick="go('business',this)">🏢 Mi negocio</button>
-        <button data-tab="catalog" onclick="go('catalog',this)">💲 Catálogo / precios</button>
+        <button id="navCatalog" data-tab="catalog" onclick="go('catalog',this)">💲 Catálogo / precios</button>
         <button id="navGastro" data-tab="gastro" onclick="go('gastro',this)">🍔 Gastro</button>
         <button id="navAdmin" class="admin-only hidden-admin" data-tab="admin" onclick="go('admin',this)">⚙ Super Admin</button>
       </div>
@@ -945,45 +945,45 @@
 
         <section id="gastro" class="section">
           <div class="hero">
-            <div><h1>ONE Gastro</h1><p>Menú, precios, imágenes, pagos y delivery desde PostgreSQL. Sin esperar Apps Script para abrir.</p></div>
-            <span class="pill">● GASTRO POSTGRES</span>
+            <div><h1>ONE Gastro</h1><p>Cargá y administrá tus productos, precios, variantes y extras.</p></div>
+            <span class="pill">● ONE GASTRO</span>
           </div>
 
           <h2 class="subsection-title">Productos del menú</h2>
           <div class="section-grid">
             <div class="stack">
               <div class="card">
-                <h3 class="card-title">Nueva categoría</h3>
+                <h3 class="card-title" id="gTitlecategory">Categoría</h3>
                 <div class="form-grid"><div class="form-field full"><label>Nombre</label><input id="gCatName"></div><div class="form-field"><label>Posición</label><input id="gCatOrder" type="number" value="10"></div></div>
-                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroCategory()">Guardar categoría</button></div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroCategory()">Guardar categoría</button><button class="btn btn-light" onclick="resetGastroForm('category')">Nuevo / cancelar edición</button></div>
               </div>
               <div class="card">
-                <h3 class="card-title">Nuevo producto</h3>
+                <h3 class="card-title" id="gTitleproduct">Producto</h3>
                 <div class="form-grid">
                   <div class="form-field full"><label>Categoría</label><select id="gProductCategory"></select></div>
                   <div class="form-field full"><label>Nombre</label><input id="gProductName"></div>
                   <div class="form-field full"><label>Descripción</label><textarea id="gProductDescription"></textarea></div>
-                  <div class="form-field"><label>Precio base</label><input id="gProductPrice" type="number" min="0"></div>
+                  <div class="form-field"><label><input id="gProductSoldOut" type="checkbox"> Agotado</label><label>Precio base</label><input id="gProductPrice" type="number" min="0"></div>
                   <div class="form-field"><label>Posición</label><input id="gProductOrder" type="number" value="10"></div>
                 </div>
-                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroProduct()">Guardar producto</button></div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroProduct()">Guardar producto</button><button class="btn btn-light" onclick="resetGastroForm('product')">Nuevo / cancelar edición</button></div>
               </div>
               <div class="card">
-                <h3 class="card-title">Variante</h3>
+                <h3 class="card-title" id="gTitlevariant">Variante</h3>
                 <div class="form-grid">
                   <div class="form-field full"><label>Producto</label><select id="gVariantProduct"></select></div>
                   <div class="form-field"><label>Nombre</label><input id="gVariantName" placeholder="Simple, Doble, x2…"></div>
                   <div class="form-field"><label>Precio</label><input id="gVariantPrice" type="number" min="0"></div>
                 </div>
-                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroVariant()">Guardar variante</button></div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroVariant()">Guardar variante</button><button class="btn btn-light" onclick="resetGastroForm('variant')">Nuevo / cancelar edición</button></div>
               </div>
               <div class="card">
-                <h3 class="card-title">Extra</h3>
+                <h3 class="card-title" id="gTitleextra">Extra</h3>
                 <div class="form-grid">
                   <div class="form-field"><label>Nombre</label><input id="gExtraName" placeholder="Cheddar extra"></div>
                   <div class="form-field"><label>Precio</label><input id="gExtraPrice" type="number" min="0"></div>
                 </div>
-                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroExtra()">Guardar extra</button></div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroExtra()">Guardar extra</button><button class="btn btn-light" onclick="resetGastroForm('extra')">Nuevo / cancelar edición</button></div>
               </div>
             </div>
             <div class="stack">
@@ -1102,7 +1102,7 @@
           <div class="hero"><div><h1>Más</h1><p>Configuración y administración.</p><button class="btn btn-light" onclick="go('receipts')">📎 Comprobantes <span class="notice-badge" data-notice="receipts" hidden></span></button></div></div>
           <div class="more-grid">
             <button class="more-card" onclick="go('business')">🏢<strong>Mi negocio</strong><small>Datos generales y módulos.</small></button>
-            <button class="more-card" onclick="go('catalog')">💲<strong>Catálogo</strong><small>Productos, servicios y listas de precios.</small></button>
+            <button id="moreCatalog" class="more-card" onclick="go('catalog')">💲<strong>Catálogo</strong><small>Productos, servicios y listas de precios.</small></button>
             <button id="moreGastro" class="more-card" onclick="go('gastro')">🍔<strong>Gastro</strong><small>Menú, variantes y extras.</small></button>
             <button class="more-card" onclick="go('customers')">👥<strong>Clientes</strong><small>Base de clientes.</small></button>
             <button id="moreAdmin" class="more-card admin-only hidden-admin" onclick="go('admin')">⚙<strong>Super Admin</strong><small>Crear empresas y accesos.</small></button>
@@ -1276,10 +1276,17 @@
     return companies.find(c=>c.idEmpresa===companyId)||null;
   }
 
+  function gastroEnabled(){const m=selectedCompany()?.modules||{};return [true,'SI','TRUE','1'].includes(typeof (m.gastro??m.MODULO_GASTRO)==='string'?String(m.gastro??m.MODULO_GASTRO).toUpperCase():(m.gastro??m.MODULO_GASTRO));}
+  function resolveModuleTab(tab){
+    if(tab==='catalog'&&gastroEnabled())return 'gastro';
+    if(tab==='gastro'&&!gastroEnabled())return 'dashboard';
+    return tab;
+  }
   function updateModuleNavigation(){
     const company=selectedCompany();
     const mods=company?.modules||{};
-    const gastroActive=String(mods.gastro??mods.MODULO_GASTRO??'').toUpperCase()==='SI'||mods.gastro===true;
+    const gastroActive=gastroEnabled();
+    ['navCatalog','moreCatalog'].forEach(id=>{if($(id))$(id).style.display=gastroActive?'none':'';});
     if($('navGastro'))$('navGastro').style.display=gastroActive?'':'none';
     if($('moreGastro'))$('moreGastro').style.display=gastroActive?'':'none';
   }
@@ -1290,10 +1297,15 @@
     $('chatContent').classList.add('hidden');$('chatEmpty').classList.remove('hidden');
     startNotifications();
     updateModuleNavigation();
-    await loadTab(currentTab==='admin'?'dashboard':currentTab);
+    resetGastroForms();
+    gastroData={categorias:[],productos:[],variantes:[],extras:[]};
+    gastroSettingsData={menu:{imagenes:[]},pagos:{items:[]},entrega:{zonas:[]}};
+    renderGastro();renderGastroSettings();
+    await go(currentTab==='admin'?'dashboard':currentTab);
   }
 
   async function go(tab,button){
+    tab=resolveModuleTab(tab);
     currentTab=tab;
     if(tab!=='conversations'){
       clearInterval(inboxTimer);
@@ -1310,6 +1322,7 @@
   }
 
   async function loadTab(tab){
+    if(resolveModuleTab(tab)!==tab)return go(resolveModuleTab(tab));
     const companyTabs=new Set(['dashboard','conversations','orders','delivery','customers','receipts','business','catalog','gastro']);
     if(companyTabs.has(tab)&&!companyId){
       if(String(currentUser?.role||'').toUpperCase()==='SUPERADMIN'){
@@ -2062,27 +2075,59 @@
     finally{showLoading(false)}
   }
 
+  let gastroRevision=null;
+  const gastroEdits={};
+  const gastroKinds={category:['categorias','idCategoria','activa'],product:['productos','idProducto','activo'],variant:['variantes','idVariante','activa'],extra:['extras','idExtra','activo']};
+  const gastroFields={category:{nombre:'gCatName',orden:'gCatOrder'},product:{nombre:'gProductName',idCategoria:'gProductCategory',descripcion:'gProductDescription',precioBase:'gProductPrice',orden:'gProductOrder'},variant:{nombre:'gVariantName',idProducto:'gVariantProduct',precio:'gVariantPrice'},extra:{nombre:'gExtraName',precio:'gExtraPrice'}};
+  function resetGastroForm(kind){
+    delete gastroEdits[kind];
+    for(const [key,id] of Object.entries(gastroFields[kind]))$(id).value=key==='orden'?'10':'';
+    if(kind==='product')$('gProductSoldOut').checked=false;
+    $('gTitle'+kind).textContent={category:'Categoría',product:'Producto',variant:'Variante',extra:'Extra'}[kind];
+  }
+  function resetGastroForms(){Object.keys(gastroFields).forEach(resetGastroForm);gastroRevision=null;}
+  function editGastroItem(kind,index){
+    const [key]=gastroKinds[kind],item=gastroData[key][index];gastroEdits[kind]={...item};
+    for(const [field,id] of Object.entries(gastroFields[kind]))$(id).value=item[field]??'';
+    if(kind==='product')$('gProductSoldOut').checked=item.agotado==='SI';
+    $('gTitle'+kind).textContent='Editar: '+item.nombre;
+    $(gastroFields[kind].nombre).focus();
+  }
   function renderGastro(){
-    const cats=gastroData.categorias||[];
-    const products=gastroData.productos||[];
-    const variants=gastroData.variantes||[];
-    const extras=gastroData.extras||[];
-
+    const cats=gastroData.categorias||[],products=gastroData.productos||[];
+    const oldCat=$('gProductCategory').value,oldProduct=$('gVariantProduct').value;
     $('gProductCategory').innerHTML='<option value="">Sin categoría</option>'+cats.map(x=>`<option value="${esc(x.idCategoria)}">${esc(x.nombre)}</option>`).join('');
-    $('gVariantProduct').innerHTML=products.map(x=>`<option value="${esc(x.idProducto)}">${esc(x.nombre)}</option>`).join('');
-
-    $('gCategoriesList').innerHTML=cats.length?cats.map(x=>`<div class="data-row"><div class="data-row-main"><strong>${esc(x.nombre)}</strong><small>Posición ${esc(x.orden)}</small></div></div>`).join(''):'<div class="empty">Sin categorías.</div>';
-    $('gProductsList').innerHTML=products.length?products.map(x=>`<div class="data-row"><div class="data-row-main"><strong>${esc(x.nombre)}</strong><small>${esc(x.descripcion||'')}</small></div><div class="data-row-side">${money(x.precioBase)}</div></div>`).join(''):'<div class="empty">Sin productos.</div>';
-    const options=[
-      ...variants.map(x=>({name:x.nombre,detail:`Variante · ${money(x.precio)}`})),
-      ...extras.map(x=>({name:x.nombre,detail:`Extra · ${money(x.precio)}`}))
-    ];
-    $('gOptionsList').innerHTML=options.length?options.map(x=>`<div class="data-row"><div class="data-row-main"><strong>${esc(x.name)}</strong><small>${esc(x.detail)}</small></div></div>`).join(''):'<div class="empty">Sin variantes ni extras.</div>';
+    $('gVariantProduct').innerHTML='<option value="">Elegí un producto</option>'+products.map(x=>`<option value="${esc(x.idProducto)}">${esc(x.nombre)}</option>`).join('');
+    $('gProductCategory').value=oldCat;$('gVariantProduct').value=oldProduct;
+    const render=(kind)=>{const [key,id,active]=gastroKinds[kind];return (gastroData[key]||[]).map((x,i)=>`<div class="data-row"><div class="data-row-main"><strong>${esc(x.nombre)}</strong><small>${kind==='category'?'Categoría':kind==='variant'?'Variante':kind==='extra'?'Extra':'Producto'} · ${x[active]==='SI'?'Activo':'Inactivo'} ${x.agotado==='SI'?'· Agotado':''}</small>${kind==='category'?'':money(x.precioBase??x.precio)}</div><div class="data-row-side"><button class="btn-xs" onclick="editGastroItem('${kind}',${i})">Editar</button><button class="btn-xs" onclick="toggleGastroItem('${kind}',${i})">${x[active]==='SI'?'Desactivar':'Activar'}</button></div></div>`).join('');};
+    $('gCategoriesList').innerHTML=render('category')||'<div class="empty">Sin categorías.</div>';
+    $('gProductsList').innerHTML=render('product')||'<div class="empty">Sin productos.</div>';
+    $('gOptionsList').innerHTML=(render('variant')+render('extra'))||'<div class="empty">Sin variantes ni extras.</div>';
+  }
+  let gastroSaving=false;
+  async function persistGastroItem(kind,data,clear=false){
+    if(gastroSaving)return;
+    if(gastroRevision===null){alert('Primero cargá Gastro.');return;}
+    gastroSaving=true;showLoading(true);const target=companyId;
+    try{
+      await api(`/api/company/${encodeURIComponent(target)}/gastro/${kind}`,{method:'POST',body:JSON.stringify({...data,revision:gastroRevision})});
+      if(target!==companyId)return;
+      if(clear)resetGastroForm(kind);
+      await loadGastro();
+      alert('Guardado. El bot usará el catálogo actualizado en los próximos mensajes.');
+    }catch(err){alert(err.message||String(err));}finally{gastroSaving=false;showLoading(false);}
+  }
+  async function toggleGastroItem(kind,index){
+    const [key,id,active]=gastroKinds[kind],item=gastroData[key][index];
+    await persistGastroItem(kind,{...item,[active]:item[active]==='SI'?'NO':'SI'});
   }
 
   async function loadGastro(){
     const started=performance.now();
-    const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/bundle`);
+    const requestedCompany=companyId;
+    const r=await api(`/api/company/${encodeURIComponent(requestedCompany)}/gastro/bundle`);
+    if(companyId!==requestedCompany)return;
+    gastroRevision=r.revision;
 
     gastroData={
       categorias:r.categorias||[],
@@ -2218,29 +2263,16 @@
     const r=await api(`/api/company/${encodeURIComponent(companyId)}/gastro/zone/${encodeURIComponent(id)}/delete`,{method:'POST',body:'{}'});gastroSettingsData={menu:r.menu||{},pagos:r.pagos||{},entrega:r.entrega||{}};renderGastroSettings();
   }
 
-  async function saveGastroCategory(){
-    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/category`,{method:'POST',body:JSON.stringify({nombre:$('gCatName').value.trim(),orden:Number($('gCatOrder').value||0),activa:'SI'})});
-    $('gCatName').value='';
-    await loadGastro();
+  async function saveGastroForm(kind){
+    const data={...(gastroEdits[kind]||{})};
+    for(const [key,id] of Object.entries(gastroFields[kind]))data[key]=$(id).value.trim();
+    if(kind==='product')data.agotado=$('gProductSoldOut').checked?'SI':'NO';
+    await persistGastroItem(kind,data,true);
   }
-
-  async function saveGastroProduct(){
-    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/product`,{method:'POST',body:JSON.stringify({idCategoria:$('gProductCategory').value,nombre:$('gProductName').value.trim(),descripcion:$('gProductDescription').value.trim(),precioBase:Number($('gProductPrice').value||0),orden:Number($('gProductOrder').value||0),activo:'SI',agotado:'NO'})});
-    $('gProductName').value='';$('gProductDescription').value='';$('gProductPrice').value='';
-    await loadGastro();
-  }
-
-  async function saveGastroVariant(){
-    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/variant`,{method:'POST',body:JSON.stringify({idProducto:$('gVariantProduct').value,nombre:$('gVariantName').value.trim(),precio:Number($('gVariantPrice').value||0),activa:'SI'})});
-    $('gVariantName').value='';$('gVariantPrice').value='';
-    await loadGastro();
-  }
-
-  async function saveGastroExtra(){
-    await api(`/api/company/${encodeURIComponent(companyId)}/gastro/extra`,{method:'POST',body:JSON.stringify({nombre:$('gExtraName').value.trim(),precio:Number($('gExtraPrice').value||0),aplicaA:'TODOS',maxCantidad:1,activo:'SI'})});
-    $('gExtraName').value='';$('gExtraPrice').value='';
-    await loadGastro();
-  }
+  async function saveGastroCategory(){await saveGastroForm('category');}
+  async function saveGastroProduct(){await saveGastroForm('product');}
+  async function saveGastroVariant(){await saveGastroForm('variant');}
+  async function saveGastroExtra(){await saveGastroForm('extra');}
 
   function fillAdminCompanySelect(){
     if(!$('adminUserCompany'))return;
