@@ -27,7 +27,7 @@ async function chooseReceiptOrder(id){
   if(company!==companyId)return;
   const box=$('receiptOrders'+id);if(!box)return;
   box.innerHTML=(r.items||[]).length?`<p>Elegí el pedido de este cliente:</p><select id="receiptSelect${esc(id)}">${r.items.map(x=>`<option value="${esc(x.order_id)}">${esc(x.order_id)} · ${esc(money(x.total))}</option>`).join('')}</select><button class="btn btn-light" onclick="receiptAction('${esc(id)}','VINCULAR',$('receiptSelect${esc(id)}').value)">Vincular</button>`:'<p>No hay pedidos por transferencia pendientes para este cliente. Podés archivar el archivo o revisarlo desde Conversaciones.</p>';
- }catch(err){alert(err.message);}
+ }catch(err){showNotice(err.message);}
 }
 let receiptActionBusy=false;
 async function receiptAction(id,action,orderId=''){
@@ -37,6 +37,6 @@ async function receiptAction(id,action,orderId=''){
  const company=companyId;receiptActionBusy=true;
  try{
   const r=await api(`/api/company/${encodeURIComponent(company)}/receipts/${encodeURIComponent(id)}/review`,{method:'POST',body:JSON.stringify({action,orderId})});
-  if(company===companyId){await loadReceipts();pollNotifications();if(r.warning)alert(r.warning);}
- }catch(err){alert(err.message);}finally{receiptActionBusy=false;}
+  if(company===companyId){await loadReceipts();pollNotifications();if(r.warning)showNotice(r.warning);}
+ }catch(err){showNotice(err.message);}finally{receiptActionBusy=false;}
 }

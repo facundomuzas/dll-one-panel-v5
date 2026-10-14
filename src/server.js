@@ -1,3 +1,5 @@
+import {readMotorSnapshot,saveMotorSnapshot} from "./motor_snapshot.js";
+import {getBusinessProfile,saveBusinessProfile} from "./business_profile.js";
 import {getGastroSettings,changeSettings,getMenuFile,motorSettings} from "./gastro_settings.js";
 import {ensureGastroCatalog, getGastroCatalog, saveGastroItem, motorCatalog, isGastro} from "./gastro_catalog.js";
 import {storeReceipt,listReceipts,reviewReceipt,candidates} from "./receipts.js";
@@ -903,7 +905,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.9",
+      version: "5.7.0",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -921,7 +923,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.9",
+      version: "5.7.0",
       error: String(err?.message || err)
     });
   }
@@ -1105,6 +1107,16 @@ app.post("/api/admin/companies", authRequired, requireSuperadmin, async (req, re
 
 
 
+// Private service-to-service routes. Never exposed through company profile APIs.
+app.get('/motor/config-snapshot',authenticateMotorRequest,async(req,res)=>{
+ try{res.set('Cache-Control','no-store');res.json({ok:true,snapshot:await readMotorSnapshot(pool)});}
+ catch{res.status(503).json({ok:false,error:'No se pudo recuperar la configuración del motor.'});}
+});
+app.post('/motor/config-snapshot',authenticateMotorRequest,async(req,res)=>{
+ try{res.set('Cache-Control','no-store');res.json({ok:true,...await saveMotorSnapshot(pool,req.body)});}
+ catch{res.status(400).json({ok:false,error:'No se pudo guardar la configuración del motor. Revisá que esté completa.'});}
+});
+
 app.get("/motor/company/:companyId/pickup", authenticateMotorRequest, async (req,res) => {
   try {
     const company=await getCompany(req.params.companyId);
@@ -1128,6 +1140,7 @@ app.get("/motor/company/:companyId/catalog",authenticateMotorRequest,async(req,r
     const stored=isGastro(company)?await getGastroCatalog(pool,company,false):null;
     const config=(await pool.query('SELECT settings FROM panel_gastro_settings WHERE company_id=$1',[company.company_id])).rows[0];
     return res.json({ok:true,companyId:company.company_id,native:!!stored,
+      profile:(await getBusinessProfile(pool,company)).config,
       ...(config&&isGastro(company)?{settings:motorSettings(config.settings)}:{}),
       ...(stored?{catalog: motorCatalog(stored.catalog),revision:stored.revision}:{})});
   }catch(err){return res.status(503).json({ok:false,error:'No se pudo consultar el catálogo vigente.'});}
@@ -1806,72 +1819,17 @@ app.post(
   }
 );
 
-app.get(
-  "/api/company/:companyId/profile",
-  authRequired,
-  async (req, res) => {
-    try {
-      const company = await getCompany(req.params.companyId);
-      if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-
-      const result = await postBridge(
-        company,
-        "company_profile_get",
-        {},
-        req.session?.sub || "PANEL_V5"
-      );
-
-      const pickup=await getPickup(pool,company);
-      result.config={...(result.config || {}),DIRECCION:pickup.address};
-      return res.json({ok:true,...result});
-    } catch (err) {
-      return res.status(502).json({ok:false,error:String(err?.message || err)});
-    }
-  }
-);
-
-app.post(
-  "/api/company/:companyId/profile",
-  authRequired,
-  async (req, res) => {
-    try {
-      const company = await getCompany(req.params.companyId);
-      if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-
-      const result = await postBridge(
-        company,
-        "company_profile_save",
-        {
-          data: req.body || {},
-          allowModules: String(req.session?.role || "").toUpperCase() === "SUPERADMIN"
-        },
-        req.session?.sub || "PANEL_V5",
-        60000
-      );
-
-      // La dirección confirmada se persiste antes de anunciar éxito. Un snapshot
-      // posterior no puede restaurar una dirección anterior.
-      if(Object.prototype.hasOwnProperty.call(req.body || {},"DIRECCION")) {
-        await savePickup(pool,company.company_id,req.body.DIRECCION);
-      }
-      let warning = "";
-      try {
-        await pool.query(
-          `UPDATE panel_companies SET company_name=$2, phone_number_id=$3,
-           config=config || $4::jsonb, modules=$5::jsonb WHERE company_id=$1`,
-          [company.company_id, result.empresa.nombreEmpresa, result.empresa.phoneNumberId || "",
-           JSON.stringify(result.config || {}), JSON.stringify(result.modulos || {})]
-        );
-      } catch (err) {
-        console.error("[PROFILE] copia local:", err?.message || err);
-        warning = "Los datos se guardaron en la configuración, pero falta actualizar la copia del panel. Ejecutá la sincronización del panel.";
-      }
-      return res.json({ok:true,...result,warning});
-    } catch (err) {
-      return res.status(502).json({ok:false,error:String(err?.message || err)});
-    }
-  }
-);
+app.get('/api/company/:companyId/profile',authRequired,async(req,res)=>{
+ try{const company=await getCompany(req.params.companyId);if(!company)return res.status(404).json({ok:false,error:'Empresa no encontrada.'});res.json({ok:true,...await getBusinessProfile(pool,company)});}
+ catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
+});
+app.post('/api/company/:companyId/profile',authRequired,async(req,res)=>{
+ try{
+  const isSuper=String(req.session?.role||'').toUpperCase()==='SUPERADMIN';
+  if(!isSuper){const access=(await pool.query('SELECT permissions FROM panel_user_companies WHERE company_id=$1 AND user_id=$2',[req.params.companyId,req.session?.uid])).rows[0];if(!access||access.permissions?.editBusiness===false)return res.status(403).json({ok:false,error:'No tenés permiso para editar la empresa.'});}
+  res.json({ok:true,...await saveBusinessProfile(pool,req.params.companyId,req.body||{},isSuper)});
+ }catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
+});
 
 app.get(
   "/api/company/:companyId/catalog",
@@ -2385,6 +2343,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.6.9 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.7.0 escuchando en puerto ${PORT}`
   );
 });

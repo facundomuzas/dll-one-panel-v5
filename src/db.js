@@ -1,3 +1,5 @@
+import {initMotorSnapshot} from "./motor_snapshot.js";
+import {initBusinessProfiles} from "./business_profile.js";
 import {initGastroSettings} from "./gastro_settings.js";
 import {initGastroCatalog} from "./gastro_catalog.js";
 import {initReceipts} from "./receipts.js";
@@ -22,6 +24,8 @@ export const pool = new Pool({
 });
 
 export async function initDb() {
+  await initBusinessProfiles(pool);
+  await initMotorSnapshot(pool);
   await initGastroCatalog(pool);
   await initGastroSettings(pool);
   await initReceipts(pool);
@@ -254,10 +258,10 @@ export async function upsertCompanySnapshot(payload) {
       VALUES ($1,$2,$3,$4::jsonb,$5::jsonb,$6::jsonb,$7,NOW())
       ON CONFLICT (company_id)
       DO UPDATE SET
-        company_name = EXCLUDED.company_name,
-        phone_number_id = EXCLUDED.phone_number_id,
-        modules = EXCLUDED.modules,
-        config = EXCLUDED.config,
+        company_name = COALESCE((SELECT config->>'NOMBRE_EMPRESA' FROM panel_business_profiles WHERE company_id=EXCLUDED.company_id),EXCLUDED.company_name),
+        phone_number_id = COALESCE((SELECT phone_number_id FROM panel_business_profiles WHERE company_id=EXCLUDED.company_id),EXCLUDED.phone_number_id),
+        modules = COALESCE((SELECT modules FROM panel_business_profiles WHERE company_id=EXCLUDED.company_id),EXCLUDED.modules),
+        config = EXCLUDED.config || COALESCE((SELECT config FROM panel_business_profiles WHERE company_id=EXCLUDED.company_id),'{}'::jsonb),
         snapshot = EXCLUDED.snapshot,
         source_version = EXCLUDED.source_version,
         synced_at = NOW()

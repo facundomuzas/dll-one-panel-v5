@@ -692,7 +692,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.9 · Autogestión</small>
+          <small>Panel Cloud V5.7.0 · Autogestión</small>
         </div>
       </div>
 
@@ -717,7 +717,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.9</small>
+          <small>Panel Cloud V5.7.0</small>
         </div>
       </div>
 
@@ -1143,6 +1143,12 @@
 <script src="/notifications.js"></script>
 <script>
   let companies=[];
+  let panelToastTimer;
+  function showNotice(message){
+    let box=document.getElementById('panelNotice');
+    if(!box){box=document.createElement('div');box.id='panelNotice';box.setAttribute('role','status');box.setAttribute('aria-live','polite');box.style.cssText='position:fixed;bottom:90px;right:20px;max-width:min(420px,90vw);padding:16px;border-radius:12px;background:#173e2e;color:white;box-shadow:0 4px 20px #0003;z-index:99999;cursor:pointer';box.title='Tocá para cerrar';box.onclick=()=>box.hidden=true;document.body.appendChild(box);}
+    box.textContent=String(message);box.hidden=false;clearTimeout(panelToastTimer);panelToastTimer=setTimeout(()=>box.hidden=true,9000);
+  }
   let companyId='';
   let currentTab='dashboard';
   let sendMessageBusy=false;
@@ -1310,6 +1316,7 @@
   async function changeCompany(){
     companyId=$('companySelect').value;
     resetDeliveryView();
+    businessRevision=null;
     selectedChat=null;
     $('chatContent').classList.add('hidden');$('chatEmpty').classList.remove('hidden');
     startNotifications();
@@ -1365,7 +1372,7 @@
       if(tab==='admin')await loadAdmin();
       if(tab==='more')updateModuleNavigation();
     }catch(err){
-      alert(err.message||String(err));
+      showNotice(err.message||String(err));
     }finally{
       showLoading(false);
     }
@@ -1592,13 +1599,13 @@
       );
       await refreshSelectedThread(false);
       await loadConversationsLive(true);
-    }catch(err){alert(err.message||String(err))}
+    }catch(err){showNotice(err.message||String(err))}
     finally{showLoading(false)}
   }
 
   async function returnConversationToBot(){
     if(!selectedChat?.idCliente)return;
-    if(!confirm('¿Devolver esta conversación al bot? La IA volverá a responder los próximos mensajes.'))return;
+
     showLoading(true);
     try{
       await api(
@@ -1607,7 +1614,7 @@
       );
       await refreshSelectedThread(false);
       await loadConversationsLive(true);
-    }catch(err){alert(err.message||String(err))}
+    }catch(err){showNotice(err.message||String(err))}
     finally{showLoading(false)}
   }
 
@@ -1673,7 +1680,7 @@
       lastSentMessage.key===duplicateKey &&
       now-lastSentMessage.at<8000
     ){
-      alert('Ese mismo mensaje ya se acaba de enviar. Esperá unos segundos antes de repetirlo.');
+      showNotice('Ese mismo mensaje ya se acaba de enviar. Esperá unos segundos antes de repetirlo.');
       return;
     }
 
@@ -1736,7 +1743,7 @@
       }
 
       btn.textContent='Reintentar';
-      alert(err.message||String(err));
+      showNotice(err.message||String(err));
 
     }finally{
       sendMessageBusy=false;
@@ -1843,7 +1850,7 @@
     );
 
     if(r.notification?.warning){
-      alert('El estado se guardó, pero WhatsApp no pudo avisar al cliente: '+r.notification.warning);
+      showNotice('El estado se guardó, pero WhatsApp no pudo avisar al cliente: '+r.notification.warning);
     }
 
     await loadOrders();
@@ -1922,10 +1929,10 @@
     const raw=input?.value.trim()||'';
     const cost=Number(raw);
     if(!raw||!Number.isFinite(cost)||cost<0){
-      alert('Ingresá un costo de delivery válido. Si es gratis, escribí 0.');
+      showNotice('Ingresá un costo de delivery válido. Si es gratis, escribí 0.');
       return;
     }
-    if(!confirm(`¿Cotizar el delivery en $${money(cost)}?`))return;
+
     deliverySubmitting.add(key);
     const button=input.parentElement.querySelector('button');
     button.disabled=true;button.textContent='Guardando…';
@@ -1936,7 +1943,7 @@
         {method:'POST',body:JSON.stringify({cost})}
       );
     }catch(error){
-      if(companyId===targetCompany)alert('No se pudo cotizar: '+error.message);
+      if(companyId===targetCompany)showNotice('No se pudo cotizar: '+error.message);
       return;
     }finally{
       deliverySubmitting.delete(key);
@@ -1945,7 +1952,7 @@
     if(companyId!==targetCompany)return;
     // Only clear the successful quote; preserve every other price being edited.
     input.closest('[data-quote-id]')?.remove();
-    try{await loadDelivery();}catch(error){alert('La cotización se guardó, pero no se pudo actualizar la lista. Tocá Actualizar.');}
+    try{await loadDelivery();}catch(error){showNotice('La cotización se guardó, pero no se pudo actualizar la lista. Tocá Actualizar.');}
     pollNotifications();
   }
 
@@ -1983,8 +1990,12 @@
     fillAdminCompanySelect();
   }
 
+  let businessRevision=null;
   async function loadBusiness(){
+    const target=companyId;
     const r=await api(`/api/company/${encodeURIComponent(companyId)}/profile`);
+    if(target!==companyId)return;
+    businessRevision=r.revision;
     const e=r.empresa||{};
     const c=r.config||{};
     const m=r.modulos||{};
@@ -2020,7 +2031,8 @@
     }
     const selectedCompany=companyId;
     const isSuper=String(currentUser?.role||'').toUpperCase()==='SUPERADMIN';
-    const body={
+    if(businessRevision===null){status.textContent='Cargá la configuración antes de guardar.';return;}
+    const body={revision:businessRevision,
       NOMBRE_EMPRESA:$('bizName').value.trim(), TIPO_NEGOCIO:$('bizType').value,
       TELEFONO:$('bizPhone').value.trim(), DIRECCION:$('bizAddress').value.trim(), EMAIL:email.value.trim()
     };
@@ -2033,6 +2045,8 @@
     status.style.color='#40523d';status.textContent='Guardando los datos del negocio…';
     try{
       const result=await api(`/api/company/${encodeURIComponent(selectedCompany)}/profile`,{method:'POST',body:JSON.stringify(body)});
+      if(selectedCompany!==companyId)return;
+      businessRevision=result.revision;
       status.style.color='#28652a';
       status.textContent=result.warning || 'Datos guardados. La ubicación ya está disponible para las próximas consultas por WhatsApp.';
       try{await refreshCompanies();}catch(error){
@@ -2126,7 +2140,7 @@
 
   async function importCatalogFile(){
     const file=$('catalogFile').files?.[0];
-    if(!file){alert('Seleccioná un archivo Excel o CSV.');return}
+    if(!file){showNotice('Seleccioná un archivo Excel o CSV.');return}
     if(!confirm(`¿Importar ${file.name}? Los códigos existentes se actualizarán y los nuevos se agregarán.`))return;
     showLoading(true);
     try{
@@ -2135,10 +2149,10 @@
         method:'POST',
         body:JSON.stringify({filename:file.name,base64})
       });
-      alert(`Importación terminada. ${r.guardados??r.parsed??0} filas procesadas.`);
+      showNotice(`Importación terminada. ${r.guardados??r.parsed??0} filas procesadas.`);
       $('catalogFile').value='';
       await loadCatalog();
-    }catch(err){alert(err.message||String(err))}
+    }catch(err){showNotice(err.message||String(err))}
     finally{showLoading(false)}
   }
 
@@ -2174,15 +2188,15 @@
   let gastroSaving=false;
   async function persistGastroItem(kind,data,clear=false){
     if(gastroSaving)return;
-    if(gastroRevision===null){alert('Primero cargá Gastro.');return;}
+    if(gastroRevision===null){showNotice('Primero cargá Gastro.');return;}
     gastroSaving=true;showLoading(true);const target=companyId;
     try{
       await api(`/api/company/${encodeURIComponent(target)}/gastro/${kind}`,{method:'POST',body:JSON.stringify({...data,revision:gastroRevision})});
       if(target!==companyId)return;
       if(clear)resetGastroForm(kind);
       await loadGastro();
-      alert('Guardado. El bot usará el catálogo actualizado en los próximos mensajes.');
-    }catch(err){alert(err.message||String(err));}finally{gastroSaving=false;showLoading(false);}
+      showNotice('Guardado. El bot usará el catálogo actualizado.');
+    }catch(err){showNotice(err.message||String(err));}finally{gastroSaving=false;showLoading(false);}
   }
   async function toggleGastroItem(kind,index){
     const [key,id,active]=gastroKinds[kind],item=gastroData[key][index];
@@ -2226,13 +2240,13 @@
   }
   async function settingsRequest(path,data={},message='Cambios guardados.'){
     if(settingsSaving)return false;
-    if(settingsRevision===null){alert('Primero cargá la configuración de Gastro.');return false;}
+    if(settingsRevision===null){showNotice('Primero cargá la configuración de Gastro.');return false;}
     const target=companyId;settingsSaving=true;$('gSettingsFields').disabled=true;
     try{
       const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/${path}`,{method:'POST',body:JSON.stringify({...data,revision:settingsRevision})});
       if(target!==companyId)return false;
       acceptGastroSettings(r);$('gSettingsStatus').textContent=message;return true;
-    }catch(err){if(target===companyId){$('gSettingsStatus').textContent='No se guardó: '+(err.message||err);alert(err.message||String(err));}return false;}
+    }catch(err){if(target===companyId){$('gSettingsStatus').textContent='No se guardó: '+(err.message||err);showNotice(err.message||String(err));}return false;}
     finally{settingsSaving=false;if(target===companyId)$('gSettingsFields').disabled=settingsRevision===null;}
   }
   async function saveGastroMenuConfig(){
@@ -2256,7 +2270,7 @@
   async function uploadGastroMenuImages(){
     if(menuUploading)return;
     const files=[...($('gMenuFiles').files||[])],target=companyId;
-    if(!files.length){alert('Seleccioná una imagen JPG o PNG.');return;}
+    if(!files.length){showNotice('Seleccioná una imagen JPG o PNG.');return;}
     menuUploading=true;
     try{
       for(let i=0;i<files.length;i++){
@@ -2266,13 +2280,13 @@
         if(!await settingsRequest('menu/upload',data,'Imagen guardada.'))return;
       }
       if(target===companyId){$('gMenuFiles').value='';$('gMenuUploadStatus').textContent='Imágenes guardadas.';}
-    }catch(err){if(target===companyId){$('gMenuUploadStatus').textContent='No se pudo subir: '+err.message;alert(err.message);}}
+    }catch(err){if(target===companyId){$('gMenuUploadStatus').textContent='No se pudo subir: '+err.message;showNotice(err.message);}}
     finally{menuUploading=false;}
   }
   async function menuIndexAction(index,action){
     const image=gastroSettingsData.menu.imagenes[index],id=encodeURIComponent(image.idImagen),target=companyId;
     if(action==='preview'){
-      try{const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/menu/${id}/preview`);if(target!==companyId)return;$('gMenuPreviewImg').src=r.dataUrl;$('gMenuLightbox').classList.remove('hidden');}catch(err){alert(err.message);}return;
+      try{const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/menu/${id}/preview`);if(target!==companyId)return;$('gMenuPreviewImg').src=r.dataUrl;$('gMenuLightbox').classList.remove('hidden');}catch(err){showNotice(err.message);}return;
     }
     if(action==='delete'&&!confirm('¿Eliminar esta imagen?'))return;
     const op=['SUBIR','BAJAR'].includes(action)?'move':action;
@@ -2348,16 +2362,16 @@
         servicios:$('adminModServicios').checked
       }
     };
-    if(!body.nombreEmpresa){alert('Ingresá el nombre de la empresa.');return}
-    if(!confirm(`¿Crear la empresa ${body.nombreEmpresa}?`))return;
+    if(!body.nombreEmpresa){showNotice('Ingresá el nombre de la empresa.');return}
+
     showLoading(true);
     try{
       const r=await api('/api/admin/companies',{method:'POST',body:JSON.stringify(body)});
       await new Promise(resolve=>setTimeout(resolve,700));
       await refreshCompanies();
-      alert(`Empresa creada: ${r.idEmpresa||''}`);
+      showNotice(`Empresa creada: ${r.idEmpresa||''}`);
       $('adminCompanyName').value='';$('adminCompanySlug').value='';$('adminCompanyPhoneId').value='';
-    }catch(err){alert(err.message||String(err))}
+    }catch(err){showNotice(err.message||String(err))}
     finally{showLoading(false)}
   }
 
@@ -2372,7 +2386,7 @@
     await api('/api/admin/users',{method:'POST',body:JSON.stringify(body)});
     $('adminUserName').value='';$('adminUserLogin').value='';$('adminUserPassword').value='';
     await loadAdmin();
-    alert('Usuario creado. Ya puede ingresar al Panel V5.');
+    showNotice('Usuario creado. Ya puede ingresar al Panel V5.');
   }
 
   if('serviceWorker' in navigator){
