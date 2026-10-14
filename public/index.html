@@ -693,7 +693,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.1 · Autogestión</small>
+          <small>Panel Cloud V5.7.2 · Autogestión</small>
         </div>
       </div>
 
@@ -718,7 +718,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.1</small>
+          <small>Panel Cloud V5.7.2</small>
         </div>
       </div>
 
@@ -972,6 +972,14 @@
             <button class="btn btn-light" onclick="document.getElementById('gZonesHeading').scrollIntoView({behavior:'smooth'})">Delivery</button>
             <button class="btn btn-light" onclick="loadGastro()">Recargar / reintentar importación</button>
           </div>
+          <div class="card" style="margin-bottom:18px">
+            <h3 class="card-title">Datos de Gastro en el panel</h3>
+            <p class="card-sub">Copiá los datos y las fotos pendientes para que el menú se consulte desde el panel. Se conservan los precios, alias y cambios que ya guardaste.</p>
+            <p id="gMigrationStatus" role="status">Verificando copia de Gastro…</p>
+            <div id="gMigrationDetails"></div>
+            <div class="actions-row"><button id="gMigrationStart" class="btn btn-primary" onclick="runGastroMigration()">Copiar datos y fotos pendientes</button></div>
+            <p class="card-sub">Esta copia abarca el menú, el cobro y la entrega de Gastro. Las conexiones y otras funciones del sistema todavía requieren Apps Script.</p>
+          </div>
           <p id="gCatalogStatus" role="status"></p>
           <h2 id="gCatalogHeading" class="subsection-title">Productos del menú</h2>
           <fieldset id="gCatalogFields" disabled style="border:0;padding:0;margin:0;min-width:0">
@@ -1156,6 +1164,7 @@
 
 <script src="/receipts.js"></script>
 <script src="/order_hours.js"></script>
+<script src="/gastro_migration.js"></script>
 <script src="/notification_state.js"></script>
 <script src="/notifications.js"></script>
 <script>
@@ -2229,6 +2238,7 @@
   }
   async function loadGastro(){
     const target=companyId;
+    $('gMigrationDetails').replaceChildren();$('gMigrationStatus').textContent='Verificando copia de Gastro…';
     gastroRevision=null;settingsRevision=null;
     $('gCatalogFields').disabled=true;$('gSettingsFields').disabled=true;
     $('gCatalogStatus').textContent='Cargando productos…';$('gSettingsStatus').textContent='Cargando cobro, entrega e imágenes…';
@@ -2243,6 +2253,7 @@
         acceptGastroSettings(r);$('gSettingsStatus').textContent='Cobro, entrega e imágenes listos.';
       }catch(err){if(target===companyId){gastroSettingsData={menu:{imagenes:[]},pagos:{items:[]},entrega:{zonas:[]}};renderGastroSettings();$('gSettingsStatus').textContent='Configuración: '+(err.message||err);}}})()
     ]);
+    if(target===companyId)await loadGastroMigration();
   }
   function renderGastroSettings(){
     const {menu={},pagos={},entrega={}}=gastroSettingsData;

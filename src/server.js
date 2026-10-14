@@ -1,3 +1,4 @@
+import {gastroMigrationStatus,migrateGastroStep} from './gastro_migration.js';
 import {getOrderHours,saveOrderHours,evaluateHours,requireOrderOpen} from "./order_hours.js";
 import {readMotorSnapshot,saveMotorSnapshot} from "./motor_snapshot.js";
 import {getBusinessProfile,saveBusinessProfile} from "./business_profile.js";
@@ -906,7 +907,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.1",
+      version: "5.7.2",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -924,7 +925,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.1",
+      version: "5.7.2",
       error: String(err?.message || err)
     });
   }
@@ -1988,6 +1989,20 @@ for (const [pathName, operation] of [
 }
 
 
+app.get('/api/company/:companyId/gastro/migration',authRequired,async(req,res)=>{
+ try{
+  const company=await getCompany(req.params.companyId);if(!company)return res.status(404).json({ok:false,error:'Empresa no encontrada.'});
+  res.set('Cache-Control','no-store');res.json({ok:true,...await gastroMigrationStatus(pool,company)});
+ }catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
+});
+app.post('/api/company/:companyId/gastro/migration',authRequired,canEditGastro,async(req,res)=>{
+ try{
+  const company=await getCompany(req.params.companyId);if(!company)return res.status(404).json({ok:false,error:'Empresa no encontrada.'});
+  const status=await migrateGastroStep(pool,company,req.body||{},(operation,payload)=>postBridge(company,operation,payload,req.session?.sub||'PANEL_V5'));
+  res.json({ok:true,...status});
+ }catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
+});
+
 app.get('/api/company/:companyId/gastro/settings',authRequired,async(req,res)=>{
   try{
     const company=await getCompany(req.params.companyId);if(!company)throw new Error('Empresa no encontrada.');
@@ -2363,6 +2378,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.7.1 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.7.2 escuchando en puerto ${PORT}`
   );
 });

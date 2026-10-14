@@ -1,3 +1,21 @@
+# DLL ONE Panel Cloud V5.7.2
+
+Esta actualización es solo del panel; mantiene el motor 4.3.7 de V571.
+
+En ONE Gastro, «Datos de Gastro en el panel» muestra el estado real de la copia
+de catálogo, configuración de cobro/entrega e imágenes del menú. El botón copia
+solo lo pendiente. Incluye fotos desactivadas, conserva las ediciones nativas y
+permite reintentar cada archivo sin repetir los que ya están guardados.
+Las operaciones requieren acceso a la empresa y permiso editCatalog para escribir.
+Cada archivo se procesa en una petición separada para evitar una importación larga.
+
+Cuando la copia está completa, las lecturas de esos datos e imágenes usan PostgreSQL.
+No equivale a una desconexión total de Apps Script: altas de empresas, ONE Ventas,
+sincronización y espejos del motor todavía tienen dependencias legadas.
+Mantené las variables de entorno y las conexiones existentes.
+
+## Documentación histórica (V5.2; arquitectura parcialmente reemplazada)
+
 # DLL ONE Panel Cloud V5.2.0
 
 ## Super Admin + Onboarding de empresas
