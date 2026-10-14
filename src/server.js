@@ -1,3 +1,4 @@
+import {getOrderHours,saveOrderHours,evaluateHours,requireOrderOpen} from "./order_hours.js";
 import {readMotorSnapshot,saveMotorSnapshot} from "./motor_snapshot.js";
 import {getBusinessProfile,saveBusinessProfile} from "./business_profile.js";
 import {getGastroSettings,changeSettings,getMenuFile,motorSettings} from "./gastro_settings.js";
@@ -905,7 +906,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.0",
+      version: "5.7.1",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -923,7 +924,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.0",
+      version: "5.7.1",
       error: String(err?.message || err)
     });
   }
@@ -1140,6 +1141,7 @@ app.get("/motor/company/:companyId/catalog",authenticateMotorRequest,async(req,r
     const stored=isGastro(company)?await getGastroCatalog(pool,company,false):null;
     const config=(await pool.query('SELECT settings FROM panel_gastro_settings WHERE company_id=$1',[company.company_id])).rows[0];
     return res.json({ok:true,companyId:company.company_id,native:!!stored,
+      orderAvailability:evaluateHours((await getOrderHours(pool,company.company_id)).settings),
       profile:(await getBusinessProfile(pool,company)).config,
       ...(config&&isGastro(company)?{settings:motorSettings(config.settings)}:{}),
       ...(stored?{catalog: motorCatalog(stored.catalog),revision:stored.revision}:{})});
@@ -1254,6 +1256,7 @@ app.post(
   authenticateMotorRequest,
   async (req, res) => {
     try {
+      await requireOrderOpen(pool,req.body||{});
       const result =
         await createOrGetDirectOrder(
           req.body || {}
@@ -1266,6 +1269,7 @@ app.post(
     } catch (err) {
       return res.status(400).json({
         ok: false,
+        code:err?.code||"",
         error: String(err?.message || err)
       });
     }
@@ -1277,6 +1281,7 @@ app.post(
   authenticateMotorRequest,
   async (req, res) => {
     try {
+      await requireOrderOpen(pool,req.body||{});
       const result =
         await upsertDirectDeliveryQuote(
           req.body || {}
@@ -1289,6 +1294,7 @@ app.post(
     } catch (err) {
       return res.status(400).json({
         ok: false,
+        code:err?.code||"",
         error: String(err?.message || err)
       });
     }
@@ -1819,6 +1825,20 @@ app.post(
   }
 );
 
+app.get('/api/company/:companyId/order-hours',authRequired,async(req,res)=>{
+ try{const row=await getOrderHours(pool,req.params.companyId);res.json({ok:true,...row,status:evaluateHours(row.settings)});}
+ catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
+});
+app.post('/api/company/:companyId/order-hours',authRequired,async(req,res)=>{
+ try{
+  if(String(req.session?.role||'').toUpperCase()!=='SUPERADMIN'){
+   const access=(await pool.query('SELECT permissions FROM panel_user_companies WHERE company_id=$1 AND user_id=$2',[req.params.companyId,req.session?.uid])).rows[0];
+   if(!access||access.permissions?.editBusiness===false)return res.status(403).json({ok:false,error:'No tenés permiso para editar horarios.'});
+  }
+  const row=await saveOrderHours(pool,req.params.companyId,req.body||{});res.json({ok:true,...row,status:evaluateHours(row.settings)});
+ }catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
+});
+
 app.get('/api/company/:companyId/profile',authRequired,async(req,res)=>{
  try{const company=await getCompany(req.params.companyId);if(!company)return res.status(404).json({ok:false,error:'Empresa no encontrada.'});res.json({ok:true,...await getBusinessProfile(pool,company)});}
  catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
@@ -2343,6 +2363,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.7.0 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.7.1 escuchando en puerto ${PORT}`
   );
 });

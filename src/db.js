@@ -1,3 +1,4 @@
+import {initOrderHours} from "./order_hours.js";
 import {initMotorSnapshot} from "./motor_snapshot.js";
 import {initBusinessProfiles} from "./business_profile.js";
 import {initGastroSettings} from "./gastro_settings.js";
@@ -24,6 +25,7 @@ export const pool = new Pool({
 });
 
 export async function initDb() {
+  await initOrderHours(pool);
   await initBusinessProfiles(pool);
   await initMotorSnapshot(pool);
   await initGastroCatalog(pool);

@@ -683,6 +683,7 @@
 .notice-badge[hidden]{display:none}.nav button{display:flex;align-items:center;gap:7px}.mobile-bottom-nav button{position:relative}.mobile-bottom-nav .notice-badge{position:absolute;top:2px;right:10px;min-width:18px;height:18px;font-size:10px}
 .notice-status{font-size:11px;color:var(--muted);margin-top:4px}.notice-offline{color:#b42318}.tasks-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:14px}.task-link{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:16px;text-align:left;cursor:pointer}.task-link strong{color:#c32434;font-size:22px}.task-link:hover{border-color:var(--brand)}
 @media(max-width:760px){#noticeSoundButton{font-size:11px;padding:8px}.notice-status{max-width:170px}.conversation-name .notice-badge{height:18px;font-size:10px}}
+.hours-day{padding:14px 0;border-bottom:1px solid #dde5dd;display:grid;gap:10px;grid-template-columns:100px 1fr auto;align-items:start}.hours-slot{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;align-items:end}.hours-slot label{display:grid;gap:4px}.hours-slot input{max-width:155px}@media(max-width:650px){.hours-day{grid-template-columns:1fr}.hours-day>button{justify-self:start}}
 </style>
 </head>
 <body>
@@ -692,7 +693,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.0 · Autogestión</small>
+          <small>Panel Cloud V5.7.1 · Autogestión</small>
         </div>
       </div>
 
@@ -717,7 +718,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.0</small>
+          <small>Panel Cloud V5.7.1</small>
         </div>
       </div>
 
@@ -898,6 +899,21 @@
               </div>
               <p id="moduleHelp" class="mini-note" style="margin-top:12px"></p>
             </div>
+          </div>
+          <div class="card" style="margin-top:20px">
+            <h3 class="card-title">Horarios para recibir pedidos</h3>
+            <p class="card-sub">Cada empresa elige cuándo el bot puede tomar pedidos. Fuera de horario responde consultas y recibe comprobantes de pedidos existentes.</p>
+            <fieldset id="orderHoursFields" disabled style="border:0;padding:0;margin:0;min-width:0">
+              <div class="form-grid">
+                <div class="form-field"><label>Recepción de pedidos</label><select id="orderHoursMode" onchange="updateOrderHoursMode()"><option value="ALWAYS">24 horas, todos los días</option><option value="SCHEDULED">Solo en los horarios configurados</option><option value="PAUSED">Pausar pedidos temporalmente</option></select></div>
+                <div class="form-field"><label>Zona horaria</label><input id="orderHoursZone" list="orderHoursZones" value="America/Argentina/Buenos_Aires"><datalist id="orderHoursZones"><option value="America/Argentina/Buenos_Aires"><option value="America/Santiago"><option value="America/Montevideo"><option value="America/Lima"><option value="America/Mexico_City"><option value="Europe/Madrid"></datalist><small>Argentina: America/Argentina/Buenos_Aires.</small></div>
+              </div>
+              <div id="orderHoursDays"></div>
+              <p class="mini-note">Días sin turnos: cerrado. Por ejemplo, viernes de 20:00 a 02:00 termina el sábado a las 02:00. Para un día completo usá 00:00 a 00:00.</p>
+              <div class="form-field"><label>Mensaje adicional fuera de horario (opcional)</label><textarea id="orderHoursMessage" maxlength="500" placeholder="Ej.: Volvé a escribirnos cuando abramos."></textarea></div>
+              <div class="actions-row"><button class="btn btn-primary" onclick="saveOrderHoursForm()">Guardar horarios</button></div>
+            </fieldset>
+            <p id="orderHoursStatus" role="status" aria-live="polite"></p>
           </div>
         </section>
 
@@ -1139,6 +1155,7 @@
   <div id="loading" class="loading hidden">Cargando…</div>
 
 <script src="/receipts.js"></script>
+<script src="/order_hours.js"></script>
 <script src="/notification_state.js"></script>
 <script src="/notifications.js"></script>
 <script>
@@ -1317,6 +1334,7 @@
     companyId=$('companySelect').value;
     resetDeliveryView();
     businessRevision=null;
+    resetOrderHours();
     selectedChat=null;
     $('chatContent').classList.add('hidden');$('chatEmpty').classList.remove('hidden');
     startNotifications();
@@ -1366,7 +1384,7 @@
       if(tab==='delivery')await loadDelivery();
       if(tab==='customers')await loadCustomers();
       if(tab==='receipts')await loadReceipts();
-      if(tab==='business')await loadBusiness();
+      if(tab==='business')await Promise.all([loadBusiness(),loadOrderHours()]);
       if(tab==='catalog')await loadCatalog();
       if(tab==='gastro')await loadGastro();
       if(tab==='admin')await loadAdmin();
