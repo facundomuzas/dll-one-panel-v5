@@ -692,7 +692,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.8 · Autogestión</small>
+          <small>Panel Cloud V5.6.9 · Autogestión</small>
         </div>
       </div>
 
@@ -717,7 +717,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.6.8</small>
+          <small>Panel Cloud V5.6.9</small>
         </div>
       </div>
 
@@ -1240,7 +1240,7 @@
   function showLogin(){
     stopNotifications();
     clearInterval(inboxTimer);
-    currentUser=null;companyId="";selectedChat=null;
+    currentUser=null;companyId="";selectedChat=null;resetDeliveryView();
     $('app').classList.add('hidden');
     $('login').classList.remove('hidden');
   }
@@ -1309,6 +1309,7 @@
 
   async function changeCompany(){
     companyId=$('companySelect').value;
+    resetDeliveryView();
     selectedChat=null;
     $('chatContent').classList.add('hidden');$('chatEmpty').classList.remove('hidden');
     startNotifications();
@@ -1855,15 +1856,27 @@
     renderOrders(r.items||[]);
   }
 
+  let deliveryViewCompany='';
+  let deliveryLoadSequence=0;
+  const deliverySubmitting=new Set();
+
+  function resetDeliveryView(){
+    deliveryViewCompany=companyId;
+    deliveryLoadSequence++;
+    $('deliveryTable').replaceChildren();
+    $('countDelivery').textContent='';
+  }
+
   function renderDeliveryQuotes(items){
     const box=$('deliveryTable');
+    if(deliveryViewCompany!==companyId)resetDeliveryView();
     if(!items.length){
       box.innerHTML='<div class="empty">No hay deliveries pendientes de cotizar.</div>';
       return;
     }
 
-    box.innerHTML=items.map(q=>`
-      <article class="order-card">
+    const markup=items.map(q=>`
+      <article class="order-card" data-quote-id="${esc(q.idCotizacion)}">
         <div class="order-card-head">
           <div>
             <div class="order-id">🚚 ${esc(q.idCotizacion||'Delivery')}</div>
@@ -1882,29 +1895,66 @@
         </div>
       </article>
     `).join('');
+    // Keep existing input nodes, their values and focus while polling new data.
+    const template=document.createElement('template');
+    template.innerHTML=markup;
+    const existing=new Map([...box.querySelectorAll('[data-quote-id]')].map(card=>[card.dataset.quoteId,card]));
+    box.querySelectorAll('.empty').forEach(el=>el.remove());
+    const activeIds=new Set();
+    for(const fresh of template.content.children){
+      const id=fresh.dataset.quoteId;
+      activeIds.add(id);
+      const card=existing.get(id);
+      if(!card){box.appendChild(fresh.cloneNode(true));continue;}
+      for(const selector of ['.order-card-head','.order-meta','.order-products','.order-total']){
+        const target=card.querySelector(selector),source=fresh.querySelector(selector);
+        if(target.innerHTML!==source.innerHTML)target.innerHTML=source.innerHTML;
+      }
+    }
+    for(const [id,card] of existing)if(!activeIds.has(id))card.remove();
   }
 
   async function quoteDelivery(quoteId){
+    const targetCompany=companyId;
+    const key=JSON.stringify([targetCompany,quoteId]);
+    if(deliverySubmitting.has(key)||deliveryViewCompany!==targetCompany)return;
     const input=$(`quote-${quoteId}`);
-    const cost=Number(input?.value);
-
-    if(!Number.isFinite(cost)||cost<0){
-      alert('Ingresá un costo de delivery válido.');
+    const raw=input?.value.trim()||'';
+    const cost=Number(raw);
+    if(!raw||!Number.isFinite(cost)||cost<0){
+      alert('Ingresá un costo de delivery válido. Si es gratis, escribí 0.');
       return;
     }
     if(!confirm(`¿Cotizar el delivery en $${money(cost)}?`))return;
-
-    await api(
-      `/api/company/${encodeURIComponent(companyId)}/deliveryQuotes/${encodeURIComponent(quoteId)}/quote`,
-      {method:'POST',body:JSON.stringify({cost})}
-    );
-
-    await loadDelivery();
+    deliverySubmitting.add(key);
+    const button=input.parentElement.querySelector('button');
+    button.disabled=true;button.textContent='Guardando…';
+    deliveryLoadSequence++;
+    try{
+      await api(
+        `/api/company/${encodeURIComponent(targetCompany)}/deliveryQuotes/${encodeURIComponent(quoteId)}/quote`,
+        {method:'POST',body:JSON.stringify({cost})}
+      );
+    }catch(error){
+      if(companyId===targetCompany)alert('No se pudo cotizar: '+error.message);
+      return;
+    }finally{
+      deliverySubmitting.delete(key);
+      button.disabled=false;button.textContent='Cotizar';
+    }
+    if(companyId!==targetCompany)return;
+    // Only clear the successful quote; preserve every other price being edited.
+    input.closest('[data-quote-id]')?.remove();
+    try{await loadDelivery();}catch(error){alert('La cotización se guardó, pero no se pudo actualizar la lista. Tocá Actualizar.');}
     pollNotifications();
   }
 
   async function loadDelivery(){
-    const r=await api(`/api/company/${encodeURIComponent(companyId)}/deliveryQuotes`);
+    if(deliveryViewCompany!==companyId)resetDeliveryView();
+    const targetCompany=companyId;
+    const sequence=++deliveryLoadSequence;
+    const r=await api(`/api/company/${encodeURIComponent(targetCompany)}/deliveryQuotes`);
+    if(companyId!==targetCompany||sequence!==deliveryLoadSequence)return;
     $('countDelivery').textContent=(r.total||0)+' pendientes';
     renderDeliveryQuotes(r.items||[]);
   }

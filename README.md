@@ -222,4 +222,3 @@ BOT/HUMANO al Panel V5.
 
 ## V5.6.0
 Pedidos, cocina y delivery directo en PostgreSQL.
-Reintento de despliegue V568.

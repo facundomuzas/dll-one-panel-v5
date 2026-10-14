@@ -903,7 +903,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.8",
+      version: "5.6.9",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -921,7 +921,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.6.8",
+      version: "5.6.9",
       error: String(err?.message || err)
     });
   }
@@ -2385,6 +2385,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.6.8 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.6.9 escuchando en puerto ${PORT}`
   );
 });
