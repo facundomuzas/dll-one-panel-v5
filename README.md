@@ -1,3 +1,12 @@
+# DLL ONE Panel 5.7.4
+
+V574: registro de conversaciones transaccional y deduplicado. Los eventos que
+llegan atrasados no hacen retroceder el último mensaje ni la última entrada.
+Usar junto con motor 4.3.9. Mantener las variables y la base existentes.
+La migración total de Apps Script todavía está pendiente. Ver la guía V574 del ZIP.
+
+## Documentación anterior
+
 # DLL ONE Panel 5.7.3
 
 Actualización V573: catálogo de ONE Ventas en PostgreSQL con copia inicial desde

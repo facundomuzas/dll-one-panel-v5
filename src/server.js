@@ -1,3 +1,4 @@
+import {isSales,getSalesCatalog,saveSalesItems,salesMotorCatalog,validateSalesOrder,parseSalesPrice} from './sales_catalog.js';
 import {gastroMigrationStatus,migrateGastroStep} from './gastro_migration.js';
 import {getOrderHours,saveOrderHours,evaluateHours,requireOrderOpen} from "./order_hours.js";
 import {readMotorSnapshot,saveMotorSnapshot} from "./motor_snapshot.js";
@@ -693,6 +694,11 @@ function normalizeCatalogRowsFromWorkbook(base64, filename = "lista.xlsx") {
     defval: "",
     raw: false
   });
+  // Keep formatted codes (e.g. 000123), but use actual numeric price cells.
+  const numericRows=XLSX.utils.sheet_to_json(wb.Sheets[firstSheet],{defval:'',raw:true});
+  rows.forEach((row,i)=>{for(const key of Object.keys(row)){
+    if(['PRECIO','PRICE','VALOR','PRECIO UNITARIO','PRECIO_UNITARIO'].includes(key.trim().toUpperCase())&&typeof numericRows[i]?.[key]==='number')row[key]=numericRows[i][key];
+  }});
 
   const pick = (row, names) => {
     const entries = Object.entries(row || {});
@@ -706,21 +712,17 @@ function normalizeCatalogRowsFromWorkbook(base64, filename = "lista.xlsx") {
     return "";
   };
 
-  const normalized = rows.map(row => {
+  const normalized = rows.filter(row=>String(pick(row,["NOMBRE","PRODUCTO","DESCRIPCION CORTA","DESCRIPCIÓN CORTA"])||"").trim()).map(row => {
     const precioRaw = pick(row, ["PRECIO", "PRICE", "VALOR", "PRECIO UNITARIO", "PRECIO_UNITARIO"]);
-    const precio = Number(
-      String(precioRaw || "")
-        .replace(/\./g, "")
-        .replace(",", ".")
-        .replace(/[^0-9.-]/g, "")
-    );
+    const modoPrecio=String(pick(row,['MODO_PRECIO','MODO PRECIO'])||'FIJO').trim().toUpperCase();
+    const precio=modoPrecio==='A_COTIZAR'&&!String(precioRaw).trim()?0:parseSalesPrice(precioRaw);
 
     return {
       codigo: String(pick(row, ["CODIGO", "CÓDIGO", "SKU", "ID"]) || "").trim(),
       tipoItem: String(pick(row, ["TIPO_ITEM", "TIPO", "TYPE"]) || "PRODUCTO").trim().toUpperCase(),
       nombre: String(pick(row, ["NOMBRE", "PRODUCTO", "DESCRIPCION CORTA", "DESCRIPCIÓN CORTA"]) || "").trim(),
       descripcion: String(pick(row, ["DESCRIPCION", "DESCRIPCIÓN", "DETALLE"]) || "").trim(),
-      precio: Number.isFinite(precio) ? precio : 0,
+      precio,modoPrecio,
       unidad: String(pick(row, ["UNIDAD", "MEDIDA"]) || "unidad").trim(),
       categoria: String(pick(row, ["CATEGORIA", "CATEGORÍA", "RUBRO"]) || "").trim(),
       marca: String(pick(row, ["MARCA", "BRAND"]) || "").trim(),
@@ -907,7 +909,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.2",
+      version: "5.7.4",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -925,7 +927,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.2",
+      version: "5.7.4",
       error: String(err?.message || err)
     });
   }
@@ -1140,12 +1142,14 @@ app.get("/motor/company/:companyId/catalog",authenticateMotorRequest,async(req,r
     if(String(req.query.phoneNumberId||'')!==String(company.phone_number_id||''))return res.status(409).json({ok:false,error:'El número no corresponde a esta empresa.'});
     res.set('Cache-Control','no-store');
     const stored=isGastro(company)?await getGastroCatalog(pool,company,false):null;
+    const sales=isSales(company)?await getSalesCatalog(pool,company):null;
+    if(sales&&req.query.salesNative!=='1')throw Error('Actualizá el motor para leer ONE Ventas.');
     const config=(await pool.query('SELECT settings FROM panel_gastro_settings WHERE company_id=$1',[company.company_id])).rows[0];
-    return res.json({ok:true,companyId:company.company_id,native:!!stored,
+    return res.json({ok:true,companyId:company.company_id,native:!!(stored||sales),catalogType:sales?'SALES':'GASTRO',
       orderAvailability:evaluateHours((await getOrderHours(pool,company.company_id)).settings),
       profile:(await getBusinessProfile(pool,company)).config,
       ...(config&&isGastro(company)?{settings:motorSettings(config.settings)}:{}),
-      ...(stored?{catalog: motorCatalog(stored.catalog),revision:stored.revision}:{})});
+      ...(stored?{catalog: motorCatalog(stored.catalog),revision:stored.revision}:sales?{catalog:salesMotorCatalog(sales.items),revision:sales.revision}:{})});
   }catch(err){return res.status(503).json({ok:false,error:'No se pudo consultar el catálogo vigente.'});}
 });
 
@@ -1171,6 +1175,9 @@ app.post(
   async (req, res) => {
     try {
       const body = req.body || {};
+      const company=await getCompany(body.companyId);
+      if(!company||String(company.phone_number_id)!==String(body.phoneNumberId))return res.status(403).json({ok:false,error:'Empresa o número incorrecto.'});
+      if(!['CLIENTE','BOT','VENDEDOR','SISTEMA'].includes(String(body.senderType||'').toUpperCase()))throw Error('Tipo de mensaje inválido.');
 
       const result = await upsertConversationEvent({
         companyId: body.companyId,
@@ -1258,6 +1265,7 @@ app.post(
   async (req, res) => {
     try {
       await requireOrderOpen(pool,req.body||{});
+      await validateSalesOrder(pool,await getCompany(req.body?.companyId),req.body||{});
       const result =
         await createOrGetDirectOrder(
           req.body || {}
@@ -1859,7 +1867,7 @@ app.get(
     try {
       const company = await getCompany(req.params.companyId);
       if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-      const result = await postBridge(company,"catalog_list",{},req.session?.sub || "PANEL_V5");
+      const result = await ensureSales(company);
       return res.json({ok:true,...result});
     } catch (err) {
       return res.status(502).json({ok:false,error:String(err?.message || err)});
@@ -1869,12 +1877,13 @@ app.get(
 
 app.post(
   "/api/company/:companyId/catalog/item",
-  authRequired,
+  authRequired,canEditGastro,
   async (req, res) => {
     try {
       const company = await getCompany(req.params.companyId);
       if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-      const result = await postBridge(company,"catalog_save",{item:req.body || {}},req.session?.sub || "PANEL_V5");
+      await ensureSales(company);
+      const result = await saveSalesItems(pool,company,[req.body||{}],req.body?.revision);
       return res.json({ok:true,...result});
     } catch (err) {
       return res.status(502).json({ok:false,error:String(err?.message || err)});
@@ -1884,19 +1893,15 @@ app.post(
 
 app.post(
   "/api/company/:companyId/catalog/import-file",
-  authRequired,
+  authRequired,canEditGastro,
   async (req, res) => {
     try {
       const company = await getCompany(req.params.companyId);
       if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
 
       const items = normalizeCatalogRowsFromWorkbook(req.body?.base64, req.body?.filename);
-      const result = await postBridge(
-        company,
-        "catalog_bulk",
-        {items},
-        req.session?.sub || "PANEL_V5"
-      );
+      await ensureSales(company);
+      const result = await saveSalesItems(pool,company,items,req.body?.revision,{bulk:true});
 
       return res.json({ok:true,parsed:items.length,...result});
     } catch (err) {
@@ -1904,6 +1909,8 @@ app.post(
     }
   }
 );
+
+async function ensureSales(company){return getSalesCatalog(pool,company,()=>postBridge(company,'catalog_list'));}
 
 async function ensureCatalog(company){
   return ensureGastroCatalog(pool,company,()=>postBridge(company,'gastro_get'));
@@ -1915,7 +1922,7 @@ async function canEditGastro(req,res,next){
   if(String(req.session?.role||'').toUpperCase()==='SUPERADMIN')return next();
   try{
     const {rows}=await pool.query('SELECT permissions FROM panel_user_companies WHERE user_id=$1 AND company_id=$2',[Number(req.session?.uid||0),req.params.companyId]);
-    if(!rows[0]||rows[0].permissions?.editCatalog===false)return res.status(403).json({ok:false,error:'No tenés permiso para editar Gastro.'});
+    if(!rows[0]||rows[0].permissions?.editCatalog===false)return res.status(403).json({ok:false,error:'No tenés permiso para editar el catálogo.'});
     next();
   }catch(err){res.status(500).json({ok:false,error:'No se pudo verificar el permiso.'});}
 }
@@ -2378,6 +2385,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.7.2 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.7.4 escuchando en puerto ${PORT}`
   );
 });

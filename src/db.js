@@ -1,3 +1,4 @@
+import {initSalesCatalog} from './sales_catalog.js';
 import {initOrderHours} from "./order_hours.js";
 import {initMotorSnapshot} from "./motor_snapshot.js";
 import {initBusinessProfiles} from "./business_profile.js";
@@ -25,6 +26,7 @@ export const pool = new Pool({
 });
 
 export async function initDb() {
+  await initSalesCatalog(pool);
   await initOrderHours(pool);
   await initBusinessProfiles(pool);
   await initMotorSnapshot(pool);
@@ -607,7 +609,10 @@ export async function upsertConversationEvent({
     DO NOTHING
   `;
 
-  await pool.query(
+  const clientDb=await pool.connect();
+  try{
+  await clientDb.query('BEGIN');
+  const inserted=await clientDb.query(
     sqlInsert,
     [
       company,
@@ -623,12 +628,14 @@ export async function upsertConversationEvent({
     ]
   );
 
+  if(inserted.rowCount===0){await clientDb.query('COMMIT');return {ok:true,duplicate:true,companyId:company,clientId:client};}
+
   const inbound =
     sender === "CLIENTE"
       ? safeTs
       : null;
 
-  await pool.query(
+  await clientDb.query(
     `
       INSERT INTO panel_chat_state (
         company_id,
@@ -665,10 +672,10 @@ export async function upsertConversationEvent({
             ELSE panel_chat_state.customer_name
           END,
         last_inbound_at =
-          COALESCE(EXCLUDED.last_inbound_at, panel_chat_state.last_inbound_at),
-        last_message_at = EXCLUDED.last_message_at,
-        last_message_type = EXCLUDED.last_message_type,
-        last_message = EXCLUDED.last_message,
+          GREATEST(EXCLUDED.last_inbound_at, panel_chat_state.last_inbound_at),
+        last_message_at = GREATEST(EXCLUDED.last_message_at, panel_chat_state.last_message_at),
+        last_message_type = CASE WHEN panel_chat_state.last_message_at IS NULL OR EXCLUDED.last_message_at >= panel_chat_state.last_message_at THEN EXCLUDED.last_message_type ELSE panel_chat_state.last_message_type END,
+        last_message = CASE WHEN panel_chat_state.last_message_at IS NULL OR EXCLUDED.last_message_at >= panel_chat_state.last_message_at THEN EXCLUDED.last_message ELSE panel_chat_state.last_message END,
         updated_at = NOW()
     `,
     [
@@ -684,11 +691,13 @@ export async function upsertConversationEvent({
     ]
   );
 
+  await clientDb.query('COMMIT');
   return {
     ok: true,
     companyId: company,
     clientId: client
   };
+  }catch(err){await clientDb.query('ROLLBACK');throw err;}finally{clientDb.release();}
 }
 
 export async function setConversationMode(

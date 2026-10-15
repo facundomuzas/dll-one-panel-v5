@@ -17,7 +17,7 @@ async function loadGastroMigration(){
 async function runGastroMigration(){
  if(gastroMigrationBusy||!companyId)return;
  const target=companyId,base=`/api/company/${encodeURIComponent(target)}/gastro/migration`,errors=[];
- gastroMigrationBusy=true;$('gMigrationStart').disabled=true;
+ gastroMigrationBusy=true;$('gMigrationStart').disabled=true;$('gMigrationStart').textContent='Verificando…';$('gMigrationStatus').textContent='Verificando datos y fotos…';
  const current=()=>target===companyId;
  const step=async(input,label)=>{
   if(!current())return;
@@ -39,6 +39,7 @@ async function runGastroMigration(){
   if(!current())return;
   status=await api(base);if(!current())return;
   renderGastroMigration(status);
+  if(status.complete)$('gMigrationStatus').textContent='Verificación terminada: no hay pendientes. Los datos y las fotos ya están guardados en el panel. Última verificación: '+new Date().toLocaleTimeString('es-AR');
   if(errors.length){const p=document.createElement('p');p.textContent='No se pudo copiar: '+errors.join(' · ')+'. Podés reintentar; lo ya copiado se conserva.';$('gMigrationDetails').appendChild(p);}
   else if(!status.complete)$('gMigrationStatus').textContent='Quedan datos pendientes. Volvé a intentar la copia.';
  }catch(err){if(current())$('gMigrationStatus').textContent='No se completó la copia: '+err.message+'. Podés reintentar.';}

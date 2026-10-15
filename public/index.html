@@ -693,7 +693,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.2 · Autogestión</small>
+          <small>Panel Cloud V5.7.4 · Autogestión</small>
         </div>
       </div>
 
@@ -718,7 +718,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.2</small>
+          <small>Panel Cloud V5.7.4</small>
         </div>
       </div>
 
@@ -933,6 +933,7 @@
                   <div class="form-field"><label>Tipo</label><select id="catType"><option value="PRODUCTO">Producto</option><option value="SERVICIO_FIJO">Servicio fijo</option><option value="SERVICIO_UNIDAD">Servicio por unidad</option><option value="SERVICIO_COTIZABLE">Servicio a cotizar</option></select></div>
                   <div class="form-field full"><label>Nombre</label><input id="catName"></div>
                   <div class="form-field full"><label>Descripción</label><textarea id="catDescription"></textarea></div>
+                  <div class="form-field"><label>Modo de precio</label><select id="catPriceMode"><option value="FIJO">Precio fijo</option><option value="A_COTIZAR">A cotizar</option></select></div><div class="form-field"><label>Estado</label><select id="catActive"><option value="SI">Activo</option><option value="NO">Inactivo</option></select></div>
                   <div class="form-field"><label>Precio</label><input id="catPrice" type="number" min="0" step="0.01"></div>
                   <div class="form-field"><label>Unidad</label><input id="catUnit" value="unidad"></div>
                   <div class="form-field"><label>Categoría</label><input id="catCategory"></div>
@@ -954,6 +955,7 @@
 
             <div class="card">
               <h3 class="card-title">Productos y servicios</h3>
+              <p id="salesStatus" role="status"></p><button class="btn btn-light" onclick="loadCatalog()">Recargar lista</button>
               <div id="catalogList" class="data-list"><div class="empty">Cargando catálogo…</div></div>
             </div>
           </div>
@@ -1185,6 +1187,7 @@
   let selectedChat=null;
   let currentUser=null;
   let catalogItems=[];
+  let salesRevision=null,salesBusy=false;
   let gastroData={categorias:[],productos:[],variantes:[],extras:[]};
   let gastroSettingsData={menu:{imagenes:[]},pagos:{items:[]},entrega:{zonas:[]}};
   let inboxTimer=null;
@@ -1341,6 +1344,7 @@
 
   async function changeCompany(){
     companyId=$('companySelect').value;
+    salesRevision=null;catalogItems=[];clearCatalogForm();
     resetDeliveryView();
     businessRevision=null;
     resetOrderHours();
@@ -2089,7 +2093,7 @@
   }
 
   function clearCatalogForm(){
-    $('catRow').value='';
+    $('catRow').value='';$('catPriceMode').value='FIJO';$('catActive').value='SI';
     $('catCode').value='';
     $('catType').value='PRODUCTO';
     $('catName').value='';
@@ -2103,7 +2107,7 @@
   function editCatalogItem(index){
     const x=catalogItems[index];
     if(!x)return;
-    $('catRow').value=x.fila||'';
+    $('catRow').value=x.id||'';$('catPriceMode').value=x.modoPrecio||'FIJO';$('catActive').value=x.activo||'SI';
     $('catCode').value=x.codigo||'';
     $('catType').value=x.tipoItem||'PRODUCTO';
     $('catName').value=x.nombre||'';
@@ -2125,7 +2129,7 @@
     box.innerHTML=catalogItems.map((x,i)=>`
       <div class="data-row">
         <div class="data-row-main">
-          <strong>${esc(x.nombre||'')}</strong>
+          <strong>${esc(x.nombre||'')}${x.activo==='NO'?' · Inactivo':''}</strong>
           <small>${esc([x.codigo,x.categoria,x.marca].filter(Boolean).join(' · '))}${x.descripcion?'<br>'+esc(x.descripcion):''}</small>
         </div>
         <div class="data-row-side">${x.modoPrecio==='A_COTIZAR'?'A cotizar':money(x.precio)}<br><button class="btn btn-light btn-sm" onclick="editCatalogItem(${i})">Editar</button></div>
@@ -2133,27 +2137,29 @@
   }
 
   async function loadCatalog(){
-    const r=await api(`/api/company/${encodeURIComponent(companyId)}/catalog`);
-    catalogItems=r.items||[];
-    renderCatalog();
+    const target=companyId;salesRevision=null;
+    $('salesStatus').textContent='Cargando la lista…';
+    try{const r=await api(`/api/company/${encodeURIComponent(target)}/catalog`);if(target!==companyId)return;
+      catalogItems=r.items||[];salesRevision=r.revision;renderCatalog();clearCatalogForm();$('salesStatus').textContent='Lista guardada en el panel.';
+    }catch(err){if(target===companyId)$('salesStatus').textContent='No se pudo cargar: '+err.message;}
   }
 
   async function saveCatalogItem(){
-    const item={
-      fila:Number($('catRow').value||0)||undefined,
-      codigo:$('catCode').value.trim(),
-      tipoItem:$('catType').value,
-      nombre:$('catName').value.trim(),
-      descripcion:$('catDescription').value.trim(),
-      precio:Number($('catPrice').value||0),
-      unidad:$('catUnit').value.trim()||'unidad',
-      categoria:$('catCategory').value.trim(),
-      marca:$('catBrand').value.trim(),
-      activo:'SI'
-    };
-    await api(`/api/company/${encodeURIComponent(companyId)}/catalog/item`,{method:'POST',body:JSON.stringify(item)});
-    clearCatalogForm();
-    await loadCatalog();
+    if(salesBusy)return;
+    if(salesRevision===null){showNotice('Primero cargá la lista existente.');return;}
+    const target=companyId;
+    const item={id:$('catRow').value||undefined,revision:salesRevision,
+      codigo:$('catCode').value.trim(),tipoItem:$('catType').value,nombre:$('catName').value.trim(),
+      descripcion:$('catDescription').value.trim(),precio:$('catPrice').value,
+      modoPrecio:$('catPriceMode').value,unidad:$('catUnit').value.trim()||'unidad',
+      categoria:$('catCategory').value.trim(),marca:$('catBrand').value.trim(),activo:$('catActive').value};
+    if(item.modoPrecio==='A_COTIZAR'&&item.precio==='')item.precio=0;
+    salesBusy=true;$('salesStatus').textContent='Guardando…';
+    try{const r=await api(`/api/company/${encodeURIComponent(target)}/catalog/item`,{method:'POST',body:JSON.stringify(item)});
+      if(target!==companyId)return;
+      catalogItems=r.items;salesRevision=r.revision;renderCatalog();clearCatalogForm();$('salesStatus').textContent='Producto guardado.';
+    }catch(err){if(target===companyId)$('salesStatus').textContent='No se guardó: '+err.message;}
+    finally{salesBusy=false;}
   }
 
   function fileToBase64(file){
@@ -2166,21 +2172,20 @@
   }
 
   async function importCatalogFile(){
+    if(salesBusy)return;
+    if(salesRevision===null){showNotice('Primero cargá la lista existente.');return;}
     const file=$('catalogFile').files?.[0];
-    if(!file){showNotice('Seleccioná un archivo Excel o CSV.');return}
+    if(!file){showNotice('Seleccioná un archivo Excel o CSV.');return;}
     if(!confirm(`¿Importar ${file.name}? Los códigos existentes se actualizarán y los nuevos se agregarán.`))return;
-    showLoading(true);
+    const target=companyId,revision=salesRevision;salesBusy=true;showLoading(true);
     try{
-      const base64=await fileToBase64(file);
-      const r=await api(`/api/company/${encodeURIComponent(companyId)}/catalog/import-file`,{
-        method:'POST',
-        body:JSON.stringify({filename:file.name,base64})
-      });
-      showNotice(`Importación terminada. ${r.guardados??r.parsed??0} filas procesadas.`);
-      $('catalogFile').value='';
-      await loadCatalog();
-    }catch(err){showNotice(err.message||String(err))}
-    finally{showLoading(false)}
+      const base64=await fileToBase64(file);if(target!==companyId)return;
+      const r=await api(`/api/company/${encodeURIComponent(target)}/catalog/import-file`,{method:'POST',body:JSON.stringify({filename:file.name,base64,revision})});
+      if(target!==companyId)return;
+      catalogItems=r.items;salesRevision=r.revision;renderCatalog();clearCatalogForm();
+      $('catalogFile').value='';$('salesStatus').textContent=`Importación terminada: ${r.guardados} filas procesadas.`;
+    }catch(err){if(target===companyId)$('salesStatus').textContent='No se importó: '+err.message;}
+    finally{salesBusy=false;showLoading(false);}
   }
 
   let gastroRevision=null;
