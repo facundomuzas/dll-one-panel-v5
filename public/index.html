@@ -693,7 +693,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.6 · Autogestión</small>
+          <small>Panel Cloud V5.7.7 · Autogestión</small>
         </div>
       </div>
 
@@ -718,7 +718,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.6</small>
+          <small>Panel Cloud V5.7.7</small>
         </div>
       </div>
 
@@ -888,6 +888,18 @@
               <div class="actions-row"><button id="saveBusinessButton" class="btn btn-primary" onclick="saveBusiness()">Guardar cambios</button></div><p id="businessSaveStatus" role="status" aria-live="polite" style="margin-top:12px"></p>
             </div>
 
+            <div class="card">
+              <h3 class="card-title">Instrucciones del bot</h3>
+              <p class="card-sub">Indicaciones para las respuestas con IA: tono, recomendaciones y detalles de atención. Las respuestas automáticas del pedido mantienen sus reglas.</p>
+              <fieldset id="botInstructionsFields" disabled style="border:0;padding:0;min-width:0">
+                <label for="botInstructionsText">Instrucciones de esta empresa</label>
+                <textarea id="botInstructionsText" rows="10" maxlength="12000" style="width:100%;box-sizing:border-box" oninput="markBotInstructionsDirty()" placeholder="Ejemplo: respondé de forma breve y cordial. Si preguntan por opciones vegetarianas, recomendá solo las que figuren en el catálogo."></textarea>
+                <p class="mini-note">Cargá precios y productos en el catálogo, dirección y horarios en Mi negocio, y alias en medios de pago. Esos datos tienen prioridad sobre este texto.</p>
+                <button class="btn btn-primary" onclick="saveBotInstructionsForm()">Guardar instrucciones</button>
+              </fieldset>
+              <button class="btn" id="reloadBotInstructionsButton" onclick="loadBotInstructions(true)">Recargar instrucciones guardadas</button>
+              <p id="botInstructionsStatus" role="status" aria-live="polite"></p>
+            </div>
             <div class="card">
               <h3 class="card-title">Módulos DLL ONE</h3>
               <p class="card-sub">Solo el Super Admin decide qué módulos forman parte del plan de cada empresa.</p>
@@ -1194,6 +1206,7 @@
 <script src="/order_hours.js"></script>
 <script src="/gastro_migration.js"></script>
 <script src="/native_companies.js"></script>
+<script src="/bot_instructions.js"></script>
 <script src="/notification_state.js"></script>
 <script src="/notifications.js"></script>
 <script>
@@ -1375,6 +1388,7 @@
     resetDeliveryView();
     businessRevision=null;
     resetOrderHours();
+    resetBotInstructions();
     selectedChat=null;
     $('chatContent').classList.add('hidden');$('chatEmpty').classList.remove('hidden');
     startNotifications();
@@ -1424,7 +1438,7 @@
       if(tab==='delivery')await loadDelivery();
       if(tab==='customers')await loadCustomers();
       if(tab==='receipts')await loadReceipts();
-      if(tab==='business')await Promise.all([loadBusiness(),loadOrderHours()]);
+      if(tab==='business')await Promise.all([loadBusiness(),loadOrderHours(),loadBotInstructions()]);
       if(tab==='catalog')await loadCatalog();
       if(tab==='gastro')await loadGastro();
       if(tab==='admin')await loadAdmin();

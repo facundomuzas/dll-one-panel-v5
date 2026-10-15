@@ -1,7 +1,7 @@
 import {randomUUID,createHash} from 'node:crypto';
 import {defaultHours} from './order_hours.js';
 import {validateMotorSnapshot,readMotorSnapshot} from './motor_snapshot.js';
-export async function initNativeCompanies(db){await db.query(`CREATE TABLE IF NOT EXISTS panel_native_companies(company_id TEXT PRIMARY KEY,request_id TEXT UNIQUE NOT NULL,request_hash TEXT NOT NULL,web_slug TEXT UNIQUE,runtime JSONB,connected BOOLEAN NOT NULL DEFAULT FALSE,revision INTEGER NOT NULL DEFAULT 0,created_by TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);}
+export async function initNativeCompanies(db){await db.query(`CREATE TABLE IF NOT EXISTS panel_native_companies(company_id TEXT PRIMARY KEY,request_id TEXT UNIQUE NOT NULL,request_hash TEXT NOT NULL,web_slug TEXT UNIQUE,runtime JSONB,connected BOOLEAN NOT NULL DEFAULT FALSE,revision INTEGER NOT NULL DEFAULT 0,created_by TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);await db.query(`ALTER TABLE panel_native_companies ADD COLUMN IF NOT EXISTS bot_instructions TEXT, ADD COLUMN IF NOT EXISTS instructions_revision INTEGER NOT NULL DEFAULT 0`);}
 function clean(v,max){const s=String(v??'').trim();if(s.length>max)throw Error('Un campo supera el largo permitido.');return s;}
 function phone(v){const p=clean(v,30);if(p&&!/^\d{5,30}$/.test(p))throw Error('Phone Number ID inválido.');return p;}
 export async function createNativeCompany(db,input,actor){
@@ -59,11 +59,11 @@ export async function saveNativeConnection(db,id,input){
  }catch(err){await client.query('ROLLBACK');throw err;}finally{client.release();}
 }
 export async function effectiveMotorSnapshot(db,base){
- const rows=(await db.query('SELECT n.company_id,n.runtime,n.connected,c.company_name,c.phone_number_id FROM panel_native_companies n JOIN panel_companies c ON c.company_id=n.company_id ORDER BY n.company_id')).rows;
+ const rows=(await db.query('SELECT n.company_id,n.runtime,n.connected,n.bot_instructions,c.company_name,c.phone_number_id FROM panel_native_companies n JOIN panel_companies c ON c.company_id=n.company_id ORDER BY n.company_id')).rows;
  if(!rows.length)return base;
  const ids=new Set(rows.map(x=>x.company_id));
  const empresas=[...(base?.empresas||[]).filter(x=>!ids.has(x.idEmpresa))];
- for(const row of rows){if(row.connected&&row.runtime?.accessToken&&row.phone_number_id){empresas.push({...row.runtime,nombre:row.company_name,phoneNumberId:row.phone_number_id});}}
+ for(const row of rows){if(row.connected&&row.runtime?.accessToken&&row.phone_number_id){empresas.push({...row.runtime,nombre:row.company_name,phoneNumberId:row.phone_number_id,context:{...row.runtime.context,...(row.bot_instructions!==null?{instruccionesIA:row.bot_instructions}:{})}});}}
  if(empresas.length)validateMotorSnapshot({empresas});
  return {...base,empresas,managedByPanel:true,nativeCompanyIds:[...ids]};
 }
