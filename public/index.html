@@ -693,7 +693,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.7 · Autogestión</small>
+          <small>Panel Cloud V5.7.8 · Autogestión</small>
         </div>
       </div>
 
@@ -718,7 +718,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.7</small>
+          <small>Panel Cloud V5.7.8</small>
         </div>
       </div>
 
@@ -1159,6 +1159,13 @@
               </div>
 
               <div class="card">
+                <h3 class="card-title">Estado de migración</h3>
+                <p class="card-sub">Revisá todas las empresas y los pendientes del motor. Esta consulta no copia datos ni desconecta Apps Script.</p>
+                <button id="migrationAuditButton" class="btn btn-primary" onclick="loadMigrationAudit()">Revisar migración</button>
+                <p id="migrationAuditStatus" role="status" aria-live="polite"></p>
+                <div id="migrationAuditResults"></div>
+              </div>
+              <div class="card">
                 <h3 class="card-title">Crear acceso para cliente</h3>
                 <div class="form-grid">
                   <div class="form-field full"><label>Nombre</label><input id="adminUserName"></div>
@@ -1207,6 +1214,7 @@
 <script src="/gastro_migration.js"></script>
 <script src="/native_companies.js"></script>
 <script src="/bot_instructions.js"></script>
+<script src="/migration_audit.js"></script>
 <script src="/notification_state.js"></script>
 <script src="/notifications.js"></script>
 <script>

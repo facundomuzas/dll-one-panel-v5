@@ -1,3 +1,4 @@
+import {auditCompanyMigration,combineMigrationAudit} from './migration_audit.js';
 import {getBotInstructions,saveBotInstructions} from './bot_instructions.js';
 import {importExistingConnection,checkMetaCredentials} from './meta_connection.js';
 import {createNativeCompany,nativeConnectionStatus,saveNativeConnection,effectiveMotorSnapshot} from './native_companies.js';
@@ -912,7 +913,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.7",
+      version: "5.7.8",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -930,7 +931,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.7",
+      version: "5.7.8",
       error: String(err?.message || err)
     });
   }
@@ -1125,6 +1126,16 @@ app.post('/api/admin/companies/:companyId/connection/check',authRequired,require
   res.json({ok:true,...result,revision:row.revision});
  }catch(err){res.status(400).json({ok:false,error:err.message});}
 });
+app.get('/api/admin/migration-audit',authRequired,requireSuperadmin,async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ try{
+  const companies=(await pool.query('SELECT company_id,company_name,phone_number_id,modules FROM panel_companies ORDER BY company_name')).rows;
+  const rows=[];for(const company of companies)rows.push(await auditCompanyMigration(pool,company));
+  let motor=null;try{motor=await postMotor('/admin/panel/migration-status');}catch{}
+  res.json({ok:true,...combineMigrationAudit(rows,motor)});
+ }catch{res.status(503).json({ok:false,error:'No se pudo completar la revisión. Reintentá; no se modificó ningún dato.'});}
+});
+
 app.post('/api/admin/meta/webhook',authRequired,requireSuperadmin,async(req,res)=>{
  res.set('Cache-Control','no-store');
  try{
@@ -2428,6 +2439,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.7.7 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.7.8 escuchando en puerto ${PORT}`
   );
 });
