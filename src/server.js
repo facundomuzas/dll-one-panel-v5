@@ -1,3 +1,4 @@
+import {importExistingConnection,checkMetaCredentials} from './meta_connection.js';
 import {createNativeCompany,nativeConnectionStatus,saveNativeConnection,effectiveMotorSnapshot} from './native_companies.js';
 import {isSales,getSalesCatalog,saveSalesItems,salesMotorCatalog,validateSalesOrder,parseSalesPrice} from './sales_catalog.js';
 import {gastroMigrationStatus,migrateGastroStep} from './gastro_migration.js';
@@ -910,7 +911,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.5",
+      version: "5.7.6",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -928,7 +929,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.5",
+      version: "5.7.6",
       error: String(err?.message || err)
     });
   }
@@ -1100,6 +1101,39 @@ app.get('/api/admin/companies/:companyId/connection',authRequired,requireSuperad
 app.post('/api/admin/companies/:companyId/connection',authRequired,requireSuperadmin,async(req,res)=>{
  try{res.set('Cache-Control','no-store');res.json({ok:true,...await saveNativeConnection(pool,req.params.companyId,req.body||{})});}
  catch(err){res.status(400).json({ok:false,error:String(err.message||'No se pudo guardar la conexión.')});}
+});
+
+app.post('/api/admin/companies/:companyId/connection/import',authRequired,requireSuperadmin,async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ try{
+  const id=req.params.companyId,existing=await nativeConnectionStatus(pool,id);
+  if(existing.native)return res.json({ok:true,...existing});
+  let data;try{data=await postMotor('/admin/panel/connection-export',{companyId:id});}catch{throw Error('No pude leer la conexión actual del motor. Comprobá que esté activo y actualizado a 4.3.11.');}
+  res.json({ok:true,...await importExistingConnection(pool,id,data.company,req.session?.sub)});
+ }catch(err){res.status(400).json({ok:false,error:err.message});}
+});
+app.post('/api/admin/companies/:companyId/connection/check',authRequired,requireSuperadmin,async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ try{
+  const row=(await pool.query('SELECT runtime,revision FROM panel_native_companies WHERE company_id=$1',[req.params.companyId])).rows[0];
+  if(!row)throw Error('Primero importá la conexión existente.');
+  if(req.body?.revision!==row.revision)throw Error('La conexión cambió. Recargá antes de comprobar.');
+  const result=await checkMetaCredentials(row.runtime);
+  const latest=await nativeConnectionStatus(pool,req.params.companyId);
+  if(latest.revision!==row.revision)throw Error('La conexión cambió durante la consulta. Comprobá nuevamente.');
+  res.json({ok:true,...result,revision:row.revision});
+ }catch(err){res.status(400).json({ok:false,error:err.message});}
+});
+app.post('/api/admin/meta/webhook',authRequired,requireSuperadmin,async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ try{
+  const data=await postMotor('/admin/panel/webhook-info');
+  // Public URL may differ from the internal service URL used by the panel.
+  const base=String(process.env.MOTOR_PUBLIC_URL||MOTOR_URL).trim().replace(/\/+$/,'');
+  const url=new URL(base);
+  const publicUrl=url.protocol==='https:'&&!url.hostname.endsWith('.internal')&&!url.username&&!url.password&&!url.search&&!url.hash;
+  res.json({ok:true,callbackUrl:publicUrl?base+'/webhook':'',verifyToken:String(data.verifyToken||''),publicUrlConfigured:publicUrl});
+ }catch{res.status(503).json({ok:false,error:'No pude obtener los datos del webhook. Verificá el motor 4.3.11 y la conexión panel–motor.'});}
 });
 
 // Private service-to-service routes. Never exposed through company profile APIs.
@@ -2376,6 +2410,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.7.5 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.7.6 escuchando en puerto ${PORT}`
   );
 });

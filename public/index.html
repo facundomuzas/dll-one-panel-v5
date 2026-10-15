@@ -693,7 +693,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.5 · Autogestión</small>
+          <small>Panel Cloud V5.7.6 · Autogestión</small>
         </div>
       </div>
 
@@ -718,7 +718,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.5</small>
+          <small>Panel Cloud V5.7.6</small>
         </div>
       </div>
 
@@ -1121,10 +1121,11 @@
               </div>
 
               <div class="card">
-                <h3 class="card-title">WhatsApp de empresas nuevas</h3>
+                <h3 class="card-title">Conexión con Meta / WhatsApp</h3>
                 <p class="card-sub">Solo Super Admin administra estos datos. El número y su webhook deben estar configurados en Meta para recibir mensajes en este motor.</p>
                 <label>Empresa</label><select id="adminConnectionCompany" onchange="loadNativeConnection()"></select>
                 <p id="nativeConnectionStatus" role="status"></p>
+                <button id="nativeImportButton" class="btn btn-primary" hidden onclick="importNativeConnectionForm()">Traer conexión actual al panel</button>
                 <fieldset id="nativeConnectionFields" disabled style="border:0;padding:0;margin:0;min-width:0">
                 <div class="form-grid">
                   <div class="form-field full"><label>Phone Number ID</label><input id="nativePhone" autocomplete="off"></div>
@@ -1132,8 +1133,17 @@
                   <div class="form-field"><label>Versión de Meta</label><input id="nativeGraphVersion" value="v26.0"></div>
                   <div class="form-field"><label><input id="nativeConnected" type="checkbox"> Habilitar conexión en el motor</label></div>
                 </div>
-                <div class="actions-row"><button class="btn btn-primary" onclick="saveNativeConnectionForm()">Guardar conexión</button></div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveNativeConnectionForm()">Guardar conexión</button><button class="btn" onclick="checkNativeConnectionForm()">Comprobar credenciales guardadas</button></div>
                 </fieldset>
+                <p id="nativeCheckStatus" role="status"></p>
+                <details><summary>Datos del webhook para Meta</summary>
+                  <p>Este webhook es compartido por las empresas de este motor. Si Buda ya recibe mensajes, conservá su configuración en Meta.</p>
+                  <button class="btn" onclick="loadMetaWebhook()">Consultar datos del webhook</button>
+                  <div class="form-field"><label>URL de devolución de llamada</label><input id="metaCallbackUrl" readonly><button class="btn" onclick="copyMetaField('metaCallbackUrl')">Copiar URL</button></div>
+                  <div class="form-field"><label>Token de verificación del webhook</label><input id="metaVerifyToken" type="password" readonly autocomplete="off"><button class="btn" onclick="copyMetaField('metaVerifyToken')">Copiar token de verificación</button></div>
+                  <p id="metaWebhookStatus" role="status"></p>
+                  <p>Este token verifica el webhook; es distinto del token de acceso de Meta. La suscripción y el alta del número se realizan en Meta. El panel no las realiza automáticamente.</p>
+                </details>
               </div>
 
               <div class="card">
