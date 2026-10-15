@@ -1,0 +1,2443 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#78b748">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="DLL ONE">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <title>DLL ONE · Panel Cloud</title>
+  <style>
+    :root{
+      --brand:#78b748;
+      --brand-dark:#568b30;
+      --bg:#f5f7f3;
+      --surface:#ffffff;
+      --surface-2:#f9faf8;
+      --text:#1e2620;
+      --muted:#687268;
+      --line:#e3e8e0;
+      --danger:#b42318;
+      --warning:#a15c00;
+      --shadow:0 10px 30px rgba(29,48,22,.08);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .hidden{display:none!important}
+    .login{
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:24px;
+      background:
+        radial-gradient(circle at top left,rgba(120,183,72,.18),transparent 38%),
+        var(--bg);
+    }
+    .login-card{
+      width:min(430px,100%);
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:28px;
+      box-shadow:var(--shadow);
+      padding:30px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .brand img{
+      width:46px;
+      height:46px;
+      object-fit:contain;
+      border-radius:12px;
+    }
+    .brand strong{font-size:21px}
+    .brand small{
+      display:block;
+      color:var(--muted);
+      margin-top:2px;
+    }
+    .field{margin-top:18px}
+    .field label{
+      display:block;
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:7px;
+    }
+    .field input,.field select{
+      width:100%;
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:12px;
+      padding:12px 13px;
+      outline:none;
+    }
+    .field input:focus,.field select:focus{
+      border-color:var(--brand);
+      box-shadow:0 0 0 3px rgba(120,183,72,.12);
+    }
+    .btn{
+      border:0;
+      border-radius:12px;
+      padding:11px 15px;
+      font-weight:700;
+    }
+    .btn-primary{
+      background:var(--brand);
+      color:#fff;
+    }
+    .btn-light{
+      background:#eef2ec;
+      color:var(--text);
+    }
+    .login .btn{width:100%;margin-top:20px}
+    .error{
+      margin-top:14px;
+      color:var(--danger);
+      font-size:14px;
+    }
+
+    .app{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns:248px 1fr;
+    }
+    aside{
+      background:#172018;
+      color:#fff;
+      padding:18px 14px;
+      position:sticky;
+      top:0;
+      height:100vh;
+    }
+    aside .brand{
+      padding:4px 7px 18px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    aside .brand small{color:#b7c0b7}
+    .nav{padding-top:15px}
+    .nav button{
+      width:100%;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      border:0;
+      color:#dce6da;
+      background:transparent;
+      padding:11px 12px;
+      border-radius:12px;
+      text-align:left;
+      margin-bottom:5px;
+    }
+    .nav button.active{
+      background:rgba(120,183,72,.18);
+      color:#fff;
+    }
+    .nav button:hover{background:rgba(255,255,255,.06)}
+    .soon{
+      margin-top:18px;
+      padding:13px;
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius:14px;
+      color:#c6d0c4;
+      font-size:13px;
+      line-height:1.45;
+    }
+    main{min-width:0}
+    header{
+      min-height:72px;
+      display:flex;
+      align-items:center;
+      gap:14px;
+      justify-content:space-between;
+      padding:14px 24px;
+      background:rgba(255,255,255,.88);
+      border-bottom:1px solid var(--line);
+      position:sticky;
+      top:0;
+      backdrop-filter:blur(12px);
+      z-index:5;
+    }
+    .head-left{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+    .company{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:12px;
+      padding:10px 12px;
+      min-width:250px;
+      max-width:420px;
+    }
+    .sync{
+      color:var(--muted);
+      font-size:12px;
+    }
+    .content{padding:24px}
+    .hero{
+      display:flex;
+      justify-content:space-between;
+      gap:20px;
+      align-items:flex-end;
+      margin-bottom:20px;
+    }
+    .hero h1{
+      margin:0;
+      font-size:28px;
+      letter-spacing:-.02em;
+    }
+    .hero p{
+      margin:7px 0 0;
+      color:var(--muted);
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      border-radius:999px;
+      padding:7px 10px;
+      background:#edf6e7;
+      color:var(--brand-dark);
+      font-size:12px;
+      font-weight:800;
+    }
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:20px;
+    }
+    .card{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:0 3px 12px rgba(29,48,22,.03);
+      padding:17px;
+    }
+    .metric .label{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+    }
+    .metric .value{
+      font-size:30px;
+      font-weight:850;
+      margin-top:8px;
+      letter-spacing:-.03em;
+    }
+    .table-card{
+      padding:0;
+      overflow:hidden;
+    }
+    .table-head{
+      padding:16px 17px;
+      display:flex;
+      gap:12px;
+      justify-content:space-between;
+      align-items:center;
+      border-bottom:1px solid var(--line);
+    }
+    .table-head h3{margin:0;font-size:16px}
+    .table-wrap{overflow:auto;max-height:66vh}
+    table{
+      border-collapse:collapse;
+      width:100%;
+      font-size:13px;
+    }
+    th,td{
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      vertical-align:top;
+      white-space:nowrap;
+    }
+    th{
+      position:sticky;
+      top:0;
+      background:var(--surface-2);
+      color:var(--muted);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      z-index:1;
+    }
+    td.wrap{white-space:normal;min-width:220px}
+    tr:hover td{background:#fbfcfa}
+    .empty{
+      padding:44px 20px;
+      text-align:center;
+      color:var(--muted);
+    }
+    .status{
+      display:inline-flex;
+      padding:5px 8px;
+      border-radius:999px;
+      background:#eef2ec;
+      font-weight:750;
+      font-size:11px;
+    }
+    .status.good{background:#edf6e7;color:#497b27}
+    .status.warn{background:#fff4e5;color:var(--warning)}
+    .status.bad{background:#fff0ee;color:var(--danger)}
+    .section{display:none}
+    .section.active{display:block}
+    .loading{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      background:#172018;
+      color:#fff;
+      padding:10px 13px;
+      border-radius:12px;
+      box-shadow:var(--shadow);
+      font-size:13px;
+    }
+    .conversation-shell{
+      display:grid;
+      grid-template-columns:minmax(280px,360px) minmax(0,1fr);
+      min-height:620px;
+      padding:0;
+      overflow:hidden;
+    }
+    .conversation-list-pane{
+      border-right:1px solid var(--line);
+      background:#fbfcfa;
+      min-width:0;
+    }
+    .conversation-tools{
+      padding:13px;
+      border-bottom:1px solid var(--line);
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 105px;
+      gap:8px;
+    }
+    .conversation-tools input,.conversation-tools select{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:11px;
+      padding:10px 11px;
+      min-width:0;
+      outline:none;
+    }
+    .conversation-items{max-height:650px;overflow:auto}
+    .conversation-item{
+      padding:13px 14px;
+      border-bottom:1px solid var(--line);
+      cursor:pointer;
+      background:#fff;
+    }
+    .conversation-item:hover,.conversation-item.active{background:#f0f7eb}
+    .conversation-item-top{
+      display:flex;gap:8px;justify-content:space-between;align-items:center
+    }
+    .conversation-name{
+      font-weight:850;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+    }
+    .conversation-date{font-size:10px;color:var(--muted);white-space:nowrap}
+    .conversation-last{
+      margin-top:6px;color:var(--muted);font-size:12px;line-height:1.35;
+      overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical
+    }
+    .conversation-badges{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+    .chat-pane{display:flex;flex-direction:column;min-width:0;background:#f3f5f1}
+    .chat-head{
+      min-height:68px;padding:12px 15px;background:#fff;border-bottom:1px solid var(--line);
+      display:flex;align-items:center;justify-content:space-between;gap:10px
+    }
+    .chat-title{min-width:0}
+    .chat-title strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .chat-title small{color:var(--muted)}
+    .chat-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+    .btn-sm{padding:8px 10px;font-size:12px}
+    .btn-danger{background:#fff0ee;color:var(--danger);border:1px solid #ffd7d1}
+    .chat-back{display:none}
+    .chat-messages{
+      flex:1;min-height:430px;max-height:535px;overflow:auto;padding:16px;
+      display:flex;flex-direction:column;gap:9px
+    }
+    .bubble-row{display:flex}
+    .bubble-row.in{justify-content:flex-start}.bubble-row.out{justify-content:flex-end}
+    .bubble{
+      max-width:min(78%,650px);padding:9px 11px;border-radius:14px;background:#fff;
+      border:1px solid var(--line);box-shadow:0 2px 6px rgba(0,0,0,.025)
+    }
+    .bubble-row.out .bubble{background:#e8f5df;border-color:#d5ebc6}
+    .bubble-meta{font-size:9px;color:var(--muted);margin-bottom:4px;font-weight:800;text-transform:uppercase}
+    .bubble-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.4;font-size:14px}
+    .composer{
+      background:#fff;border-top:1px solid var(--line);padding:11px;display:grid;
+      grid-template-columns:minmax(0,1fr) auto;gap:8px
+    }
+    .composer textarea{
+      resize:none;min-height:46px;max-height:130px;border:1px solid var(--line);border-radius:13px;
+      padding:11px 12px;outline:none;font:inherit
+    }
+    .composer textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(120,183,72,.12)}
+    .composer-note{grid-column:1/-1;font-size:11px;color:var(--muted)}
+    .chat-empty{flex:1;display:grid;place-items:center;color:var(--muted);padding:30px;text-align:center}
+    .mobile-bottom-nav{display:none}
+    .mobile-records{display:none}
+    .refresh-btn{min-width:44px;min-height:44px;padding:9px 12px}
+    .logout-label{display:inline}
+    .mobile-record{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      margin:0 0 10px;
+      box-shadow:0 2px 10px rgba(29,48,22,.035);
+    }
+    .mobile-record .row{
+      display:grid;
+      grid-template-columns:112px minmax(0,1fr);
+      gap:10px;
+      padding:7px 0;
+      border-bottom:1px solid #eef1ec;
+      align-items:start;
+    }
+    .mobile-record .row:last-child{border-bottom:0}
+    .mobile-record .key{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.03em;
+      overflow-wrap:anywhere;
+    }
+    .mobile-record .val{
+      min-width:0;
+      font-size:14px;
+      line-height:1.35;
+      overflow-wrap:anywhere;
+      word-break:break-word;
+    }
+
+    .form-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+    .form-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .form-grid .full{grid-column:1/-1}
+    .form-field label{
+      display:block;
+      font-size:11px;
+      color:var(--muted);
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.035em;
+      margin-bottom:6px;
+    }
+    .form-field input,.form-field select,.form-field textarea{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      padding:10px 11px;
+      outline:none;
+    }
+    .form-field textarea{min-height:86px;resize:vertical}
+    .form-field input:focus,.form-field select:focus,.form-field textarea:focus{
+      border-color:var(--brand);
+      box-shadow:0 0 0 3px rgba(120,183,72,.12);
+    }
+    .section-grid{
+      display:grid;
+      grid-template-columns:minmax(0,420px) minmax(0,1fr);
+      gap:14px;
+      align-items:start;
+    }
+    .stack{display:grid;gap:14px}
+    .card-title{font-size:16px;font-weight:850;margin:0 0 12px}
+    .card-sub{font-size:12px;color:var(--muted);line-height:1.45;margin:-5px 0 13px}
+    .actions-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+    .module-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .module-check{
+      display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;
+      padding:10px;background:#fbfcfa;font-size:13px;font-weight:750
+    }
+    .module-check input{width:auto}
+    .data-list{display:grid;gap:8px}
+    .data-row{
+      border:1px solid var(--line);border-radius:13px;padding:11px 12px;background:#fff;
+      display:flex;justify-content:space-between;gap:10px;align-items:flex-start
+    }
+    .data-row-main{min-width:0}
+    .data-row-main strong{display:block;overflow-wrap:anywhere}
+    .data-row-main small{display:block;color:var(--muted);margin-top:4px;line-height:1.35}
+    .data-row-side{white-space:nowrap;text-align:right;font-weight:850}
+    .mini-note{font-size:11px;color:var(--muted);line-height:1.45}
+    .file-drop{
+      border:1px dashed #b9c8b2;border-radius:14px;padding:14px;background:#f8fbf6
+    }
+    .more-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .more-card{
+      border:1px solid var(--line);background:#fff;border-radius:16px;padding:18px;text-align:left;
+      min-height:105px;box-shadow:0 2px 10px rgba(29,48,22,.035)
+    }
+    .more-card strong{display:block;margin-top:8px}
+    .more-card small{display:block;color:var(--muted);margin-top:5px;line-height:1.35}
+    .role-tag{display:inline-flex;padding:5px 8px;border-radius:999px;background:#edf6e7;color:var(--brand-dark);font-size:10px;font-weight:850}
+    .admin-only.hidden-admin{display:none!important}
+
+    @media(max-width:1050px){
+      .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+
+    .orders-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px}
+    .order-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 8px 24px rgba(31,45,25,.05)}
+    .order-card-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+    .order-id{font-weight:900;font-size:17px;color:#172111}
+    .order-time{font-size:12px;color:var(--muted);white-space:nowrap}
+    .order-client{font-weight:800;margin-bottom:4px}
+    .order-products{white-space:pre-wrap;line-height:1.45;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:10px 0}
+    .order-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;margin:10px 0}
+    .order-meta>div{background:#f7faf5;border-radius:10px;padding:8px 10px}
+    .order-total{font-size:21px;font-weight:900;margin:8px 0}
+    .order-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .order-actions button{border:0;border-radius:10px;padding:9px 12px;cursor:pointer;font-weight:800}
+    .order-actions .primary{background:var(--brand);color:#fff}
+    .order-actions .soft{background:#edf5e8;color:#2e541d}
+    .order-actions .warn{background:#fff0df;color:#9a4f00}
+    .order-actions .danger{background:#ffe6e6;color:#a51f1f}
+    .status-chip{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;background:#eef5e9;color:#355c25}
+    .quote-cost-row{display:flex;gap:8px;margin-top:12px}
+    .quote-cost-row input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit}
+
+    @media(max-width:760px){
+      body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+      .app{display:block;min-height:100vh}
+      aside{display:none}
+      main{width:100%;min-width:0}
+      header{
+        position:sticky;
+        top:0;
+        z-index:20;
+        min-height:auto;
+        padding:10px 12px;
+        gap:8px;
+        background:rgba(255,255,255,.96);
+      }
+      .head-left{
+        flex:1;
+        display:grid;
+        grid-template-columns:minmax(0,1fr);
+        gap:4px;
+      }
+      .company{
+        width:100%;
+        min-width:0;
+        max-width:none;
+        padding:10px 11px;
+        min-height:44px;
+        font-weight:750;
+      }
+      header>.btn{min-width:44px;min-height:44px;padding:9px 11px}
+      .logout-label{display:none}
+      .sync{
+        font-size:10px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        max-width:68vw;
+      }
+      .content{padding:14px 12px 16px}
+      .hero{
+        align-items:flex-start;
+        flex-direction:column;
+        gap:10px;
+        margin-bottom:14px;
+      }
+      .hero h1{font-size:22px;line-height:1.15}
+      .hero p{font-size:13px;line-height:1.4;margin-top:5px}
+      .pill{font-size:10px;padding:6px 8px}
+      .cards{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:9px;
+        margin-bottom:14px;
+      }
+      .section-grid{grid-template-columns:1fr}
+      .form-grid,.form-grid.three{grid-template-columns:1fr}
+      .module-checks{grid-template-columns:1fr 1fr}
+      .more-grid{grid-template-columns:1fr 1fr}
+      .data-row{padding:12px}
+
+      .card{padding:13px;border-radius:15px}
+      .metric .label{font-size:10px;line-height:1.2}
+      .metric .value{font-size:26px;margin-top:6px}
+      .table-card{
+        padding:0;
+        background:transparent;
+        border:0;
+        box-shadow:none;
+        overflow:visible;
+      }
+      .table-head{
+        padding:10px 2px 12px;
+        border-bottom:0;
+      }
+      .table-head h3{font-size:15px}
+      .table-wrap{max-height:none;overflow:visible}
+      .table-wrap table{display:none}
+      .mobile-records{display:block}
+      .empty{
+        background:#fff;
+        border:1px solid var(--line);
+        border-radius:15px;
+        padding:30px 16px;
+      }
+      .mobile-bottom-nav{
+        position:fixed;
+        left:0;
+        right:0;
+        bottom:0;
+        z-index:40;
+        display:grid;
+        grid-template-columns:repeat(5,minmax(0,1fr));
+        gap:2px;
+        padding:7px 6px calc(7px + env(safe-area-inset-bottom));
+        background:rgba(23,32,24,.98);
+        border-top:1px solid rgba(255,255,255,.08);
+        box-shadow:0 -8px 28px rgba(20,28,20,.12);
+        backdrop-filter:blur(14px);
+      }
+      .mobile-bottom-nav button{
+        min-width:0;
+        min-height:54px;
+        border:0;
+        border-radius:12px;
+        background:transparent;
+        color:#cbd6c9;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        gap:3px;
+        padding:5px 2px;
+      }
+      .mobile-bottom-nav button .ico{font-size:18px;line-height:1}
+      .mobile-bottom-nav button .txt{
+        font-size:9px;
+        font-weight:750;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        max-width:100%;
+      }
+      .mobile-bottom-nav button.active{
+        background:rgba(120,183,72,.20);
+        color:#fff;
+      }
+      .conversation-shell{display:block;min-height:0;overflow:visible}
+      .conversation-list-pane{border-right:0;background:transparent}
+      .conversation-tools{position:sticky;top:70px;z-index:10;background:var(--bg);padding:4px 0 10px;border:0;grid-template-columns:minmax(0,1fr) 100px}
+      .conversation-items{max-height:none;overflow:visible}
+      .conversation-item{border:1px solid var(--line);border-radius:15px;margin-bottom:9px;padding:13px;box-shadow:0 2px 10px rgba(29,48,22,.035)}
+      .chat-pane{
+        display:none;position:fixed;inset:0 0 calc(68px + env(safe-area-inset-bottom)) 0;
+        z-index:35;background:#f3f5f1
+      }
+      .chat-pane.mobile-open{display:flex}
+      .chat-head{padding:9px 10px;min-height:62px}
+      .chat-back{display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:40px;padding:7px}
+      .chat-head-left{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+      .chat-actions .btn{min-height:39px}
+      .chat-messages{max-height:none;min-height:0;padding:12px}
+      .bubble{max-width:88%}
+      .composer{padding:8px;grid-template-columns:minmax(0,1fr) 74px}
+      .composer textarea{font-size:16px;min-height:44px}
+      .loading{
+        right:12px;
+        bottom:calc(84px + env(safe-area-inset-bottom));
+        font-size:12px;
+      }
+      .login{padding:16px}
+      .login-card{padding:22px;border-radius:22px}
+      .field input{min-height:46px;font-size:16px}
+      .login .btn{min-height:48px}
+    }
+  
+    .toggle-line{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
+    .toggle-line:last-child{border-bottom:0}.toggle-line strong{display:block;font-size:14px}.toggle-line small{display:block;color:var(--muted);margin-top:3px;line-height:1.35}
+    .switch{position:relative;width:48px;height:28px;flex:0 0 auto}.switch input{opacity:0;width:0;height:0}.switch span{position:absolute;inset:0;border-radius:999px;background:#d9dfd6;transition:.2s}.switch span:before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.22);transition:.2s}.switch input:checked+span{background:var(--brand)}.switch input:checked+span:before{transform:translateX(20px)}
+    .compact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.mini-card{border:1px solid var(--line);border-radius:14px;padding:13px;background:#fbfcfa}.mini-card.off{opacity:.58}.mini-title{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.mini-title strong{font-size:14px}.mini-title small{display:block;color:var(--muted);margin-top:3px}.mini-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.btn-xs{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 9px;font-size:12px;font-weight:750}.btn-xs:hover{border-color:var(--brand)}.btn-xs.danger{color:var(--danger)}
+    .upload-status{margin-top:9px;color:var(--muted);font-size:12px}.subsection-title{margin:22px 0 10px;font-size:18px}.lightbox{position:fixed;inset:0;background:rgba(15,20,15,.78);z-index:50;display:grid;place-items:center;padding:20px}.lightbox.hidden{display:none}.lightbox-card{position:relative;max-width:min(92vw,900px);max-height:92vh}.lightbox-card img{max-width:100%;max-height:88vh;border-radius:16px;background:#fff;box-shadow:0 20px 70px rgba(0,0,0,.35)}.lightbox-close{position:absolute;right:-10px;top:-10px;width:36px;height:36px;border:0;border-radius:50%;background:#fff;font-size:20px;box-shadow:var(--shadow)}
+    @media(max-width:760px){.compact-grid{grid-template-columns:1fr}.mini-actions .btn-xs{flex:1}.toggle-line{align-items:center}}
+
+
+.notice-badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:999px;background:#d72c3b;color:white;font-size:12px;font-weight:800;padding:0 6px;margin-left:auto;flex-shrink:0;line-height:1}
+.notice-badge[hidden]{display:none}.nav button{display:flex;align-items:center;gap:7px}.mobile-bottom-nav button{position:relative}.mobile-bottom-nav .notice-badge{position:absolute;top:2px;right:10px;min-width:18px;height:18px;font-size:10px}
+.notice-status{font-size:11px;color:var(--muted);margin-top:4px}.notice-offline{color:#b42318}.tasks-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:14px}.task-link{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:16px;text-align:left;cursor:pointer}.task-link strong{color:#c32434;font-size:22px}.task-link:hover{border-color:var(--brand)}
+@media(max-width:760px){#noticeSoundButton{font-size:11px;padding:8px}.notice-status{max-width:170px}.conversation-name .notice-badge{height:18px;font-size:10px}}
+.hours-day{padding:14px 0;border-bottom:1px solid #dde5dd;display:grid;gap:10px;grid-template-columns:100px 1fr auto;align-items:start}.hours-slot{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;align-items:end}.hours-slot label{display:grid;gap:4px}.hours-slot input{max-width:155px}@media(max-width:650px){.hours-day{grid-template-columns:1fr}.hours-day>button{justify-self:start}}
+</style>
+</head>
+<body>
+  <div id="login" class="login">
+    <div class="login-card">
+      <div class="brand">
+        <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
+        <div>
+          <strong>DLL ONE</strong>
+          <small>Panel Cloud V5.7.3 · Autogestión</small>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Usuario</label>
+        <input id="loginUser" autocomplete="username" placeholder="admin@dllone.com">
+      </div>
+
+      <div class="field">
+        <label>Contraseña</label>
+        <input id="loginPassword" type="password" autocomplete="current-password">
+      </div>
+
+      <button class="btn btn-primary" onclick="login()">Entrar</button>
+      <div id="loginError" class="error"></div>
+    </div>
+  </div>
+
+  <div id="app" class="app hidden">
+    <aside>
+      <div class="brand">
+        <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
+        <div>
+          <strong>DLL ONE</strong>
+          <small>Panel Cloud V5.7.3</small>
+        </div>
+      </div>
+
+      <div class="nav">
+        <button class="active" data-tab="dashboard" onclick="go('dashboard',this)">⌂ Dashboard<span class="notice-badge" data-notice="dashboard" hidden></span></button>
+        <button data-tab="conversations" onclick="go('conversations',this)">💬 Conversaciones<span class="notice-badge" data-notice="conversations" hidden></span></button>
+        <button data-tab="orders" onclick="go('orders',this)">🧾 Pedidos<span class="notice-badge" data-notice="orders" hidden></span></button>
+        <button data-tab="delivery" onclick="go('delivery',this)">🚚 Delivery<span class="notice-badge" data-notice="delivery" hidden></span></button>
+        <button data-tab="receipts" onclick="go('receipts',this)">📎 Comprobantes <span class="notice-badge" data-notice="receipts" hidden></span></button>
+        <button data-tab="customers" onclick="go('customers',this)">👥 Clientes</button>
+        <button data-tab="business" onclick="go('business',this)">🏢 Mi negocio</button>
+        <button id="navCatalog" data-tab="catalog" onclick="go('catalog',this)">💲 Catálogo / precios</button>
+        <button id="navGastro" data-tab="gastro" onclick="go('gastro',this)">🍔 Gastro</button>
+        <button id="navAdmin" class="admin-only hidden-admin" data-tab="admin" onclick="go('admin',this)">⚙ Super Admin</button>
+      </div>
+
+      <div class="soon">
+        <strong style="color:#fff">DLL ONE Salud</strong><br>
+        La arquitectura V5 queda preparada para agregar Turnos como módulo separado, sin mezclar lógica clínica con Gastro.
+      </div>
+    </aside>
+
+    <main>
+      <header>
+        <div class="head-left">
+          <select id="companySelect" class="company" onchange="changeCompany()"></select>
+          <div>
+            <div id="syncText" class="sync">Sin sincronizar</div><div id="noticeStatus" class="notice-status" role="status">Avisos pendientes de conexión</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button id="noticeSoundButton" class="btn btn-light" onclick="toggleNoticeSound()" aria-pressed="false">🔇 Activar sonido</button>
+          <button class="btn btn-light refresh-btn" title="Actualizar" aria-label="Actualizar" onclick="loadTab(currentTab)">↻</button>
+          <button class="btn btn-light" title="Cerrar sesión" aria-label="Cerrar sesión" onclick="logout()">⎋ <span class="logout-label">Salir</span></button>
+        </div>
+      </header>
+
+      <div class="content">
+        <section id="dashboard" class="section active">
+          <div class="hero">
+            <div>
+              <h1 id="companyTitle">Panel Central</h1>
+              <p>Revisá los pedidos, conversaciones y tareas pendientes de tu negocio.</p>
+            </div>
+            <span class="pill">● PANEL CENTRAL</span>
+          </div>
+
+          <div class="cards">
+            <div class="card metric"><div class="label">Conversaciones</div><div id="mChats" class="value">—</div></div>
+            <div class="card metric"><div class="label">Pedidos pendientes</div><div id="mOrders" class="value">—</div></div>
+            <div class="card metric"><div class="label">Delivery a cotizar</div><div id="mQuotes" class="value">—</div></div>
+            <div class="card metric"><div class="label">Atención humana</div><div id="mHuman" class="value">—</div></div>
+            <div class="card metric"><div class="label">Pagos pendientes</div><div id="mPayments" class="value">—</div></div>
+          </div>
+
+          <div class="card">
+            <strong>Pendientes del negocio</strong>
+            <p style="color:var(--muted)">Los avisos se actualizan cada pocos segundos, aunque estés en otra sección. Las conversaciones respondidas por el bot también cuentan hasta que las revises. Los pedidos y delivery siguen pendientes hasta que los resuelvas.</p>
+            <div id="pendingTasks" class="tasks-grid"></div>
+            <p style="color:var(--muted);font-size:12px">Activá el sonido con el botón superior. Para recibir avisos, mantené abierto el panel; el navegador puede pausar la actualización si el equipo entra en reposo.</p>
+          </div>
+        </section>
+
+        <section id="conversations" class="section">
+          <div class="hero">
+            <div><h1>Conversaciones</h1><p>Conversaciones directas: PostgreSQL + Motor Railway, sin Apps Script.</p></div>
+            <span class="pill">● OPERACIÓN DIRECTA</span>
+          </div>
+
+          <div class="card conversation-shell">
+            <div class="conversation-list-pane">
+              <div class="conversation-tools">
+                <input id="chatSearch" placeholder="Buscar cliente o mensaje" oninput="scheduleInboxSearch()">
+                <select id="chatFilter" onchange="loadConversationsLive()">
+                  <option value="TODOS">Todos</option>
+                  <option value="BOT">Bot</option>
+                  <option value="HUMANO">Humano</option>
+                </select>
+              </div>
+              <div id="conversationItems" class="conversation-items">
+                <div class="empty">Cargando conversaciones…</div>
+              </div>
+            </div>
+
+            <div id="chatPane" class="chat-pane">
+              <div id="chatEmpty" class="chat-empty">Seleccioná una conversación.</div>
+
+              <div id="chatContent" class="hidden" style="display:flex;flex-direction:column;min-height:0;flex:1">
+                <div class="chat-head">
+                  <div class="chat-head-left">
+                    <button class="btn btn-light chat-back" onclick="closeChatMobile()">←</button>
+                    <div class="chat-title">
+                      <strong id="chatClientName">Cliente</strong>
+                      <small id="chatClientMeta"></small>
+                    </div>
+                  </div>
+                  <div class="chat-actions">
+                    <button id="takeChatBtn" class="btn btn-primary btn-sm" onclick="takeConversation()">Tomar conversación</button>
+                    <button id="returnBotBtn" class="btn btn-light btn-sm hidden" onclick="returnConversationToBot()">Devolver al bot</button>
+                  </div>
+                </div>
+
+                <div id="chatMessages" class="chat-messages"></div>
+
+                <div id="chatAttachments" style="padding:8px;display:flex;gap:8px;flex-wrap:wrap"></div>
+                <div class="composer">
+                  <textarea id="chatComposer" placeholder="Escribí un mensaje…" maxlength="4096"></textarea>
+                  <button id="sendChatBtn" class="btn btn-primary" onclick="sendConversationMessage()">Enviar</button>
+                  <div id="composerNote" class="composer-note">Tomá la conversación para responder como humano.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="orders" class="section">
+          <div class="hero">
+            <div><h1>Pedidos · Cocina</h1><p>Operación directa desde PostgreSQL. Los pedidos nuevos aparecen sin esperar Apps Script.</p></div>
+          </div>
+          <div class="card table-card">
+            <div class="table-head"><h3>Pedidos por completar o cobrar</h3><span id="countOrders" class="sync"></span></div>
+            <div id="ordersTable" class="orders-grid"></div>
+          </div>
+        </section>
+
+        <section id="delivery" class="section">
+          <div class="hero">
+            <div><h1>Delivery por cotizar</h1><p>Cotizá el envío desde el Panel y el cliente recibe el valor por WhatsApp.</p></div>
+          </div>
+          <div class="card table-card">
+            <div class="table-head"><h3>Pendientes</h3><span id="countDelivery" class="sync"></span></div>
+            <div id="deliveryTable" class="orders-grid"></div>
+          </div>
+        </section>
+
+        <section id="receipts" class="section">
+          <div class="hero"><div><h1>Comprobantes</h1><p>Abrí el archivo, verificá el ingreso del dinero y después confirmá el pago. Recibir una imagen no valida una transferencia.</p></div></div>
+          <div id="receiptsTable" class="orders-grid"></div>
+        </section>
+        <section id="customers" class="section">
+          <div class="hero">
+            <div><h1>Clientes</h1><p>Base de clientes sincronizada.</p></div>
+          </div>
+          <div class="card table-card">
+            <div class="table-head"><h3>Clientes</h3><span id="countCustomers" class="sync"></span></div>
+            <div id="customersTable" class="table-wrap"></div>
+          </div>
+        </section>
+
+        <section id="business" class="section">
+          <div class="hero">
+            <div><h1>Mi negocio</h1><p>Datos que usa DLL ONE para representar correctamente a la empresa.</p></div>
+            <span id="businessRoleTag" class="role-tag"></span>
+          </div>
+
+          <div class="section-grid">
+            <div class="card">
+              <h3 class="card-title">Datos generales</h3>
+              <div class="form-grid">
+                <div class="form-field full"><label>Nombre comercial</label><input id="bizName"></div>
+                <div class="form-field"><label>Tipo de negocio</label><select id="bizType"><option value="PRODUCTOS">Productos</option><option value="SERVICIOS">Servicios</option><option value="MIXTO">Mixto</option></select></div>
+                <div class="form-field"><label>Teléfono</label><input id="bizPhone"></div>
+                <div class="form-field full"><label>Ubicación para retirar productos</label><input id="bizAddress" placeholder="Calle, número y localidad"><small>El bot informa esta dirección por WhatsApp. Al guardar, se usa en las próximas consultas.</small></div>
+                <div class="form-field full"><label>Email</label><input id="bizEmail" type="email"></div>
+                <div id="bizPhoneNumberWrap" class="form-field full admin-only hidden-admin"><label>WhatsApp Phone Number ID</label><input id="bizPhoneNumberId"></div>
+              </div>
+              <div class="actions-row"><button id="saveBusinessButton" class="btn btn-primary" onclick="saveBusiness()">Guardar cambios</button></div><p id="businessSaveStatus" role="status" aria-live="polite" style="margin-top:12px"></p>
+            </div>
+
+            <div class="card">
+              <h3 class="card-title">Módulos DLL ONE</h3>
+              <p class="card-sub">Solo el Super Admin decide qué módulos forman parte del plan de cada empresa.</p>
+              <div class="module-checks">
+                <label class="module-check"><input id="modVentas" type="checkbox"> ONE Ventas</label>
+                <label class="module-check"><input id="modGastro" type="checkbox"> ONE Gastro</label>
+                <label class="module-check"><input id="modEventos" type="checkbox"> ONE Eventos</label>
+                <label class="module-check"><input id="modServicios" type="checkbox"> ONE Servicios</label>
+              </div>
+              <p id="moduleHelp" class="mini-note" style="margin-top:12px"></p>
+            </div>
+          </div>
+          <div class="card" style="margin-top:20px">
+            <h3 class="card-title">Horarios para recibir pedidos</h3>
+            <p class="card-sub">Cada empresa elige cuándo el bot puede tomar pedidos. Fuera de horario responde consultas y recibe comprobantes de pedidos existentes.</p>
+            <fieldset id="orderHoursFields" disabled style="border:0;padding:0;margin:0;min-width:0">
+              <div class="form-grid">
+                <div class="form-field"><label>Recepción de pedidos</label><select id="orderHoursMode" onchange="updateOrderHoursMode()"><option value="ALWAYS">24 horas, todos los días</option><option value="SCHEDULED">Solo en los horarios configurados</option><option value="PAUSED">Pausar pedidos temporalmente</option></select></div>
+                <div class="form-field"><label>Zona horaria</label><input id="orderHoursZone" list="orderHoursZones" value="America/Argentina/Buenos_Aires"><datalist id="orderHoursZones"><option value="America/Argentina/Buenos_Aires"><option value="America/Santiago"><option value="America/Montevideo"><option value="America/Lima"><option value="America/Mexico_City"><option value="Europe/Madrid"></datalist><small>Argentina: America/Argentina/Buenos_Aires.</small></div>
+              </div>
+              <div id="orderHoursDays"></div>
+              <p class="mini-note">Días sin turnos: cerrado. Por ejemplo, viernes de 20:00 a 02:00 termina el sábado a las 02:00. Para un día completo usá 00:00 a 00:00.</p>
+              <div class="form-field"><label>Mensaje adicional fuera de horario (opcional)</label><textarea id="orderHoursMessage" maxlength="500" placeholder="Ej.: Volvé a escribirnos cuando abramos."></textarea></div>
+              <div class="actions-row"><button class="btn btn-primary" onclick="saveOrderHoursForm()">Guardar horarios</button></div>
+            </fieldset>
+            <p id="orderHoursStatus" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <section id="catalog" class="section">
+          <div class="hero">
+            <div><h1>Catálogo y precios</h1><p>La empresa puede mantener sus productos y precios sin entrar a Google Sheets.</p></div>
+            <span id="catalogCount" class="pill">0 items</span>
+          </div>
+
+          <div class="section-grid">
+            <div class="stack">
+              <div class="card">
+                <h3 class="card-title">Agregar / editar item</h3>
+                <input id="catRow" type="hidden">
+                <div class="form-grid">
+                  <div class="form-field"><label>Código</label><input id="catCode" placeholder="Opcional"></div>
+                  <div class="form-field"><label>Tipo</label><select id="catType"><option value="PRODUCTO">Producto</option><option value="SERVICIO_FIJO">Servicio fijo</option><option value="SERVICIO_UNIDAD">Servicio por unidad</option><option value="SERVICIO_COTIZABLE">Servicio a cotizar</option></select></div>
+                  <div class="form-field full"><label>Nombre</label><input id="catName"></div>
+                  <div class="form-field full"><label>Descripción</label><textarea id="catDescription"></textarea></div>
+                  <div class="form-field"><label>Modo de precio</label><select id="catPriceMode"><option value="FIJO">Precio fijo</option><option value="A_COTIZAR">A cotizar</option></select></div><div class="form-field"><label>Estado</label><select id="catActive"><option value="SI">Activo</option><option value="NO">Inactivo</option></select></div>
+                  <div class="form-field"><label>Precio</label><input id="catPrice" type="number" min="0" step="0.01"></div>
+                  <div class="form-field"><label>Unidad</label><input id="catUnit" value="unidad"></div>
+                  <div class="form-field"><label>Categoría</label><input id="catCategory"></div>
+                  <div class="form-field"><label>Marca</label><input id="catBrand"></div>
+                </div>
+                <div class="actions-row">
+                  <button class="btn btn-primary" onclick="saveCatalogItem()">Guardar</button>
+                  <button class="btn btn-light" onclick="clearCatalogForm()">Nuevo</button>
+                </div>
+              </div>
+
+              <div class="card file-drop">
+                <h3 class="card-title">Importar lista de precios</h3>
+                <p class="card-sub">Acepta Excel .xlsx/.xls y CSV. La primera hoja debe tener al menos NOMBRE o PRODUCTO. También reconoce PRECIO, CÓDIGO, CATEGORÍA, MARCA y UNIDAD.</p>
+                <input id="catalogFile" type="file" accept=".xlsx,.xls,.csv">
+                <div class="actions-row"><button class="btn btn-primary" onclick="importCatalogFile()">Importar archivo</button></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 class="card-title">Productos y servicios</h3>
+              <p id="salesStatus" role="status"></p><button class="btn btn-light" onclick="loadCatalog()">Recargar lista</button>
+              <div id="catalogList" class="data-list"><div class="empty">Cargando catálogo…</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="gastro" class="section">
+          <div class="hero">
+            <div><h1>ONE Gastro</h1><p>Cargá y administrá tus productos, precios, variantes y extras.</p></div>
+            <span class="pill">● ONE GASTRO</span>
+          </div>
+
+          <div class="actions-row" style="flex-wrap:wrap;margin-bottom:18px">
+            <button class="btn btn-light" onclick="document.getElementById('gCatalogHeading').scrollIntoView({behavior:'smooth'})">Productos y precios</button>
+            <button class="btn btn-light" onclick="document.getElementById('gPaymentsHeading').scrollIntoView({behavior:'smooth'})">Alias y medios de pago</button>
+            <button class="btn btn-light" onclick="document.getElementById('gImagesHeading').scrollIntoView({behavior:'smooth'})">Fotos del menú</button>
+            <button class="btn btn-light" onclick="document.getElementById('gZonesHeading').scrollIntoView({behavior:'smooth'})">Delivery</button>
+            <button class="btn btn-light" onclick="loadGastro()">Recargar / reintentar importación</button>
+          </div>
+          <div class="card" style="margin-bottom:18px">
+            <h3 class="card-title">Datos de Gastro en el panel</h3>
+            <p class="card-sub">Copiá los datos y las fotos pendientes para que el menú se consulte desde el panel. Se conservan los precios, alias y cambios que ya guardaste.</p>
+            <p id="gMigrationStatus" role="status">Verificando copia de Gastro…</p>
+            <div id="gMigrationDetails"></div>
+            <div class="actions-row"><button id="gMigrationStart" class="btn btn-primary" onclick="runGastroMigration()">Copiar datos y fotos pendientes</button></div>
+            <p class="card-sub">Esta copia abarca el menú, el cobro y la entrega de Gastro. Las conexiones y otras funciones del sistema todavía requieren Apps Script.</p>
+          </div>
+          <p id="gCatalogStatus" role="status"></p>
+          <h2 id="gCatalogHeading" class="subsection-title">Productos del menú</h2>
+          <fieldset id="gCatalogFields" disabled style="border:0;padding:0;margin:0;min-width:0">
+          <div class="section-grid">
+            <div class="stack">
+              <div class="card">
+                <h3 class="card-title" id="gTitlecategory">Categoría</h3>
+                <div class="form-grid"><div class="form-field full"><label>Nombre</label><input id="gCatName"></div><div class="form-field"><label>Posición</label><input id="gCatOrder" type="number" value="10"></div></div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroCategory()">Guardar categoría</button><button class="btn btn-light" onclick="resetGastroForm('category')">Nuevo / cancelar edición</button></div>
+              </div>
+              <div class="card">
+                <h3 class="card-title" id="gTitleproduct">Producto</h3>
+                <div class="form-grid">
+                  <div class="form-field full"><label>Categoría</label><select id="gProductCategory"></select></div>
+                  <div class="form-field full"><label>Nombre</label><input id="gProductName"></div>
+                  <div class="form-field full"><label>Descripción</label><textarea id="gProductDescription"></textarea></div>
+                  <div class="form-field"><label><input id="gProductSoldOut" type="checkbox"> Agotado</label><label>Precio base</label><input id="gProductPrice" type="number" min="0"></div>
+                  <div class="form-field"><label>Posición</label><input id="gProductOrder" type="number" value="10"></div>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroProduct()">Guardar producto</button><button class="btn btn-light" onclick="resetGastroForm('product')">Nuevo / cancelar edición</button></div>
+              </div>
+              <div class="card">
+                <h3 class="card-title" id="gTitlevariant">Variante</h3>
+                <div class="form-grid">
+                  <div class="form-field full"><label>Producto</label><select id="gVariantProduct"></select></div>
+                  <div class="form-field"><label>Nombre</label><input id="gVariantName" placeholder="Simple, Doble, x2…"></div>
+                  <div class="form-field"><label>Precio</label><input id="gVariantPrice" type="number" min="0"></div>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroVariant()">Guardar variante</button><button class="btn btn-light" onclick="resetGastroForm('variant')">Nuevo / cancelar edición</button></div>
+              </div>
+              <div class="card">
+                <h3 class="card-title" id="gTitleextra">Extra</h3>
+                <div class="form-grid">
+                  <div class="form-field"><label>Nombre</label><input id="gExtraName" placeholder="Cheddar extra"></div>
+                  <div class="form-field"><label>Precio</label><input id="gExtraPrice" type="number" min="0"></div>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroExtra()">Guardar extra</button><button class="btn btn-light" onclick="resetGastroForm('extra')">Nuevo / cancelar edición</button></div>
+              </div>
+            </div>
+            <div class="stack">
+              <div class="card"><h3 class="card-title">Categorías</h3><div id="gCategoriesList" class="data-list"></div></div>
+              <div class="card"><h3 class="card-title">Productos</h3><div id="gProductsList" class="data-list"></div></div>
+              <div class="card"><h3 class="card-title">Variantes y extras</h3><div id="gOptionsList" class="data-list"></div></div>
+            </div>
+          </div>
+
+          </fieldset>
+          <p id="gSettingsStatus" role="status"></p>
+          <fieldset id="gSettingsFields" disabled style="border:0;padding:0;margin:0;min-width:0">
+          <h2 id="gImagesHeading" class="subsection-title">Menú visual</h2>
+          <div class="section-grid">
+            <div class="stack">
+              <div class="card">
+                <h3 class="card-title">Fotos del menú</h3>
+                <p class="card-sub">Subí las imágenes terminadas que querés que el bot envíe por WhatsApp. JPG/PNG. El panel las comprime automáticamente si hace falta.</p>
+                <div class="toggle-line"><div><strong>Enviar imágenes automáticamente</strong><small>Cuando el cliente pida menú, carta o precios.</small></div><label class="switch"><input id="gMenuAuto" type="checkbox" onchange="saveGastroMenuConfig()"><span></span></label></div>
+                <div class="form-field full" style="margin-top:14px"><label>Seleccionar imágenes</label><input id="gMenuFiles" type="file" accept="image/jpeg,image/png" multiple></div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="uploadGastroMenuImages()">Subir imágenes</button></div>
+                <div id="gMenuUploadStatus" class="upload-status"></div>
+              </div>
+            </div>
+            <div class="stack"><div class="card"><h3 class="card-title">Imágenes cargadas</h3><div id="gMenuImagesList" class="compact-grid"></div></div></div>
+          </div>
+
+          <h2 id="gPaymentsHeading" class="subsection-title">Alias, cobro y entrega</h2>
+          <div class="section-grid">
+            <div class="stack">
+              <div class="card">
+                <h3 class="card-title">Opciones comerciales</h3>
+                <div class="toggle-line"><div><strong>Delivery</strong><small>Permitir pedidos con envío.</small></div><label class="switch"><input id="gDeliveryEnabled" type="checkbox"><span></span></label></div>
+                <div class="toggle-line"><div><strong>Retiro por el local</strong><small>Permitir que el cliente pase a buscarlo.</small></div><label class="switch"><input id="gPickupEnabled" type="checkbox"><span></span></label></div>
+                <div class="toggle-line"><div><strong>Efectivo</strong><small>Ofrecer efectivo como forma de pago.</small></div><label class="switch"><input id="gCashEnabled" type="checkbox"><span></span></label></div>
+                <div class="toggle-line"><div><strong>Transferencia</strong><small>Ofrecer transferencia y mostrar los datos guardados.</small></div><label class="switch"><input id="gTransferEnabled" type="checkbox"><span></span></label></div>
+                <div class="form-field"><label>Tiempo estimado de preparación</label><input id="gPreparationTime" placeholder="Ej.: 30 a 40 minutos"></div><div class="actions-row"><button class="btn btn-primary" onclick="saveGastroCommercialConfig()">Guardar opciones</button></div>
+              </div>
+              <div class="card">
+                <h3 id="gPaymentFormTitle" class="card-title">Agregar medio de pago</h3><input id="gPayId" type="hidden">
+                <div class="form-grid">
+                  <div class="form-field"><label>Medio</label><input id="gPayName" placeholder="Transferencia, Efectivo…"></div>
+                  <div class="form-field"><label>Orden</label><input id="gPayOrder" type="number" value="100"></div>
+                  <div class="form-field full"><label>Alias</label><input id="gPayAlias" placeholder="mi.negocio.alias"></div>
+                  <div class="form-field full"><label>CBU / CVU (opcional)</label><input id="gPayCbu" inputmode="numeric" maxlength="22" placeholder="22 dígitos"></div>
+                  <div class="form-field full"><label>Titular (opcional)</label><input id="gPayHolder"></div>
+                  <div class="form-field full"><label>Otras instrucciones / datos anteriores</label><textarea id="gPayDetail" placeholder="Banco o instrucciones adicionales"></textarea></div>
+                  <div class="form-field full"><label><input id="gPayPreferred" type="checkbox"> Marcar como preferido</label></div>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroPayment()">Guardar medio de pago</button><button class="btn btn-light" onclick="clearGastroPayment()">Nuevo / cancelar edición</button></div>
+              </div>
+            </div>
+            <div class="stack"><div class="card"><h3 class="card-title">Medios configurados</h3><div id="gPaymentsList" class="data-list"></div></div></div>
+          </div>
+
+          <h2 id="gZonesHeading" class="subsection-title">Zonas de delivery</h2>
+          <div class="section-grid">
+            <div class="stack">
+              <div class="card">
+                <h3 class="card-title">Agregar zona</h3>
+                <p class="card-sub">Podés indicar barrio/zona, referencias y precio. La IA usa esta información para entender mejor dónde está el cliente.</p>
+                <input id="gZoneId" type="hidden">
+                <div class="form-grid">
+                  <div class="form-field"><label>Zona / barrio</label><input id="gZoneName" placeholder="Centro"></div>
+                  <div class="form-field"><label>Costo</label><input id="gZoneCost" type="number" min="0" value="0"></div>
+                  <div class="form-field"><label>Posición</label><input id="gZoneOrder" type="number" value="100"></div>
+                  <div class="form-field full"><label>Referencias</label><textarea id="gZoneRefs" placeholder="Calles, barrios o referencias incluidas en esta zona"></textarea></div>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveGastroZone()">Guardar zona</button><button class="btn btn-light" onclick="clearGastroZoneForm()">Limpiar</button></div>
+              </div>
+            </div>
+            <div class="stack"><div class="card"><h3 class="card-title">Zonas configuradas</h3><div id="gZonesList" class="data-list"></div></div></div>
+          </div>
+          </fieldset>
+        </section>
+
+        <section id="admin" class="section">
+          <div class="hero">
+            <div><h1>Super Admin</h1><p>Alta de empresas y accesos de clientes. Solo visible para DLL ONE.</p></div>
+            <span class="pill">● SUPERADMIN</span>
+          </div>
+
+          <div class="section-grid">
+            <div class="stack">
+              <div class="card">
+                <h3 class="card-title">Crear empresa</h3>
+                <div class="form-grid">
+                  <div class="form-field full"><label>Nombre</label><input id="adminCompanyName"></div>
+                  <div class="form-field"><label>Tipo</label><select id="adminCompanyType"><option value="MIXTO">Mixto</option><option value="PRODUCTOS">Productos</option><option value="SERVICIOS">Servicios</option></select></div>
+                  <div class="form-field"><label>Slug web</label><input id="adminCompanySlug" placeholder="Opcional"></div>
+                  <div class="form-field full"><label>Phone Number ID de WhatsApp</label><input id="adminCompanyPhoneId" placeholder="Se puede completar después"></div>
+                </div>
+                <div class="module-checks" style="margin-top:12px">
+                  <label class="module-check"><input id="adminModVentas" type="checkbox" checked> ONE Ventas</label>
+                  <label class="module-check"><input id="adminModGastro" type="checkbox"> ONE Gastro</label>
+                  <label class="module-check"><input id="adminModEventos" type="checkbox"> ONE Eventos</label>
+                  <label class="module-check"><input id="adminModServicios" type="checkbox"> ONE Servicios</label>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="createCompany()">Crear empresa</button></div>
+              </div>
+
+              <div class="card">
+                <h3 class="card-title">Crear acceso para cliente</h3>
+                <div class="form-grid">
+                  <div class="form-field full"><label>Nombre</label><input id="adminUserName"></div>
+                  <div class="form-field full"><label>Usuario / correo</label><input id="adminUserLogin"></div>
+                  <div class="form-field full"><label>Contraseña inicial</label><input id="adminUserPassword" type="password"></div>
+                  <div class="form-field"><label>Rol</label><select id="adminUserRole"><option value="ADMIN_EMPRESA">Administrador empresa</option><option value="OPERADOR">Operador</option></select></div>
+                  <div class="form-field"><label>Empresa</label><select id="adminUserCompany"></select></div>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="createPanelUser()">Crear usuario</button></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 class="card-title">Usuarios creados</h3>
+              <div id="adminUsersList" class="data-list"><div class="empty">Cargando usuarios…</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="more" class="section">
+          <div class="hero"><div><h1>Más</h1><p>Configuración y administración.</p><button class="btn btn-light" onclick="go('receipts')">📎 Comprobantes <span class="notice-badge" data-notice="receipts" hidden></span></button></div></div>
+          <div class="more-grid">
+            <button class="more-card" onclick="go('business')">🏢<strong>Mi negocio</strong><small>Datos generales y módulos.</small></button>
+            <button id="moreCatalog" class="more-card" onclick="go('catalog')">💲<strong>Catálogo</strong><small>Productos, servicios y listas de precios.</small></button>
+            <button id="moreGastro" class="more-card" onclick="go('gastro')">🍔<strong>Gastro</strong><small>Menú, variantes y extras.</small></button>
+            <button class="more-card" onclick="go('customers')">👥<strong>Clientes</strong><small>Base de clientes.</small></button>
+            <button id="moreAdmin" class="more-card admin-only hidden-admin" onclick="go('admin')">⚙<strong>Super Admin</strong><small>Crear empresas y accesos.</small></button>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <nav class="mobile-bottom-nav" aria-label="Navegación principal móvil">
+      <button class="active" data-tab="dashboard" onclick="go('dashboard',this)"><span class="ico">⌂</span><span class="txt">Inicio</span><span class="notice-badge" data-notice="dashboard" hidden></span></button>
+      <button data-tab="conversations" onclick="go('conversations',this)"><span class="ico">💬</span><span class="txt">Chats</span><span class="notice-badge" data-notice="conversations" hidden></span></button>
+      <button data-tab="orders" onclick="go('orders',this)"><span class="ico">🧾</span><span class="txt">Pedidos</span><span class="notice-badge" data-notice="orders" hidden></span></button>
+      <button data-tab="delivery" onclick="go('delivery',this)"><span class="ico">🚚</span><span class="txt">Delivery</span><span class="notice-badge" data-notice="delivery" hidden></span></button>
+      <button data-tab="more" onclick="go('more',this)"><span class="ico">☰</span><span class="txt">Más</span><span class="notice-badge" data-notice="more" hidden></span></button>
+    </nav>
+  </div>
+
+  <div id="loading" class="loading hidden">Cargando…</div>
+
+<script src="/receipts.js"></script>
+<script src="/order_hours.js"></script>
+<script src="/gastro_migration.js"></script>
+<script src="/notification_state.js"></script>
+<script src="/notifications.js"></script>
+<script>
+  let companies=[];
+  let panelToastTimer;
+  function showNotice(message){
+    let box=document.getElementById('panelNotice');
+    if(!box){box=document.createElement('div');box.id='panelNotice';box.setAttribute('role','status');box.setAttribute('aria-live','polite');box.style.cssText='position:fixed;bottom:90px;right:20px;max-width:min(420px,90vw);padding:16px;border-radius:12px;background:#173e2e;color:white;box-shadow:0 4px 20px #0003;z-index:99999;cursor:pointer';box.title='Tocá para cerrar';box.onclick=()=>box.hidden=true;document.body.appendChild(box);}
+    box.textContent=String(message);box.hidden=false;clearTimeout(panelToastTimer);panelToastTimer=setTimeout(()=>box.hidden=true,9000);
+  }
+  let companyId='';
+  let currentTab='dashboard';
+  let sendMessageBusy=false;
+  let lastSentMessage={
+    key:'',
+    at:0
+  };
+  let selectedChat=null;
+  let currentUser=null;
+  let catalogItems=[];
+  let salesRevision=null,salesBusy=false;
+  let gastroData={categorias:[],productos:[],variantes:[],extras:[]};
+  let gastroSettingsData={menu:{imagenes:[]},pagos:{items:[]},entrega:{zonas:[]}};
+  let inboxTimer=null;
+  let inboxSearchTimer=null;
+  let inboxBusy=false;
+
+  const $=id=>document.getElementById(id);
+
+  function esc(value){
+    return String(value??'')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'","&#039;");
+  }
+
+  function first(obj, keys){
+    for(const key of keys){
+      if(obj && obj[key]!==undefined && obj[key]!==null && String(obj[key]).trim()!==''){
+        return obj[key];
+      }
+    }
+    return '';
+  }
+
+  function money(value){
+    const n=Number(String(value??0).replace(/[^\d.-]/g,''))||0;
+    return '$'+n.toLocaleString('es-AR');
+  }
+
+  function showLoading(on){
+    $('loading').classList.toggle('hidden',!on);
+  }
+
+  async function api(url, options={}){
+    const r=await fetch(url,{
+      credentials:'include',
+      headers:{
+        'Content-Type':'application/json',
+        ...(options.headers||{})
+      },
+      ...options
+    });
+
+    let data={};
+    try{data=await r.json()}catch{}
+
+    if(r.status===401){
+      showLogin();
+      throw new Error('Sesión vencida');
+    }
+
+    if(!r.ok || data.ok===false){
+      throw new Error(data.error||('HTTP '+r.status));
+    }
+
+    return data;
+  }
+
+  async function login(){
+    $('loginError').textContent='';
+    try{
+      const r=await api('/api/login',{
+        method:'POST',
+        body:JSON.stringify({
+          user:$('loginUser').value.trim(),
+          password:$('loginPassword').value
+        })
+      });
+
+      if(r.ok){
+        await start();
+      }
+    }catch(err){
+      $('loginError').textContent=err.message||String(err);
+    }
+  }
+
+  async function logout(){
+    try{await api('/api/logout',{method:'POST'})}catch{}
+    showLogin();
+  }
+
+  function showLogin(){
+    stopNotifications();
+    clearInterval(inboxTimer);
+    currentUser=null;companyId="";selectedChat=null;resetDeliveryView();
+    $('app').classList.add('hidden');
+    $('login').classList.remove('hidden');
+  }
+
+  function showApp(){
+    $('login').classList.add('hidden');
+    $('app').classList.remove('hidden');
+  }
+
+  async function start(){
+    showLoading(true);
+    try{
+      currentUser=await api('/api/me');
+      const r=await api('/api/companies');
+      companies=r.items||[];
+
+      const select=$('companySelect');
+      select.innerHTML=companies.map(c=>
+        `<option value="${esc(c.idEmpresa)}">${esc(c.nombreEmpresa)}</option>`
+      ).join('');
+
+      companyId=companies[0]?.idEmpresa||'';
+
+      const isSuperadmin=String(currentUser?.role||'').toUpperCase()==='SUPERADMIN';
+      document.querySelectorAll('.admin-only').forEach(el=>{
+        el.classList.toggle('hidden-admin',!isSuperadmin);
+      });
+      $('businessRoleTag').textContent=isSuperadmin?'SUPERADMIN':(currentUser?.name||currentUser?.user||'EMPRESA');
+
+      showApp();
+      updateModuleNavigation();
+      startNotifications();
+
+      if(!companyId){
+        if(isSuperadmin){
+          await go('admin');
+          return;
+        }
+        throw new Error('Tu usuario todavía no tiene una empresa asignada.');
+      }
+
+      await loadTab('dashboard');
+    }finally{
+      showLoading(false);
+    }
+  }
+
+  function selectedCompany(){
+    return companies.find(c=>c.idEmpresa===companyId)||null;
+  }
+
+  function gastroEnabled(){const m=selectedCompany()?.modules||{};return [true,'SI','TRUE','1'].includes(typeof (m.gastro??m.MODULO_GASTRO)==='string'?String(m.gastro??m.MODULO_GASTRO).toUpperCase():(m.gastro??m.MODULO_GASTRO));}
+  function resolveModuleTab(tab){
+    if(tab==='catalog'&&gastroEnabled())return 'gastro';
+    if(tab==='gastro'&&!gastroEnabled())return 'dashboard';
+    return tab;
+  }
+  function updateModuleNavigation(){
+    const company=selectedCompany();
+    const mods=company?.modules||{};
+    const gastroActive=gastroEnabled();
+    ['navCatalog','moreCatalog'].forEach(id=>{if($(id))$(id).style.display=gastroActive?'none':'';});
+    if($('navGastro'))$('navGastro').style.display=gastroActive?'':'none';
+    if($('moreGastro'))$('moreGastro').style.display=gastroActive?'':'none';
+  }
+
+  async function changeCompany(){
+    companyId=$('companySelect').value;
+    salesRevision=null;catalogItems=[];clearCatalogForm();
+    resetDeliveryView();
+    businessRevision=null;
+    resetOrderHours();
+    selectedChat=null;
+    $('chatContent').classList.add('hidden');$('chatEmpty').classList.remove('hidden');
+    startNotifications();
+    updateModuleNavigation();
+    resetGastroForms();closeGastroMenuPreview();clearGastroPayment();clearGastroZoneForm();settingsRevision=null;
+    $('gCatalogFields').disabled=true;$('gSettingsFields').disabled=true;
+    gastroData={categorias:[],productos:[],variantes:[],extras:[]};
+    gastroSettingsData={menu:{imagenes:[]},pagos:{items:[]},entrega:{zonas:[]}};
+    renderGastro();renderGastroSettings();
+    await go(currentTab==='admin'?'dashboard':currentTab);
+  }
+
+  async function go(tab,button){
+    tab=resolveModuleTab(tab);
+    currentTab=tab;
+    if(tab!=='conversations'){
+      clearInterval(inboxTimer);
+      inboxTimer=null;
+      closeChatMobile();
+    }
+    document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+    $(tab).classList.add('active');
+    document.querySelectorAll('.nav button,.mobile-bottom-nav button').forEach(x=>{
+      x.classList.toggle('active',x.dataset.tab===tab);
+    });
+    window.scrollTo({top:0,behavior:'smooth'});
+    await loadTab(tab);
+  }
+
+  async function loadTab(tab){
+    if(resolveModuleTab(tab)!==tab)return go(resolveModuleTab(tab));
+    const companyTabs=new Set(['dashboard','conversations','orders','delivery','customers','receipts','business','catalog','gastro']);
+    if(companyTabs.has(tab)&&!companyId){
+      if(String(currentUser?.role||'').toUpperCase()==='SUPERADMIN'){
+        await go('admin');
+        return;
+      }
+      throw new Error('No hay empresa seleccionada.');
+    }
+
+    showLoading(true);
+
+    try{
+      if(tab==='dashboard')await loadDashboard();
+      if(tab==='conversations')await loadConversations();
+      if(tab==='orders')await loadOrders();
+      if(tab==='delivery')await loadDelivery();
+      if(tab==='customers')await loadCustomers();
+      if(tab==='receipts')await loadReceipts();
+      if(tab==='business')await Promise.all([loadBusiness(),loadOrderHours()]);
+      if(tab==='catalog')await loadCatalog();
+      if(tab==='gastro')await loadGastro();
+      if(tab==='admin')await loadAdmin();
+      if(tab==='more')updateModuleNavigation();
+    }catch(err){
+      showNotice(err.message||String(err));
+    }finally{
+      showLoading(false);
+    }
+  }
+
+  function syncLabel(value){
+    if(!value)return 'Sin sincronizar';
+    const d=new Date(value);
+    return 'Última copia: '+d.toLocaleString('es-AR');
+  }
+
+  async function loadDashboard(){
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/summary`);
+    const s=r.summary||{};
+    $('companyTitle').textContent=r.company?.nombreEmpresa||'Panel Central';
+    $('syncText').textContent=syncLabel(r.company?.syncedAt);
+    $('mChats').textContent=s.chats??0;
+    $('mOrders').textContent=s.activeOrders??0;
+    $('mQuotes').textContent=s.pendingQuotes??0;
+    $('mHuman').textContent=s.humanAttention??0;
+    $('mPayments').textContent=s.pendingPayment??0;
+    if(noticeData)paintNotices(noticeData);
+  }
+
+  function labelColumn(c){
+    return String(c||'')
+      .replaceAll('_',' ')
+      .replace(/\b\w/g,m=>m.toUpperCase());
+  }
+
+  function renderGenericTable(target, items, preferredColumns){
+    const box=$(target);
+
+    if(!items.length){
+      box.innerHTML='<div class="empty">No hay datos para mostrar.</div>';
+      return;
+    }
+
+    const allKeys=[...new Set(items.flatMap(x=>Object.keys(x||{})))];
+    const columns=[
+      ...preferredColumns.filter(x=>allKeys.includes(x)),
+      ...allKeys.filter(x=>!preferredColumns.includes(x)).slice(0,5)
+    ].slice(0,8);
+
+    const desktop=`
+      <table>
+        <thead><tr>${columns.map(c=>`<th>${esc(labelColumn(c))}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${items.map(row=>`
+            <tr>
+              ${columns.map(c=>{
+                const value=row?.[c]??'';
+                const long=String(value).length>42;
+                return `<td class="${long?'wrap':''}">${esc(value)}</td>`;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+
+    const mobile=`
+      <div class="mobile-records">
+        ${items.map(row=>`
+          <article class="mobile-record">
+            ${columns.map(c=>{
+              const value=row?.[c]??'';
+              if(String(value).trim()==='')return '';
+              return `<div class="row"><div class="key">${esc(labelColumn(c))}</div><div class="val">${esc(value)}</div></div>`;
+            }).join('')}
+          </article>
+        `).join('')}
+      </div>`;
+
+    box.innerHTML=desktop+mobile;
+  }
+
+  function chatModeBadge(chat){
+    const human=String(chat.modo||'').toUpperCase()==='HUMANO';
+    const windowOpen=!!chat.ventana24hAbierta;
+    return `
+      <span class="status ${human?'warn':'good'}">${human?'Humano':'Bot'}</span>
+      <span class="status ${windowOpen?'good':'bad'}">${windowOpen?'24 h abierta':'24 h cerrada'}</span>
+    `;
+  }
+
+  function renderInbox(items){
+    const box=$('conversationItems');
+    $('countConversations') && ($('countConversations').textContent=(items.length||0)+' chats');
+
+    if(!items.length){
+      box.innerHTML='<div class="empty">No hay conversaciones para mostrar.</div>';
+      return;
+    }
+
+    box.innerHTML=items.map(chat=>{
+      const active=selectedChat&&selectedChat.idCliente===chat.idCliente;
+      return `
+        <article class="conversation-item ${active?'active':''}" onclick="openConversation('${esc(chat.idCliente)}')">
+          <div class="conversation-item-top">
+            <div class="conversation-name">${esc(chat.nombre||chat.telefono||chat.idCliente)} <span class="notice-badge" data-chat-notice="${esc(chat.idCliente)}" hidden></span></div>
+            <div class="conversation-date">${esc(chat.fechaUltimo||'')}</div>
+          </div>
+          <div class="conversation-last">${esc(chat.ultimoMensaje||'')}</div>
+          <div class="conversation-badges">${chatModeBadge(chat)}</div>
+        </article>`;
+    }).join('');
+  }
+
+  function scheduleInboxSearch(){
+    clearTimeout(inboxSearchTimer);
+    inboxSearchTimer=setTimeout(()=>loadConversationsLive(),350);
+  }
+
+  setInterval(()=>{
+    if(!companyId||document.hidden)return;
+    if(currentTab==='orders')loadOrders().catch(()=>{});
+    if(currentTab==='delivery')loadDelivery().catch(()=>{});
+    if(currentTab==='receipts'&&!receiptActionBusy&&!document.querySelector('[id^=receiptSelect]'))loadReceipts().catch(()=>{});
+  },5000);
+
+  async function loadConversations(){
+    await loadConversationsLive();
+    clearInterval(inboxTimer);
+    inboxTimer=setInterval(()=>{
+      if(currentTab==='conversations'&&!document.hidden){
+        loadConversationsLive(true).catch(()=>{});
+        if(selectedChat){
+          refreshSelectedThread(true).catch(()=>{});
+        }
+      }
+    },5000);
+  }
+
+  async function loadConversationsLive(silent=false){
+    if(inboxBusy)return;
+    inboxBusy=true;
+    const inboxCompany=companyId;
+    try{
+      const filter=$('chatFilter')?.value||'TODOS';
+      const q=$('chatSearch')?.value||'';
+      const r=await api(
+        `/api/company/${encodeURIComponent(companyId)}/inbox-live?filter=${encodeURIComponent(filter)}&q=${encodeURIComponent(q)}`
+      );
+      if(inboxCompany!==companyId)return;
+      renderInbox(r.items||[]);
+      if(noticeData)paintNotices(noticeData);
+    }catch(err){
+      if(!silent)throw err;
+    }finally{
+      inboxBusy=false;
+    }
+  }
+
+  async function openConversation(idCliente){
+    selectedChat={idCliente};
+    $('chatPane').classList.add('mobile-open');
+    $('chatEmpty').classList.add('hidden');
+    $('chatContent').classList.remove('hidden');
+    await refreshSelectedThread(false);
+    await loadConversationsLive(true);
+  }
+
+  function closeChatMobile(){
+    $('chatPane').classList.remove('mobile-open');
+  }
+
+  function renderThread(r,stickToBottom=true){
+    selectedChat={
+      ...(selectedChat||{}),
+      ...(r.chat||{})
+    };
+
+    const chat=selectedChat;
+    $('chatClientName').textContent=chat.nombre||chat.telefono||chat.idCliente||'Cliente';
+    $('chatClientMeta').textContent=[chat.telefono||'',chat.modo==='HUMANO'?'Atención humana':'Atiende el bot'].filter(Boolean).join(' · ');
+
+    const human=String(chat.modo||'').toUpperCase()==='HUMANO';
+    $('takeChatBtn').classList.toggle('hidden',human);
+    $('returnBotBtn').classList.toggle('hidden',!human);
+    $('chatComposer').disabled=!human||!chat.ventana24hAbierta;
+    $('sendChatBtn').disabled=!human||!chat.ventana24hAbierta;
+
+    $('composerNote').textContent=!human
+      ?'Tomá la conversación para pausar la IA y responder como humano.'
+      :(!chat.ventana24hAbierta
+        ?'La ventana de 24 horas está cerrada. WhatsApp no permite texto libre hasta que el cliente vuelva a escribir.'
+        :'IA pausada para este cliente. Tus mensajes salen por el WhatsApp del negocio.');
+
+    $('chatAttachments').innerHTML=(r.attachments||[]).map(a=>receiptFileLink(a)).join('');
+    const messages=r.messages||[];
+    const box=$('chatMessages');
+    box.innerHTML=messages.length?messages.map(m=>{
+      const tipo=String(m.tipo||'').toUpperCase();
+      const incoming=tipo==='CLIENTE';
+      const label=incoming?'Cliente':(tipo==='VENDEDOR'?'Humano':'Bot');
+      return `<div class="bubble-row ${incoming?'in':'out'}"><div class="bubble"><div class="bubble-meta">${esc(label)} · ${esc(m.fecha||'')}</div><div class="bubble-text">${esc(m.mensaje||'')}</div></div></div>`;
+    }).join(''):'<div class="empty">Todavía no hay mensajes.</div>';
+    displayedThread={company:companyId,client:selectedChat.idCliente,id:String(r.lastMessageId||'0')};
+    requestAnimationFrame(()=>{if(stickToBottom){box.scrollTop=box.scrollHeight;acknowledgeDisplayedThread();}});
+  }
+
+  let threadRequest=0;
+  async function refreshSelectedThread(silent=false){
+    if(!selectedChat?.idCliente)return;
+    const company=companyId,client=selectedChat.idCliente,request=++threadRequest;
+    const box=$('chatMessages');
+    const stick=!silent || box.scrollHeight-box.scrollTop-box.clientHeight<60;
+    const oldScroll=box.scrollTop;
+    try{
+      const r=await api(`/api/company/${encodeURIComponent(company)}/conversation/${encodeURIComponent(client)}/thread?limit=70`);
+      if(request!==threadRequest || company!==companyId || client!==selectedChat?.idCliente || currentTab!=='conversations')return;
+      renderThread(r,stick);
+      if(!stick)box.scrollTop=oldScroll;
+    }catch(err){if(!silent)throw err;}
+  }
+
+  async function takeConversation(){
+    if(!selectedChat?.idCliente)return;
+    showLoading(true);
+    try{
+      await api(
+        `/api/company/${encodeURIComponent(companyId)}/conversation/${encodeURIComponent(selectedChat.idCliente)}/take`,
+        {method:'POST',body:'{}'}
+      );
+      await refreshSelectedThread(false);
+      await loadConversationsLive(true);
+    }catch(err){showNotice(err.message||String(err))}
+    finally{showLoading(false)}
+  }
+
+  async function returnConversationToBot(){
+    if(!selectedChat?.idCliente)return;
+
+    showLoading(true);
+    try{
+      await api(
+        `/api/company/${encodeURIComponent(companyId)}/conversation/${encodeURIComponent(selectedChat.idCliente)}/return-bot`,
+        {method:'POST',body:'{}'}
+      );
+      await refreshSelectedThread(false);
+      await loadConversationsLive(true);
+    }catch(err){showNotice(err.message||String(err))}
+    finally{showLoading(false)}
+  }
+
+  function appendPendingHumanBubble(message){
+    const box=$('chatMessages');
+    if(!box)return null;
+
+    const id=
+      'pending-'+
+      Date.now()+
+      '-'+
+      Math.random().toString(36).slice(2,8);
+
+    const row=document.createElement('div');
+    row.className='bubble-row out';
+    row.dataset.pendingId=id;
+    row.innerHTML=
+      `<div class="bubble">
+        <div class="bubble-meta">Humano · enviando…</div>
+        <div class="bubble-text">${esc(message)}</div>
+      </div>`;
+
+    const empty=box.querySelector('.empty');
+    if(empty)empty.remove();
+
+    box.appendChild(row);
+    box.scrollTop=box.scrollHeight;
+    return id;
+  }
+
+  function setPendingBubbleStatus(id,status){
+    if(!id)return;
+    const row=document.querySelector(`[data-pending-id="${CSS.escape(id)}"]`);
+    if(!row)return;
+
+    const meta=row.querySelector('.bubble-meta');
+    if(!meta)return;
+
+    if(status==='sent'){
+      meta.textContent='Humano · enviado ✓';
+    }else if(status==='error'){
+      meta.textContent='Humano · error al enviar';
+    }
+  }
+
+  async function sendConversationMessage(){
+    if(!selectedChat?.idCliente)return;
+    if(sendMessageBusy)return;
+
+    const input=$('chatComposer');
+    const btn=$('sendChatBtn');
+    const message=input.value.trim();
+    if(!message)return;
+
+    const duplicateKey=
+      String(selectedChat.idCliente||'')+
+      '|' +
+      message.toLowerCase();
+
+    const now=Date.now();
+
+    if(
+      lastSentMessage.key===duplicateKey &&
+      now-lastSentMessage.at<8000
+    ){
+      showNotice('Ese mismo mensaje ya se acaba de enviar. Esperá unos segundos antes de repetirlo.');
+      return;
+    }
+
+    sendMessageBusy=true;
+    lastSentMessage={
+      key:duplicateKey,
+      at:now
+    };
+
+    const originalButtonText=btn.textContent;
+    const pendingId=appendPendingHumanBubble(message);
+
+    // Feedback inmediato: así el usuario ve que el click fue tomado.
+    input.value='';
+    input.disabled=true;
+    btn.disabled=true;
+    btn.textContent='Enviando…';
+
+    try{
+      const result=await api(
+        `/api/company/${encodeURIComponent(companyId)}/conversation/${encodeURIComponent(selectedChat.idCliente)}/send`,
+        {
+          method:'POST',
+          body:JSON.stringify({
+            message,
+            clientRequestId:
+              'web-'+
+              now+
+              '-'+
+              Math.random().toString(36).slice(2,10)
+          })
+        }
+      );
+
+      setPendingBubbleStatus(pendingId,'sent');
+      btn.textContent=
+        result?.duplicateSuppressed
+          ?'Ya enviado ✓'
+          :'Enviado ✓';
+
+      // El bridge guarda la conversación antes de responder.
+      // Una pequeña pausa evita que el refresco visual "pise" el feedback.
+      await new Promise(resolve=>setTimeout(resolve,650));
+
+      await refreshSelectedThread(true);
+      await loadConversationsLive(true);
+
+      setTimeout(()=>{
+        if(btn){
+          btn.textContent='Enviar';
+        }
+      },900);
+
+    }catch(err){
+      setPendingBubbleStatus(pendingId,'error');
+
+      // Restauramos el texto para que el usuario no tenga que escribirlo de nuevo.
+      if(!input.value){
+        input.value=message;
+      }
+
+      btn.textContent='Reintentar';
+      showNotice(err.message||String(err));
+
+    }finally{
+      sendMessageBusy=false;
+      input.disabled=!(selectedChat&&selectedChat.modo==='HUMANO'&&selectedChat.ventana24hAbierta);
+      btn.disabled=!(selectedChat&&selectedChat.modo==='HUMANO'&&selectedChat.ventana24hAbierta);
+
+      if(btn.textContent==='Enviando…'){
+        btn.textContent=originalButtonText||'Enviar';
+      }
+    }
+  }
+
+  function money(value){
+    return new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}).format(Number(value||0));
+  }
+
+  function ago(value){
+    const ms=new Date(value||0).getTime();
+    if(!Number.isFinite(ms)||!ms)return '—';
+    const min=Math.max(0,Math.floor((Date.now()-ms)/60000));
+    if(min<1)return 'recién';
+    if(min<60)return `${min} min`;
+    const h=Math.floor(min/60),rest=min%60;
+    return rest?`${h} h ${rest} min`:`${h} h`;
+  }
+
+  function orderButtons(order){
+    const state=String(order.estadoPedido||'').toUpperCase();
+    const payment=String(order.estadoPago||'').toUpperCase();
+    const delivery=String(order.tipoEntrega||'').toUpperCase()==='DELIVERY';
+    const buttons=[];
+
+    if(state!=='CANCELADO'&&['PENDIENTE','COMPROBANTE_RECIBIDO','RECHAZADO'].includes(payment)){
+      buttons.push(
+        `<button class="soft" onclick="orderAction('${esc(order.idPedido)}','CONFIRMAR_PAGO')">✓ Confirmar pago</button>`,
+        `<button class="warn" onclick="orderAction('${esc(order.idPedido)}','RECHAZAR_PAGO')">Rechazar pago</button>`
+      );
+    }
+    if(state==='PENDIENTE_PREPARACION'){
+      buttons.push(`<button class="primary" onclick="orderAction('${esc(order.idPedido)}','PREPARANDO')">👨‍🍳 Empezar preparación</button>`);
+    }
+    if(state==='PREPARANDO'){
+      buttons.push(`<button class="primary" onclick="orderAction('${esc(order.idPedido)}','LISTO_RETIRO')">✅ Marcar listo</button>`);
+    }
+    if(state==='LISTO_RETIRO'){
+      buttons.push(
+        delivery
+          ? `<button class="primary" onclick="orderAction('${esc(order.idPedido)}','EN_CAMINO')">🚚 Salió delivery</button>`
+          : `<button class="primary" onclick="orderAction('${esc(order.idPedido)}','ENTREGADO')">✓ Entregado</button>`
+      );
+    }
+    if(state==='EN_CAMINO'){
+      buttons.push(`<button class="primary" onclick="orderAction('${esc(order.idPedido)}','ENTREGADO')">✓ Entregado</button>`);
+    }
+    if(!['ENTREGADO','CANCELADO'].includes(state)){
+      buttons.push(`<button class="danger" onclick="orderAction('${esc(order.idPedido)}','CANCELADO')">Cancelar</button>`);
+    }
+    return buttons.join('');
+  }
+
+  function renderOrders(items){
+    const box=$('ordersTable');
+    if(!items.length){
+      box.innerHTML='<div class="empty">No hay pedidos activos.</div>';
+      return;
+    }
+
+    box.innerHTML=items.map(order=>{
+      const state=String(order.estadoPedido||'').toUpperCase();
+      const delivery=String(order.tipoEntrega||'').toUpperCase();
+      const address=String(order.direccion||'').trim();
+
+      return `
+        <article class="order-card">
+          <div class="order-card-head">
+            <div>
+              <div class="order-id">🧾 ${esc(order.idPedido||'Pedido')}</div>
+              <div class="order-client">${esc(order.nombreCliente||order.idCliente||'Cliente')}</div>
+            </div>
+            <div class="order-time">⏱ ${esc(ago(order.fecha))}</div>
+          </div>
+          <span class="status-chip">${esc(state||'SIN ESTADO')}</span>
+          <div class="order-products">${esc(order.productos||'Sin detalle')}</div>
+          <div class="order-total">$${money(order.total)}</div>
+          <div class="order-meta">
+            <div><strong>Pago</strong><br>${esc(order.medioPago||'—')} · ${esc(order.estadoPago||'—')}</div>
+            <div><strong>Entrega</strong><br>${esc(delivery||'—')}</div>
+            ${address?`<div style="grid-column:1/-1"><strong>Dirección</strong><br>${esc(address)}</div>`:''}
+            ${Number(order.costoDelivery||0)>0?`<div><strong>Delivery</strong><br>$${money(order.costoDelivery)}</div>`:''}
+          </div>
+          <div class="order-actions">${orderButtons(order)}</div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  async function orderAction(orderId,action){
+    if(action==='CANCELADO'&&!confirm('¿Cancelar este pedido?'))return;
+    if(action==='RECHAZAR_PAGO'&&!confirm('¿Marcar el pago como rechazado?'))return;
+
+    const r=await api(
+      `/api/company/${encodeURIComponent(companyId)}/pedidos/${encodeURIComponent(orderId)}/action`,
+      {method:'POST',body:JSON.stringify({action})}
+    );
+
+    if(r.notification?.warning){
+      showNotice('El estado se guardó, pero WhatsApp no pudo avisar al cliente: '+r.notification.warning);
+    }
+
+    await loadOrders();
+    pollNotifications();
+  }
+
+  async function loadOrders(){
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/pedidos?filter=PENDIENTES`);
+    $('countOrders').textContent=(r.total||0)+' pendientes';
+    renderOrders(r.items||[]);
+  }
+
+  let deliveryViewCompany='';
+  let deliveryLoadSequence=0;
+  const deliverySubmitting=new Set();
+
+  function resetDeliveryView(){
+    deliveryViewCompany=companyId;
+    deliveryLoadSequence++;
+    $('deliveryTable').replaceChildren();
+    $('countDelivery').textContent='';
+  }
+
+  function renderDeliveryQuotes(items){
+    const box=$('deliveryTable');
+    if(deliveryViewCompany!==companyId)resetDeliveryView();
+    if(!items.length){
+      box.innerHTML='<div class="empty">No hay deliveries pendientes de cotizar.</div>';
+      return;
+    }
+
+    const markup=items.map(q=>`
+      <article class="order-card" data-quote-id="${esc(q.idCotizacion)}">
+        <div class="order-card-head">
+          <div>
+            <div class="order-id">🚚 ${esc(q.idCotizacion||'Delivery')}</div>
+            <div class="order-client">${esc(q.nombreCliente||q.idCliente||'Cliente')}</div>
+          </div>
+          <span class="status-chip">PENDIENTE</span>
+        </div>
+        <div class="order-meta">
+          <div style="grid-column:1/-1"><strong>Dirección</strong><br>${esc(q.direccion||'—')}</div>
+        </div>
+        <div class="order-products">${esc(q.pedidoResumen||'Sin detalle')}</div>
+        <div class="order-total">Productos: $${money(q.subtotal)}</div>
+        <div class="quote-cost-row">
+          <input id="quote-${esc(q.idCotizacion)}" type="number" min="0" placeholder="Costo delivery">
+          <button class="btn btn-primary" onclick="quoteDelivery('${esc(q.idCotizacion)}')">Cotizar</button>
+        </div>
+      </article>
+    `).join('');
+    // Keep existing input nodes, their values and focus while polling new data.
+    const template=document.createElement('template');
+    template.innerHTML=markup;
+    const existing=new Map([...box.querySelectorAll('[data-quote-id]')].map(card=>[card.dataset.quoteId,card]));
+    box.querySelectorAll('.empty').forEach(el=>el.remove());
+    const activeIds=new Set();
+    for(const fresh of template.content.children){
+      const id=fresh.dataset.quoteId;
+      activeIds.add(id);
+      const card=existing.get(id);
+      if(!card){box.appendChild(fresh.cloneNode(true));continue;}
+      for(const selector of ['.order-card-head','.order-meta','.order-products','.order-total']){
+        const target=card.querySelector(selector),source=fresh.querySelector(selector);
+        if(target.innerHTML!==source.innerHTML)target.innerHTML=source.innerHTML;
+      }
+    }
+    for(const [id,card] of existing)if(!activeIds.has(id))card.remove();
+  }
+
+  async function quoteDelivery(quoteId){
+    const targetCompany=companyId;
+    const key=JSON.stringify([targetCompany,quoteId]);
+    if(deliverySubmitting.has(key)||deliveryViewCompany!==targetCompany)return;
+    const input=$(`quote-${quoteId}`);
+    const raw=input?.value.trim()||'';
+    const cost=Number(raw);
+    if(!raw||!Number.isFinite(cost)||cost<0){
+      showNotice('Ingresá un costo de delivery válido. Si es gratis, escribí 0.');
+      return;
+    }
+
+    deliverySubmitting.add(key);
+    const button=input.parentElement.querySelector('button');
+    button.disabled=true;button.textContent='Guardando…';
+    deliveryLoadSequence++;
+    try{
+      await api(
+        `/api/company/${encodeURIComponent(targetCompany)}/deliveryQuotes/${encodeURIComponent(quoteId)}/quote`,
+        {method:'POST',body:JSON.stringify({cost})}
+      );
+    }catch(error){
+      if(companyId===targetCompany)showNotice('No se pudo cotizar: '+error.message);
+      return;
+    }finally{
+      deliverySubmitting.delete(key);
+      button.disabled=false;button.textContent='Cotizar';
+    }
+    if(companyId!==targetCompany)return;
+    // Only clear the successful quote; preserve every other price being edited.
+    input.closest('[data-quote-id]')?.remove();
+    try{await loadDelivery();}catch(error){showNotice('La cotización se guardó, pero no se pudo actualizar la lista. Tocá Actualizar.');}
+    pollNotifications();
+  }
+
+  async function loadDelivery(){
+    if(deliveryViewCompany!==companyId)resetDeliveryView();
+    const targetCompany=companyId;
+    const sequence=++deliveryLoadSequence;
+    const r=await api(`/api/company/${encodeURIComponent(targetCompany)}/deliveryQuotes`);
+    if(companyId!==targetCompany||sequence!==deliveryLoadSequence)return;
+    $('countDelivery').textContent=(r.total||0)+' pendientes';
+    renderDeliveryQuotes(r.items||[]);
+  }
+
+  async function loadCustomers(){
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/clientes`);
+    $('syncText').textContent=syncLabel(r.syncedAt);
+    $('countCustomers').textContent=(r.total||0)+' clientes';
+    renderGenericTable(
+      'customersTable',
+      r.items||[],
+      ['ID_CLIENTE','NOMBRE','TELEFONO','EMAIL','ESTADO','ULTIMA_INTERACCION']
+    );
+  }
+
+
+  async function refreshCompanies(){
+    const r=await api('/api/companies');
+    companies=r.items||[];
+    const select=$('companySelect');
+    const previous=companyId;
+    select.innerHTML=companies.map(c=>`<option value="${esc(c.idEmpresa)}">${esc(c.nombreEmpresa)}</option>`).join('');
+    companyId=companies.some(c=>c.idEmpresa===previous)?previous:(companies[0]?.idEmpresa||'');
+    select.value=companyId;
+    updateModuleNavigation();
+    fillAdminCompanySelect();
+  }
+
+  let businessRevision=null;
+  async function loadBusiness(){
+    const target=companyId;
+    const r=await api(`/api/company/${encodeURIComponent(companyId)}/profile`);
+    if(target!==companyId)return;
+    businessRevision=r.revision;
+    const e=r.empresa||{};
+    const c=r.config||{};
+    const m=r.modulos||{};
+    $('bizName').value=c.NOMBRE_EMPRESA||e.nombreEmpresa||'';
+    $('bizType').value=c.TIPO_NEGOCIO||e.tipoNegocio||'MIXTO';
+    $('bizPhone').value=c.TELEFONO||'';
+    $('bizAddress').value=c.DIRECCION||'';
+    $('bizEmail').value=c.EMAIL||'';
+    $('bizPhoneNumberId').value=e.phoneNumberId||'';
+    $('modVentas').checked=!!m.ventas;
+    $('modGastro').checked=!!m.gastro;
+    $('modEventos').checked=!!m.eventos;
+    $('modServicios').checked=!!m.servicios;
+    const isSuper=String(currentUser?.role||'').toUpperCase()==='SUPERADMIN';
+    ['modVentas','modGastro','modEventos','modServicios'].forEach(id=>$(id).disabled=!isSuper);
+    $('moduleHelp').textContent=isSuper
+      ?'Como Super Admin podés activar o desactivar módulos del plan.'
+      :'Los módulos de tu plan los administra DLL ONE.';
+  }
+
+  async function saveBusiness(){
+    const button=$('saveBusinessButton');
+    const status=$('businessSaveStatus');
+    if(button.disabled)return;
+    status.style.color='#a32626';
+    if(!$('bizName').value.trim()){
+      status.textContent='Ingresá el nombre comercial.';return;
+    }
+    const email=$('bizEmail');
+    if(email.value.trim() && !email.checkValidity()){
+      status.textContent='Revisá el email: debe incluir @ y un dominio, o dejalo vacío.';
+      email.reportValidity();return;
+    }
+    const selectedCompany=companyId;
+    const isSuper=String(currentUser?.role||'').toUpperCase()==='SUPERADMIN';
+    if(businessRevision===null){status.textContent='Cargá la configuración antes de guardar.';return;}
+    const body={revision:businessRevision,
+      NOMBRE_EMPRESA:$('bizName').value.trim(), TIPO_NEGOCIO:$('bizType').value,
+      TELEFONO:$('bizPhone').value.trim(), DIRECCION:$('bizAddress').value.trim(), EMAIL:email.value.trim()
+    };
+    if(isSuper){
+      body.PHONE_NUMBER_ID=$('bizPhoneNumberId').value.trim();
+      body.modulos={ventas:$('modVentas').checked,gastro:$('modGastro').checked,
+        eventos:$('modEventos').checked,servicios:$('modServicios').checked};
+    }
+    button.disabled=true;button.textContent='Guardando…';
+    status.style.color='#40523d';status.textContent='Guardando los datos del negocio…';
+    try{
+      const result=await api(`/api/company/${encodeURIComponent(selectedCompany)}/profile`,{method:'POST',body:JSON.stringify(body)});
+      if(selectedCompany!==companyId)return;
+      businessRevision=result.revision;
+      status.style.color='#28652a';
+      status.textContent=result.warning || 'Datos guardados. La ubicación ya está disponible para las próximas consultas por WhatsApp.';
+      try{await refreshCompanies();}catch(error){
+        status.textContent='Datos guardados. No se pudo actualizar el listado; recargá el panel.';
+      }
+    }catch(error){
+      status.style.color='#a32626';
+      status.textContent='No se pudo confirmar el guardado: '+(error?.message||error)+
+        ' Si hubo una demora, recargá el perfil para comprobar los datos antes de reintentar.';
+    }finally{
+      button.disabled=false;button.textContent='Guardar cambios';
+    }
+  }
+
+  function clearCatalogForm(){
+    $('catRow').value='';$('catPriceMode').value='FIJO';$('catActive').value='SI';
+    $('catCode').value='';
+    $('catType').value='PRODUCTO';
+    $('catName').value='';
+    $('catDescription').value='';
+    $('catPrice').value='';
+    $('catUnit').value='unidad';
+    $('catCategory').value='';
+    $('catBrand').value='';
+  }
+
+  function editCatalogItem(index){
+    const x=catalogItems[index];
+    if(!x)return;
+    $('catRow').value=x.id||'';$('catPriceMode').value=x.modoPrecio||'FIJO';$('catActive').value=x.activo||'SI';
+    $('catCode').value=x.codigo||'';
+    $('catType').value=x.tipoItem||'PRODUCTO';
+    $('catName').value=x.nombre||'';
+    $('catDescription').value=x.descripcion||'';
+    $('catPrice').value=x.precio??'';
+    $('catUnit').value=x.unidad||'unidad';
+    $('catCategory').value=x.categoria||'';
+    $('catBrand').value=x.marca||'';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function renderCatalog(){
+    $('catalogCount').textContent=`${catalogItems.length} items`;
+    const box=$('catalogList');
+    if(!catalogItems.length){
+      box.innerHTML='<div class="empty">Todavía no hay productos o servicios.</div>';
+      return;
+    }
+    box.innerHTML=catalogItems.map((x,i)=>`
+      <div class="data-row">
+        <div class="data-row-main">
+          <strong>${esc(x.nombre||'')}${x.activo==='NO'?' · Inactivo':''}</strong>
+          <small>${esc([x.codigo,x.categoria,x.marca].filter(Boolean).join(' · '))}${x.descripcion?'<br>'+esc(x.descripcion):''}</small>
+        </div>
+        <div class="data-row-side">${x.modoPrecio==='A_COTIZAR'?'A cotizar':money(x.precio)}<br><button class="btn btn-light btn-sm" onclick="editCatalogItem(${i})">Editar</button></div>
+      </div>`).join('');
+  }
+
+  async function loadCatalog(){
+    const target=companyId;salesRevision=null;
+    $('salesStatus').textContent='Cargando la lista…';
+    try{const r=await api(`/api/company/${encodeURIComponent(target)}/catalog`);if(target!==companyId)return;
+      catalogItems=r.items||[];salesRevision=r.revision;renderCatalog();clearCatalogForm();$('salesStatus').textContent='Lista guardada en el panel.';
+    }catch(err){if(target===companyId)$('salesStatus').textContent='No se pudo cargar: '+err.message;}
+  }
+
+  async function saveCatalogItem(){
+    if(salesBusy)return;
+    if(salesRevision===null){showNotice('Primero cargá la lista existente.');return;}
+    const target=companyId;
+    const item={id:$('catRow').value||undefined,revision:salesRevision,
+      codigo:$('catCode').value.trim(),tipoItem:$('catType').value,nombre:$('catName').value.trim(),
+      descripcion:$('catDescription').value.trim(),precio:$('catPrice').value,
+      modoPrecio:$('catPriceMode').value,unidad:$('catUnit').value.trim()||'unidad',
+      categoria:$('catCategory').value.trim(),marca:$('catBrand').value.trim(),activo:$('catActive').value};
+    if(item.modoPrecio==='A_COTIZAR'&&item.precio==='')item.precio=0;
+    salesBusy=true;$('salesStatus').textContent='Guardando…';
+    try{const r=await api(`/api/company/${encodeURIComponent(target)}/catalog/item`,{method:'POST',body:JSON.stringify(item)});
+      if(target!==companyId)return;
+      catalogItems=r.items;salesRevision=r.revision;renderCatalog();clearCatalogForm();$('salesStatus').textContent='Producto guardado.';
+    }catch(err){if(target===companyId)$('salesStatus').textContent='No se guardó: '+err.message;}
+    finally{salesBusy=false;}
+  }
+
+  function fileToBase64(file){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(String(reader.result||'').split(',').pop()||'');
+      reader.onerror=()=>reject(new Error('No pude leer el archivo.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function importCatalogFile(){
+    if(salesBusy)return;
+    if(salesRevision===null){showNotice('Primero cargá la lista existente.');return;}
+    const file=$('catalogFile').files?.[0];
+    if(!file){showNotice('Seleccioná un archivo Excel o CSV.');return;}
+    if(!confirm(`¿Importar ${file.name}? Los códigos existentes se actualizarán y los nuevos se agregarán.`))return;
+    const target=companyId,revision=salesRevision;salesBusy=true;showLoading(true);
+    try{
+      const base64=await fileToBase64(file);if(target!==companyId)return;
+      const r=await api(`/api/company/${encodeURIComponent(target)}/catalog/import-file`,{method:'POST',body:JSON.stringify({filename:file.name,base64,revision})});
+      if(target!==companyId)return;
+      catalogItems=r.items;salesRevision=r.revision;renderCatalog();clearCatalogForm();
+      $('catalogFile').value='';$('salesStatus').textContent=`Importación terminada: ${r.guardados} filas procesadas.`;
+    }catch(err){if(target===companyId)$('salesStatus').textContent='No se importó: '+err.message;}
+    finally{salesBusy=false;showLoading(false);}
+  }
+
+  let gastroRevision=null;
+  const gastroEdits={};
+  const gastroKinds={category:['categorias','idCategoria','activa'],product:['productos','idProducto','activo'],variant:['variantes','idVariante','activa'],extra:['extras','idExtra','activo']};
+  const gastroFields={category:{nombre:'gCatName',orden:'gCatOrder'},product:{nombre:'gProductName',idCategoria:'gProductCategory',descripcion:'gProductDescription',precioBase:'gProductPrice',orden:'gProductOrder'},variant:{nombre:'gVariantName',idProducto:'gVariantProduct',precio:'gVariantPrice'},extra:{nombre:'gExtraName',precio:'gExtraPrice'}};
+  function resetGastroForm(kind){
+    delete gastroEdits[kind];
+    for(const [key,id] of Object.entries(gastroFields[kind]))$(id).value=key==='orden'?'10':'';
+    if(kind==='product')$('gProductSoldOut').checked=false;
+    $('gTitle'+kind).textContent={category:'Categoría',product:'Producto',variant:'Variante',extra:'Extra'}[kind];
+  }
+  function resetGastroForms(){Object.keys(gastroFields).forEach(resetGastroForm);gastroRevision=null;}
+  function editGastroItem(kind,index){
+    const [key]=gastroKinds[kind],item=gastroData[key][index];gastroEdits[kind]={...item};
+    for(const [field,id] of Object.entries(gastroFields[kind]))$(id).value=item[field]??'';
+    if(kind==='product')$('gProductSoldOut').checked=item.agotado==='SI';
+    $('gTitle'+kind).textContent='Editar: '+item.nombre;
+    $(gastroFields[kind].nombre).focus();
+  }
+  function renderGastro(){
+    const cats=gastroData.categorias||[],products=gastroData.productos||[];
+    const oldCat=$('gProductCategory').value,oldProduct=$('gVariantProduct').value;
+    $('gProductCategory').innerHTML='<option value="">Sin categoría</option>'+cats.map(x=>`<option value="${esc(x.idCategoria)}">${esc(x.nombre)}</option>`).join('');
+    $('gVariantProduct').innerHTML='<option value="">Elegí un producto</option>'+products.map(x=>`<option value="${esc(x.idProducto)}">${esc(x.nombre)}</option>`).join('');
+    $('gProductCategory').value=oldCat;$('gVariantProduct').value=oldProduct;
+    const render=(kind)=>{const [key,id,active]=gastroKinds[kind];return (gastroData[key]||[]).map((x,i)=>`<div class="data-row"><div class="data-row-main"><strong>${esc(x.nombre)}</strong><small>${kind==='category'?'Categoría':kind==='variant'?'Variante':kind==='extra'?'Extra':'Producto'} · ${x[active]==='SI'?'Activo':'Inactivo'} ${x.agotado==='SI'?'· Agotado':''}</small>${kind==='category'?'':money(x.precioBase??x.precio)}</div><div class="data-row-side"><button class="btn-xs" onclick="editGastroItem('${kind}',${i})">Editar</button><button class="btn-xs" onclick="toggleGastroItem('${kind}',${i})">${x[active]==='SI'?'Desactivar':'Activar'}</button></div></div>`).join('');};
+    $('gCategoriesList').innerHTML=render('category')||'<div class="empty">Sin categorías.</div>';
+    $('gProductsList').innerHTML=render('product')||'<div class="empty">Sin productos.</div>';
+    $('gOptionsList').innerHTML=(render('variant')+render('extra'))||'<div class="empty">Sin variantes ni extras.</div>';
+  }
+  let gastroSaving=false;
+  async function persistGastroItem(kind,data,clear=false){
+    if(gastroSaving)return;
+    if(gastroRevision===null){showNotice('Primero cargá Gastro.');return;}
+    gastroSaving=true;showLoading(true);const target=companyId;
+    try{
+      await api(`/api/company/${encodeURIComponent(target)}/gastro/${kind}`,{method:'POST',body:JSON.stringify({...data,revision:gastroRevision})});
+      if(target!==companyId)return;
+      if(clear)resetGastroForm(kind);
+      await loadGastro();
+      showNotice('Guardado. El bot usará el catálogo actualizado.');
+    }catch(err){showNotice(err.message||String(err));}finally{gastroSaving=false;showLoading(false);}
+  }
+  async function toggleGastroItem(kind,index){
+    const [key,id,active]=gastroKinds[kind],item=gastroData[key][index];
+    await persistGastroItem(kind,{...item,[active]:item[active]==='SI'?'NO':'SI'});
+  }
+
+  let settingsRevision=null,settingsSaving=false;
+  function acceptGastroSettings(r){
+    settingsRevision=r.settingsRevision;
+    gastroSettingsData={menu:r.menu,pagos:r.pagos,entrega:r.entrega};
+    $('gSettingsFields').disabled=false;renderGastroSettings();
+  }
+  async function loadGastro(){
+    const target=companyId;
+    $('gMigrationDetails').replaceChildren();$('gMigrationStatus').textContent='Verificando copia de Gastro…';
+    gastroRevision=null;settingsRevision=null;
+    $('gCatalogFields').disabled=true;$('gSettingsFields').disabled=true;
+    $('gCatalogStatus').textContent='Cargando productos…';$('gSettingsStatus').textContent='Cargando cobro, entrega e imágenes…';
+    await Promise.allSettled([
+      (async()=>{try{
+        const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/bundle`);if(target!==companyId)return;
+        gastroRevision=r.revision;gastroData={categorias:r.categorias||[],productos:r.productos||[],variantes:r.variantes||[],extras:r.extras||[]};
+        renderGastro();$('gCatalogFields').disabled=false;$('gCatalogStatus').textContent='Productos y precios listos.';
+      }catch(err){if(target===companyId){gastroData={categorias:[],productos:[],variantes:[],extras:[]};renderGastro();$('gCatalogStatus').textContent='Productos: '+(err.message||err);}}})(),
+      (async()=>{try{
+        const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/settings`);if(target!==companyId)return;
+        acceptGastroSettings(r);$('gSettingsStatus').textContent='Cobro, entrega e imágenes listos.';
+      }catch(err){if(target===companyId){gastroSettingsData={menu:{imagenes:[]},pagos:{items:[]},entrega:{zonas:[]}};renderGastroSettings();$('gSettingsStatus').textContent='Configuración: '+(err.message||err);}}})()
+    ]);
+    if(target===companyId)await loadGastroMigration();
+  }
+  function renderGastroSettings(){
+    const {menu={},pagos={},entrega={}}=gastroSettingsData;
+    $('gMenuAuto').checked=menu.auto!==false;
+    $('gDeliveryEnabled').checked=entrega.deliveryHabilitado!==false;
+    $('gPickupEnabled').checked=entrega.retiroHabilitado!==false;
+    $('gCashEnabled').checked=pagos.efectivoHabilitado!==false;
+    $('gTransferEnabled').checked=pagos.transferenciaHabilitada!==false;
+    $('gPreparationTime').value=entrega.tiempoPreparacion||'';
+    $('gMenuImagesList').innerHTML=(menu.imagenes||[]).map((x,i)=>`<div class="mini-card"><strong>${esc(x.nombre||'Menú')}</strong><small> · ${x.activa?'Activa':'Desactivada'}</small><div class="mini-actions"><button class="btn-xs" onclick="menuIndexAction(${i},'preview')">Ver</button><button class="btn-xs" onclick="menuIndexAction(${i},'SUBIR')">↑</button><button class="btn-xs" onclick="menuIndexAction(${i},'BAJAR')">↓</button><button class="btn-xs" onclick="menuIndexAction(${i},'toggle')">${x.activa?'Desactivar':'Activar'}</button><button class="btn-xs danger" onclick="menuIndexAction(${i},'delete')">Eliminar</button></div></div>`).join('')||'<div class="empty">Sin imágenes cargadas.</div>';
+    $('gPaymentsList').innerHTML=(pagos.items||[]).map((x,i)=>`<div class="data-row"><div class="data-row-main"><strong>${esc(x.medio)}</strong><small>${esc([x.alias&&'Alias: '+x.alias,x.cbu&&'CBU/CVU: '+x.cbu,x.titular,x.detalle].filter(Boolean).join(' · '))}</small><small>${x.activo?'Activo':'Inactivo'} ${x.preferido?'· Preferido':''}</small></div><div class="data-row-side"><button class="btn-xs" onclick="editGastroPayment(${i})">Editar</button><button class="btn-xs" onclick="toggleGastroPayment(${i})">${x.activo?'Desactivar':'Activar'}</button></div></div>`).join('')||'<div class="empty">Sin medios de pago. Agregá Transferencia y su alias.</div>';
+    $('gZonesList').innerHTML=(entrega.zonas||[]).map((x,i)=>`<div class="data-row"><div class="data-row-main"><strong>${esc(x.nombre)}</strong><small>${esc(x.referencias||'')} · ${x.activa?'Activa':'Inactiva'}</small></div><div class="data-row-side">${money(x.costo)}<button class="btn-xs" onclick="editGastroZoneIndex(${i})">Editar</button><button class="btn-xs" onclick="toggleGastroZone(${i})">${x.activa?'Desactivar':'Activar'}</button><button class="btn-xs danger" onclick="deleteGastroZoneIndex(${i})">Eliminar</button></div></div>`).join('')||'<div class="empty">Sin zonas cargadas.</div>';
+  }
+  async function settingsRequest(path,data={},message='Cambios guardados.'){
+    if(settingsSaving)return false;
+    if(settingsRevision===null){showNotice('Primero cargá la configuración de Gastro.');return false;}
+    const target=companyId;settingsSaving=true;$('gSettingsFields').disabled=true;
+    try{
+      const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/${path}`,{method:'POST',body:JSON.stringify({...data,revision:settingsRevision})});
+      if(target!==companyId)return false;
+      acceptGastroSettings(r);$('gSettingsStatus').textContent=message;return true;
+    }catch(err){if(target===companyId){$('gSettingsStatus').textContent='No se guardó: '+(err.message||err);showNotice(err.message||String(err));}return false;}
+    finally{settingsSaving=false;if(target===companyId)$('gSettingsFields').disabled=settingsRevision===null;}
+  }
+  async function saveGastroMenuConfig(){
+    const ok=await settingsRequest('menu/config',{auto:$('gMenuAuto').checked});if(!ok)renderGastroSettings();
+  }
+
+  function imageFileToData(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
+  async function prepareMenuImage(file){
+    if(!file.type.startsWith('image/'))throw new Error('Archivo no válido: '+file.name);
+    const original=await imageFileToData(file);
+    if(file.size<=1450*1024)return{name:file.name,mime:file.type||'image/jpeg',base64:original};
+    const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=original});
+    const maxW=1440,maxH=2400,scale=Math.min(1,maxW/img.width,maxH/img.height);
+    const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    const data=canvas.toDataURL('image/jpeg',0.82);
+    return{name:file.name.replace(/\.[^.]+$/,'.jpg'),mime:'image/jpeg',base64:data};
+  }
+
+  let menuUploading=false;
+  async function uploadGastroMenuImages(){
+    if(menuUploading)return;
+    const files=[...($('gMenuFiles').files||[])],target=companyId;
+    if(!files.length){showNotice('Seleccioná una imagen JPG o PNG.');return;}
+    menuUploading=true;
+    try{
+      for(let i=0;i<files.length;i++){
+        if(target!==companyId)return;
+        $('gMenuUploadStatus').textContent=`Subiendo ${i+1} de ${files.length}…`;
+        const data=await prepareMenuImage(files[i]);if(target!==companyId)return;
+        if(!await settingsRequest('menu/upload',data,'Imagen guardada.'))return;
+      }
+      if(target===companyId){$('gMenuFiles').value='';$('gMenuUploadStatus').textContent='Imágenes guardadas.';}
+    }catch(err){if(target===companyId){$('gMenuUploadStatus').textContent='No se pudo subir: '+err.message;showNotice(err.message);}}
+    finally{menuUploading=false;}
+  }
+  async function menuIndexAction(index,action){
+    const image=gastroSettingsData.menu.imagenes[index],id=encodeURIComponent(image.idImagen),target=companyId;
+    if(action==='preview'){
+      try{const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/menu/${id}/preview`);if(target!==companyId)return;$('gMenuPreviewImg').src=r.dataUrl;$('gMenuLightbox').classList.remove('hidden');}catch(err){showNotice(err.message);}return;
+    }
+    if(action==='delete'&&!confirm('¿Eliminar esta imagen?'))return;
+    const op=['SUBIR','BAJAR'].includes(action)?'move':action;
+    await settingsRequest(`menu/${id}/${op}`,{activa:!image.activa,direccion:action});
+  }
+  function closeGastroMenuPreview(){$('gMenuLightbox').classList.add('hidden');$('gMenuPreviewImg').src='';}
+  async function saveGastroCommercialConfig(){
+    await settingsRequest('config',{deliveryHabilitado:$('gDeliveryEnabled').checked,retiroHabilitado:$('gPickupEnabled').checked,efectivoHabilitado:$('gCashEnabled').checked,transferenciaHabilitada:$('gTransferEnabled').checked,tiempoPreparacion:$('gPreparationTime').value.trim()});
+  }
+  function clearGastroPayment(){
+    ['gPayId','gPayName','gPayAlias','gPayCbu','gPayHolder','gPayDetail'].forEach(id=>$(id).value='');
+    $('gPayOrder').value='100';$('gPayPreferred').checked=false;$('gPaymentFormTitle').textContent='Agregar medio de pago';
+  }
+  function editGastroPayment(index){
+    const x=gastroSettingsData.pagos.items[index];
+    for(const [id,key] of Object.entries({gPayId:'idPago',gPayName:'medio',gPayAlias:'alias',gPayCbu:'cbu',gPayHolder:'titular',gPayDetail:'detalle',gPayOrder:'orden'}))$(id).value=x[key]??'';
+    $('gPayPreferred').checked=x.preferido;$('gPaymentFormTitle').textContent='Editar medio de pago';$('gPayName').focus();
+  }
+  async function saveGastroPayment(){
+    const old=gastroSettingsData.pagos.items.find(x=>x.idPago===$('gPayId').value);
+    const ok=await settingsRequest('payment',{idPago:$('gPayId').value,medio:$('gPayName').value.trim(),alias:$('gPayAlias').value.trim(),cbu:$('gPayCbu').value.trim(),titular:$('gPayHolder').value.trim(),detalle:$('gPayDetail').value.trim(),orden:$('gPayOrder').value,preferido:$('gPayPreferred').checked,activo:old?old.activo:true},'Medio de pago guardado. El bot usará estos datos en los próximos mensajes.');
+    if(ok)clearGastroPayment();
+  }
+  async function toggleGastroPayment(index){const x=gastroSettingsData.pagos.items[index];await settingsRequest(`payment/${encodeURIComponent(x.idPago)}/toggle`,{activo:!x.activo});}
+  function clearGastroZoneForm(){['gZoneId','gZoneName','gZoneRefs'].forEach(id=>$(id).value='');$('gZoneCost').value='0';$('gZoneOrder').value='100';}
+  function editGastroZoneIndex(index){const x=gastroSettingsData.entrega.zonas[index];for(const [id,key] of Object.entries({gZoneId:'idZona',gZoneName:'nombre',gZoneCost:'costo',gZoneOrder:'posicion',gZoneRefs:'referencias'}))$(id).value=x[key]??'';$('gZoneName').focus();}
+  async function saveGastroZone(){
+    const old=gastroSettingsData.entrega.zonas.find(x=>x.idZona===$('gZoneId').value);
+    const ok=await settingsRequest('zone',{idZona:$('gZoneId').value,nombre:$('gZoneName').value.trim(),costo:$('gZoneCost').value,posicion:$('gZoneOrder').value,referencias:$('gZoneRefs').value.trim(),activa:old?old.activa:true});if(ok)clearGastroZoneForm();
+  }
+  async function toggleGastroZone(index){const x=gastroSettingsData.entrega.zonas[index];await settingsRequest('zone',{...x,activa:!x.activa});}
+  async function deleteGastroZoneIndex(index){const x=gastroSettingsData.entrega.zonas[index];if(confirm('¿Eliminar esta zona?'))await settingsRequest(`zone/${encodeURIComponent(x.idZona)}/delete`);}
+
+  async function saveGastroForm(kind){
+    const data={...(gastroEdits[kind]||{})};
+    for(const [key,id] of Object.entries(gastroFields[kind]))data[key]=$(id).value.trim();
+    if(kind==='product')data.agotado=$('gProductSoldOut').checked?'SI':'NO';
+    await persistGastroItem(kind,data,true);
+  }
+  async function saveGastroCategory(){await saveGastroForm('category');}
+  async function saveGastroProduct(){await saveGastroForm('product');}
+  async function saveGastroVariant(){await saveGastroForm('variant');}
+  async function saveGastroExtra(){await saveGastroForm('extra');}
+
+  function fillAdminCompanySelect(){
+    if(!$('adminUserCompany'))return;
+    $('adminUserCompany').innerHTML=companies.map(c=>`<option value="${esc(c.idEmpresa)}">${esc(c.nombreEmpresa)}</option>`).join('');
+  }
+
+  async function loadAdmin(){
+    if(String(currentUser?.role||'').toUpperCase()!=='SUPERADMIN'){
+      throw new Error('Solo SUPERADMIN puede entrar acá.');
+    }
+    await refreshCompanies();
+    const r=await api('/api/admin/users');
+    const users=r.items||[];
+    $('adminUsersList').innerHTML=users.length?users.map(u=>{
+      const companiesText=(u.companies||[]).map(x=>x.companyId).join(', ')||'Todas / SuperAdmin';
+      return `<div class="data-row"><div class="data-row-main"><strong>${esc(u.display_name||u.login_key)}</strong><small>${esc(u.login_key)} · ${esc(u.role)} · ${esc(companiesText)}</small></div><div class="data-row-side">${u.active?'Activo':'Inactivo'}</div></div>`;
+    }).join(''):'<div class="empty">Todavía no creaste usuarios de empresas.</div>';
+  }
+
+  async function createCompany(){
+    const body={
+      nombreEmpresa:$('adminCompanyName').value.trim(),
+      tipoNegocio:$('adminCompanyType').value,
+      webSlug:$('adminCompanySlug').value.trim(),
+      phoneNumberId:$('adminCompanyPhoneId').value.trim(),
+      modules:{
+        ventas:$('adminModVentas').checked,
+        gastro:$('adminModGastro').checked,
+        eventos:$('adminModEventos').checked,
+        servicios:$('adminModServicios').checked
+      }
+    };
+    if(!body.nombreEmpresa){showNotice('Ingresá el nombre de la empresa.');return}
+
+    showLoading(true);
+    try{
+      const r=await api('/api/admin/companies',{method:'POST',body:JSON.stringify(body)});
+      await new Promise(resolve=>setTimeout(resolve,700));
+      await refreshCompanies();
+      showNotice(`Empresa creada: ${r.idEmpresa||''}`);
+      $('adminCompanyName').value='';$('adminCompanySlug').value='';$('adminCompanyPhoneId').value='';
+    }catch(err){showNotice(err.message||String(err))}
+    finally{showLoading(false)}
+  }
+
+  async function createPanelUser(){
+    const body={
+      displayName:$('adminUserName').value.trim(),
+      loginKey:$('adminUserLogin').value.trim(),
+      password:$('adminUserPassword').value,
+      role:$('adminUserRole').value,
+      companyIds:[$('adminUserCompany').value].filter(Boolean)
+    };
+    await api('/api/admin/users',{method:'POST',body:JSON.stringify(body)});
+    $('adminUserName').value='';$('adminUserLogin').value='';$('adminUserPassword').value='';
+    await loadAdmin();
+    showNotice('Usuario creado. Ya puede ingresar al Panel V5.');
+  }
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    });
+  }
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Enter' && !$('login').classList.contains('hidden')){
+      login();
+    }
+  });
+
+  start().catch(showLogin);
+</script>
+
+  <div id="gMenuLightbox" class="lightbox hidden" onclick="if(event.target===this)closeGastroMenuPreview()"><div class="lightbox-card"><button class="lightbox-close" onclick="closeGastroMenuPreview()">×</button><img id="gMenuPreviewImg" alt="Vista previa del menú"></div></div>
+</body>
+</html>

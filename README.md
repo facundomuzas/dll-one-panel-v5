@@ -1,3 +1,15 @@
+# DLL ONE Panel 5.7.3
+
+Actualización V573: catálogo de ONE Ventas en PostgreSQL con copia inicial desde
+Apps Script, edición e importación con revisión y bloqueo transaccional.
+ONE Gastro mantiene su catálogo separado. El botón de verificación muestra
+actividad y resultado con hora. Requiere motor 4.3.8 para Ventas nativas.
+Instalar primero panel y motor; después abrir la lista de Ventas.
+Las variables actuales de Railway se conservan. Apps Script sigue activo para
+las funciones restantes. Ver LEEME_INSTALACION_V573.txt en el ZIP de entrega.
+
+## Documentación anterior (histórica)
+
 # DLL ONE Panel Cloud V5.7.2
 
 Esta actualización es solo del panel; mantiene el motor 4.3.7 de V571.
