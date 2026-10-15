@@ -693,7 +693,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.4 · Autogestión</small>
+          <small>Panel Cloud V5.7.5 · Autogestión</small>
         </div>
       </div>
 
@@ -718,7 +718,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.4</small>
+          <small>Panel Cloud V5.7.5</small>
         </div>
       </div>
 
@@ -1104,7 +1104,7 @@
           <div class="section-grid">
             <div class="stack">
               <div class="card">
-                <h3 class="card-title">Crear empresa</h3>
+                <h3 class="card-title">Crear empresa</h3><p class="card-sub">Se crea directamente en el panel, con pedidos pausados. Podés preparar el negocio y configurar WhatsApp después. El slug reserva un identificador; no publica una web.</p><p id="nativeCreateStatus" role="status"></p>
                 <div class="form-grid">
                   <div class="form-field full"><label>Nombre</label><input id="adminCompanyName"></div>
                   <div class="form-field"><label>Tipo</label><select id="adminCompanyType"><option value="MIXTO">Mixto</option><option value="PRODUCTOS">Productos</option><option value="SERVICIOS">Servicios</option></select></div>
@@ -1117,7 +1117,23 @@
                   <label class="module-check"><input id="adminModEventos" type="checkbox"> ONE Eventos</label>
                   <label class="module-check"><input id="adminModServicios" type="checkbox"> ONE Servicios</label>
                 </div>
-                <div class="actions-row"><button class="btn btn-primary" onclick="createCompany()">Crear empresa</button></div>
+                <div class="actions-row"><button id="nativeCreateButton" class="btn btn-primary" onclick="createCompany()">Crear empresa</button></div>
+              </div>
+
+              <div class="card">
+                <h3 class="card-title">WhatsApp de empresas nuevas</h3>
+                <p class="card-sub">Solo Super Admin administra estos datos. El número y su webhook deben estar configurados en Meta para recibir mensajes en este motor.</p>
+                <label>Empresa</label><select id="adminConnectionCompany" onchange="loadNativeConnection()"></select>
+                <p id="nativeConnectionStatus" role="status"></p>
+                <fieldset id="nativeConnectionFields" disabled style="border:0;padding:0;margin:0;min-width:0">
+                <div class="form-grid">
+                  <div class="form-field full"><label>Phone Number ID</label><input id="nativePhone" autocomplete="off"></div>
+                  <div class="form-field full"><label>Token de acceso de Meta</label><input id="nativeToken" type="password" autocomplete="new-password"><small>No se vuelve a mostrar. Dejá vacío para conservar el token guardado.</small></div>
+                  <div class="form-field"><label>Versión de Meta</label><input id="nativeGraphVersion" value="v26.0"></div>
+                  <div class="form-field"><label><input id="nativeConnected" type="checkbox"> Habilitar conexión en el motor</label></div>
+                </div>
+                <div class="actions-row"><button class="btn btn-primary" onclick="saveNativeConnectionForm()">Guardar conexión</button></div>
+                </fieldset>
               </div>
 
               <div class="card">
@@ -1167,6 +1183,7 @@
 <script src="/receipts.js"></script>
 <script src="/order_hours.js"></script>
 <script src="/gastro_migration.js"></script>
+<script src="/native_companies.js"></script>
 <script src="/notification_state.js"></script>
 <script src="/notifications.js"></script>
 <script>
@@ -2368,6 +2385,7 @@
   function fillAdminCompanySelect(){
     if(!$('adminUserCompany'))return;
     $('adminUserCompany').innerHTML=companies.map(c=>`<option value="${esc(c.idEmpresa)}">${esc(c.nombreEmpresa)}</option>`).join('');
+    const selected=$('adminConnectionCompany').value;$('adminConnectionCompany').innerHTML=$('adminUserCompany').innerHTML;if(companies.some(c=>c.idEmpresa===selected))$('adminConnectionCompany').value=selected;
   }
 
   async function loadAdmin(){
@@ -2375,38 +2393,13 @@
       throw new Error('Solo SUPERADMIN puede entrar acá.');
     }
     await refreshCompanies();
+    await loadNativeConnection();
     const r=await api('/api/admin/users');
     const users=r.items||[];
     $('adminUsersList').innerHTML=users.length?users.map(u=>{
       const companiesText=(u.companies||[]).map(x=>x.companyId).join(', ')||'Todas / SuperAdmin';
       return `<div class="data-row"><div class="data-row-main"><strong>${esc(u.display_name||u.login_key)}</strong><small>${esc(u.login_key)} · ${esc(u.role)} · ${esc(companiesText)}</small></div><div class="data-row-side">${u.active?'Activo':'Inactivo'}</div></div>`;
     }).join(''):'<div class="empty">Todavía no creaste usuarios de empresas.</div>';
-  }
-
-  async function createCompany(){
-    const body={
-      nombreEmpresa:$('adminCompanyName').value.trim(),
-      tipoNegocio:$('adminCompanyType').value,
-      webSlug:$('adminCompanySlug').value.trim(),
-      phoneNumberId:$('adminCompanyPhoneId').value.trim(),
-      modules:{
-        ventas:$('adminModVentas').checked,
-        gastro:$('adminModGastro').checked,
-        eventos:$('adminModEventos').checked,
-        servicios:$('adminModServicios').checked
-      }
-    };
-    if(!body.nombreEmpresa){showNotice('Ingresá el nombre de la empresa.');return}
-
-    showLoading(true);
-    try{
-      const r=await api('/api/admin/companies',{method:'POST',body:JSON.stringify(body)});
-      await new Promise(resolve=>setTimeout(resolve,700));
-      await refreshCompanies();
-      showNotice(`Empresa creada: ${r.idEmpresa||''}`);
-      $('adminCompanyName').value='';$('adminCompanySlug').value='';$('adminCompanyPhoneId').value='';
-    }catch(err){showNotice(err.message||String(err))}
-    finally{showLoading(false)}
   }
 
   async function createPanelUser(){

@@ -1,3 +1,13 @@
+# DLL ONE Panel 5.7.5
+
+V575 crea empresas directamente en PostgreSQL y permite administrar las conexiones
+nativas de empresas nuevas desde Super Admin. Requiere motor 4.3.10 para leerlas.
+La configuración inicial deja los pedidos pausados. Las empresas anteriores
+conservan su conexión actual. Guardar credenciales no valida el token con Meta.
+Ver la guía V575 incluida en el ZIP para instalación, alcance y comprobación.
+
+## Documentación anterior
+
 # DLL ONE Panel 5.7.4
 
 V574: registro de conversaciones transaccional y deduplicado. Los eventos que

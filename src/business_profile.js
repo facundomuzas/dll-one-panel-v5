@@ -13,6 +13,7 @@ export async function saveBusinessProfile(db,companyId,data,allowModules){
  const client=await db.connect();
  try{
   await client.query('BEGIN');
+  await client.query('LOCK TABLE panel_companies IN SHARE ROW EXCLUSIVE MODE');
   const company=(await client.query('SELECT * FROM panel_companies WHERE company_id=$1 FOR UPDATE',[companyId])).rows[0];
   if(!company)throw new Error('Empresa no encontrada.');
   await client.query('INSERT INTO panel_business_profiles(company_id) VALUES($1) ON CONFLICT DO NOTHING',[companyId]);
@@ -34,8 +35,9 @@ export async function saveBusinessProfile(db,companyId,data,allowModules){
   await client.query('UPDATE panel_business_profiles SET config=$2,modules=$3,phone_number_id=$4,revision=revision+1,updated_at=NOW() WHERE company_id=$1',[companyId,JSON.stringify(config),modules===null?null:JSON.stringify(modules),phone]);
   const updated=(await client.query(`UPDATE panel_companies SET company_name=$2,config=config || $3::jsonb,modules=$4,phone_number_id=$5 WHERE company_id=$1 RETURNING *`,[companyId,config.NOMBRE_EMPRESA||company.company_name,JSON.stringify(config),JSON.stringify(modules??company.modules),phone??company.phone_number_id])).rows[0];
   if(Object.hasOwn(config,'DIRECCION'))await savePickup(client,companyId,config.DIRECCION);
+  if(phone!==null&&phone!==company.phone_number_id)await client.query('UPDATE panel_native_companies SET connected=FALSE,revision=revision+1 WHERE company_id=$1',[companyId]);
   const result=await getBusinessProfile(client,updated);
-  if(phone!==null&&phone!==company.phone_number_id)result.warning='Datos guardados. El cambio del identificador de WhatsApp requiere sincronizar la configuración del motor.';
+  if(phone!==null&&phone!==company.phone_number_id)result.warning='Datos guardados. Si es una empresa creada en el panel, revisá y habilitá su conexión en Super Admin. Para empresas anteriores, sincronizá la configuración del motor.';
   await client.query('COMMIT');return result;
  }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
 }

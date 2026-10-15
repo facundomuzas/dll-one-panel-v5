@@ -1,3 +1,4 @@
+import {createNativeCompany,nativeConnectionStatus,saveNativeConnection,effectiveMotorSnapshot} from './native_companies.js';
 import {isSales,getSalesCatalog,saveSalesItems,salesMotorCatalog,validateSalesOrder,parseSalesPrice} from './sales_catalog.js';
 import {gastroMigrationStatus,migrateGastroStep} from './gastro_migration.js';
 import {getOrderHours,saveOrderHours,evaluateHours,requireOrderOpen} from "./order_hours.js";
@@ -909,7 +910,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.4",
+      version: "5.7.5",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -927,7 +928,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.4",
+      version: "5.7.5",
       error: String(err?.message || err)
     });
   }
@@ -1082,26 +1083,7 @@ app.post("/api/admin/users/:userId/active", authRequired, requireSuperadmin, asy
 
 app.post("/api/admin/companies", authRequired, requireSuperadmin, async (req, res) => {
   try {
-    const payload = {
-      nombreEmpresa: String(req.body?.nombreEmpresa || "").trim(),
-      tipoNegocio: String(req.body?.tipoNegocio || "MIXTO").trim().toUpperCase(),
-      webSlug: String(req.body?.webSlug || "").trim(),
-      phoneNumberId: String(req.body?.phoneNumberId || "").trim(),
-      modulos: {
-        MODULO_VENTAS: req.body?.modules?.ventas ? "SI" : "NO",
-        MODULO_GASTRO: req.body?.modules?.gastro ? "SI" : "NO",
-        MODULO_EVENTOS: req.body?.modules?.eventos ? "SI" : "NO",
-        MODULO_SERVICIOS: req.body?.modules?.servicios ? "SI" : "NO"
-      }
-    };
-
-    if (!payload.nombreEmpresa) throw new Error("Ingresá el nombre de la empresa.");
-
-    const result = await postBridgeGlobal(
-      "admin_create_company",
-      payload,
-      req.session?.sub || "SUPERADMIN_V5"
-    );
+    const result=await createNativeCompany(pool,req.body||{},req.session?.sub||'SUPERADMIN');
 
     return res.json({ ok:true, ...result });
   } catch (err) {
@@ -1111,9 +1093,18 @@ app.post("/api/admin/companies", authRequired, requireSuperadmin, async (req, re
 
 
 
+app.get('/api/admin/companies/:companyId/connection',authRequired,requireSuperadmin,async(req,res)=>{
+ try{res.set('Cache-Control','no-store');res.json({ok:true,...await nativeConnectionStatus(pool,req.params.companyId)});}
+ catch{res.status(500).json({ok:false,error:'No se pudo cargar la conexión.'});}
+});
+app.post('/api/admin/companies/:companyId/connection',authRequired,requireSuperadmin,async(req,res)=>{
+ try{res.set('Cache-Control','no-store');res.json({ok:true,...await saveNativeConnection(pool,req.params.companyId,req.body||{})});}
+ catch(err){res.status(400).json({ok:false,error:String(err.message||'No se pudo guardar la conexión.')});}
+});
+
 // Private service-to-service routes. Never exposed through company profile APIs.
 app.get('/motor/config-snapshot',authenticateMotorRequest,async(req,res)=>{
- try{res.set('Cache-Control','no-store');res.json({ok:true,snapshot:await readMotorSnapshot(pool)});}
+ try{res.set('Cache-Control','no-store');res.json({ok:true,snapshot:await effectiveMotorSnapshot(pool,await readMotorSnapshot(pool))});}
  catch{res.status(503).json({ok:false,error:'No se pudo recuperar la configuración del motor.'});}
 });
 app.post('/motor/config-snapshot',authenticateMotorRequest,async(req,res)=>{
@@ -2385,6 +2376,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.7.4 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.7.5 escuchando en puerto ${PORT}`
   );
 });

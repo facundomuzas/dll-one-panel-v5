@@ -1,3 +1,4 @@
+import {initNativeCompanies} from './native_companies.js';
 import {initSalesCatalog} from './sales_catalog.js';
 import {initOrderHours} from "./order_hours.js";
 import {initMotorSnapshot} from "./motor_snapshot.js";
@@ -26,6 +27,7 @@ export const pool = new Pool({
 });
 
 export async function initDb() {
+  await initNativeCompanies(pool);
   await initSalesCatalog(pool);
   await initOrderHours(pool);
   await initBusinessProfiles(pool);
