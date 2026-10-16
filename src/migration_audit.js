@@ -19,7 +19,8 @@ export async function auditCompanyMigration(db,company){
  }else if(isSales(company)){
   const exists=(await db.query('SELECT revision FROM panel_sales_catalog WHERE company_id=$1',[id])).rows.length>0;
   checks.push({key:'catalog',ready:exists,label:'Catálogo ONE Ventas guardado en el panel',action:exists?'':'Abrí Catálogo para importar la lista inicial y volvé a revisar.'});
- }else checks.push({key:'module',ready:false,label:'Módulo comercial evaluado',action:'Esta revisión cubre ONE Gastro y ONE Ventas. Revisá los demás módulos por separado.'});
+ }else if(company.modules?.salud===true)checks.push({key:'demo',ready:false,label:'ONE Salud en demostración',action:'Esta demo se guarda en el panel. No está certificada para atención real ni incluida en el cierre de migración Gastro/Ventas. La conexión WhatsApp es opcional para mostrar el simulador.'});
+ else checks.push({key:'module',ready:false,label:'Módulo comercial evaluado',action:'Esta revisión cubre ONE Gastro y ONE Ventas. Revisá los demás módulos por separado.'});
  checks.push({key:'instructions',ready:!!native,label:'Instrucciones disponibles sin Apps Script',action:native?'':'Importá la conexión para conservar las instrucciones actuales. Después podés editarlas en Mi negocio.'});
  return {companyId:id,name:company.company_name,phoneNumberId:String(company.phone_number_id||''),connected:native?native.connected:null,checks,dataPrepared:checks.every(x=>x.ready)};
 }

@@ -431,6 +431,7 @@
       grid-template-columns:repeat(2,minmax(0,1fr));
       gap:12px;
     }
+    .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px}
     .form-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
     .form-grid .full{grid-column:1/-1}
     .form-field label{
@@ -693,7 +694,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.9 · Autogestión</small>
+          <small>Panel Cloud V5.8.0 · Autogestión</small>
         </div>
       </div>
 
@@ -718,7 +719,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.9</small>
+          <small>Panel Cloud V5.8.0</small>
         </div>
       </div>
 
@@ -732,6 +733,7 @@
         <button data-tab="business" onclick="go('business',this)">🏢 Mi negocio</button>
         <button id="navCatalog" data-tab="catalog" onclick="go('catalog',this)">💲 Catálogo / precios</button>
         <button id="navGastro" data-tab="gastro" onclick="go('gastro',this)">🍔 Gastro</button>
+        <button id="navHealth" data-tab="health" onclick="go('health',this)" style="display:none">🏥 Salud · Demo</button>
         <button id="navAdmin" class="admin-only hidden-admin" data-tab="admin" onclick="go('admin',this)">⚙ Super Admin</button>
       </div>
 
@@ -1107,7 +1109,36 @@
           </fieldset>
         </section>
 
-        <section id="admin" class="section">
+        <section id="health" class="section">
+        <div class="hero"><div><h1>ONE Salud <small>Demostración</small></h1><p>Turnos por horario o por cupo. Usá especialistas y pacientes ficticios. No está conectado a un hospital.</p></div></div>
+        <p id="healthStatus" role="status" aria-live="polite"></p>
+        <div class="actions-row"><button class="btn btn-light" onclick="loadHealth()">Actualizar agenda y especialistas</button></div>
+        <div class="card"><h3>Agenda diaria</h3><div class="form-grid">
+          <div class="form-field"><label>Fecha</label><input type="date" id="healthDate" onchange="loadHealthAgenda();healthSlots()"></div>
+          <div class="form-field"><label>Especialista</label><select id="healthFilter" onchange="loadHealthAgenda()"></select></div>
+        </div><div class="actions-row"><button class="btn btn-primary" onclick="printHealthAgenda()">Imprimir / Guardar PDF</button></div><div id="healthAgenda"></div></div>
+        <div class="grid-2">
+          <div class="card"><h3>Probar conversación</h3><p>Simula el diálogo del bot con la misma agenda. No envía mensajes a WhatsApp. Para comenzar escribí TURNOS.</p><div id="healthChatLog" style="max-height:400px;overflow:auto;white-space:pre-wrap"></div><div class="form-field"><label>Mensaje de prueba</label><input id="healthChatInput" placeholder="TURNOS" maxlength="500"></div><div class="actions-row"><button id="healthChatSend" class="btn btn-primary" onclick="sendHealthChat()">Enviar prueba</button><button class="btn btn-light" onclick="newHealthChat()">Otro paciente demo</button></div></div>
+          <div class="card"><h3>Cargar turno desde recepción</h3><p>Los turnos manuales comparten disponibilidad con el bot.</p><div class="form-grid">
+            <div class="form-field full"><label>Especialista</label><select id="healthBookDoctor" onchange="healthSlots()"></select></div>
+            <div class="form-field"><label>Horario / cupo para la fecha de la agenda</label><select id="healthBookSlot"></select></div>
+            <div class="form-field"><label>Nombre ficticio</label><input id="healthPatient" value="Paciente Demo" maxlength="80"></div>
+            <div class="form-field"><label>Código de paciente de prueba</label><input id="healthContact" value="DEMO-001" maxlength="80"></div>
+          </div><p id="healthSlotInfo"></p><button id="healthBookButton" class="btn btn-primary" onclick="bookHealth()">Reservar turno demo</button></div>
+        </div>
+        <div class="card"><h3>Especialistas y disponibilidad</h3><p>La edición está disponible para Super Admin. Para cambiar horarios con reservas vigentes, primero cancelá o trasladá esos turnos.</p><div class="form-field"><label>Editar especialista</label><select id="healthDoctorEdit" onchange="editHealthDoctor()"></select></div>
+          <fieldset id="healthDoctorFields" style="border:0;padding:0"><div class="form-grid">
+            <div class="form-field"><label>Nombre ficticio</label><input id="healthDoctorName" maxlength="100"></div><div class="form-field"><label>Especialidad</label><input id="healthSpecialty" maxlength="100"></div><div class="form-field"><label>Consultorio</label><input id="healthRoom" maxlength="100"></div>
+            <div class="form-field"><label>Modalidad</label><select id="healthMode"><option value="FIXED">Horario fijo</option><option value="QUEUE">Orden de llegada</option></select></div>
+            <div class="form-field"><label>Desde</label><input id="healthStart" type="time" value="08:00"></div><div class="form-field"><label>Hasta</label><input id="healthEnd" type="time" value="12:00"></div>
+            <div class="form-field"><label>Minutos por turno (horario fijo)</label><input id="healthMinutes" type="number" min="5" max="120" value="20"></div><div class="form-field"><label>Cupo diario (orden de llegada)</label><input id="healthCapacity" type="number" min="1" max="100" value="8"></div>
+            <div class="form-field full"><label>Días de trabajo</label><div id="healthDays" class="module-checks"></div></div>
+            <div class="form-field full"><label>Fechas sin atención, separadas por coma (AAAA-MM-DD)</label><input id="healthBlocked" placeholder="2026-10-20, 2026-10-21"></div>
+            <label class="module-check"><input id="healthDoctorActive" type="checkbox" checked> Disponible para reservas</label>
+          </div><button id="healthDoctorSave" class="btn btn-primary" onclick="saveHealthDoctor()">Guardar especialista</button></fieldset>
+        </div>
+      </section>
+      <section id="admin" class="section">
           <div class="hero">
             <div><h1>Super Admin</h1><p>Alta de empresas y accesos de clientes. Solo visible para DLL ONE.</p></div>
             <span class="pill">● SUPERADMIN</span>
@@ -1159,7 +1190,7 @@
               </div>
 
               <div class="card">
-                <h3 class="card-title">Control de empresas</h3>
+                <h3 class="card-title">Control de empresas</h3><p>Demo para la reunión con el hospital: crea una empresa separada y dos especialistas ficticios.</p><button id="healthDemoCreate" class="btn btn-primary" onclick="createHealthDemo()">Crear / abrir demo ONE Salud</button><p id="healthDemoCreateStatus" role="status"></p>
                 <p class="card-sub">Pausar bot conserva el acceso al panel. Suspender servicio bloquea también el acceso de la empresa. Dar de baja oculta la empresa y conserva sus datos. Solo Super Admin puede reactivar.</p>
                 <button class="btn btn-light" onclick="loadCompanyServices()">Actualizar lista</button>
                 <p id="companyServiceStatus" role="status" aria-live="polite"></p>
@@ -1197,6 +1228,7 @@
           <div class="more-grid">
             <button class="more-card" onclick="go('business')">🏢<strong>Mi negocio</strong><small>Datos generales y módulos.</small></button>
             <button id="moreCatalog" class="more-card" onclick="go('catalog')">💲<strong>Catálogo</strong><small>Productos, servicios y listas de precios.</small></button>
+            <button id="moreHealth" class="more-card" onclick="go('health')">🏥<strong>Salud · Demo</strong><small>Agenda y turnos.</small></button>
             <button id="moreGastro" class="more-card" onclick="go('gastro')">🍔<strong>Gastro</strong><small>Menú, variantes y extras.</small></button>
             <button class="more-card" onclick="go('customers')">👥<strong>Clientes</strong><small>Base de clientes.</small></button>
             <button id="moreAdmin" class="more-card admin-only hidden-admin" onclick="go('admin')">⚙<strong>Super Admin</strong><small>Crear empresas y accesos.</small></button>
@@ -1223,6 +1255,7 @@
 <script src="/bot_instructions.js"></script>
 <script src="/migration_audit.js"></script>
 <script src="/company_service.js"></script>
+<script src="/health_demo.js"></script>
 <script src="/notification_state.js"></script>
 <script src="/notifications.js"></script>
 <script>
@@ -1375,7 +1408,7 @@
         throw new Error('No tenés empresas activas asignadas. Consultá al administrador.');
       }
 
-      await loadTab('dashboard');
+      await go(selectedCompany()?.modules?.salud===true?'health':'dashboard');
     }finally{
       showLoading(false);
     }
@@ -1389,13 +1422,17 @@
   function resolveModuleTab(tab){
     if(tab==='catalog'&&gastroEnabled())return 'gastro';
     if(tab==='gastro'&&!gastroEnabled())return 'dashboard';
+    if(tab==='health'&&selectedCompany()?.modules?.salud!==true)return 'dashboard';
     return tab;
   }
   function updateModuleNavigation(){
     const company=selectedCompany();
     const mods=company?.modules||{};
     const gastroActive=gastroEnabled();
-    ['navCatalog','moreCatalog'].forEach(id=>{if($(id))$(id).style.display=gastroActive?'none':'';});
+    const healthActive=mods.salud===true;
+    if($('navHealth'))$('navHealth').style.display=healthActive?'':'none';
+    if($('moreHealth'))$('moreHealth').style.display=healthActive?'':'none';
+    ['navCatalog','moreCatalog'].forEach(id=>{if($(id))$(id).style.display=(gastroActive||healthActive)?'none':'';});
     if($('navGastro'))$('navGastro').style.display=gastroActive?'':'none';
     if($('moreGastro'))$('moreGastro').style.display=gastroActive?'':'none';
   }
@@ -1407,6 +1444,7 @@
     businessRevision=null;
     resetOrderHours();
     resetBotInstructions();
+    resetHealthDemo();
     selectedChat=null;
     $('chatContent').classList.add('hidden');$('chatEmpty').classList.remove('hidden');
     startNotifications();
@@ -1416,7 +1454,7 @@
     gastroData={categorias:[],productos:[],variantes:[],extras:[]};
     gastroSettingsData={menu:{imagenes:[]},pagos:{items:[]},entrega:{zonas:[]}};
     renderGastro();renderGastroSettings();
-    await go(currentTab==='admin'?'dashboard':currentTab);
+    await go(selectedCompany()?.modules?.salud===true?'health':currentTab==='admin'?'dashboard':currentTab);
   }
 
   async function go(tab,button){
@@ -1438,7 +1476,7 @@
 
   async function loadTab(tab){
     if(resolveModuleTab(tab)!==tab)return go(resolveModuleTab(tab));
-    const companyTabs=new Set(['dashboard','conversations','orders','delivery','customers','receipts','business','catalog','gastro']);
+    const companyTabs=new Set(['dashboard','conversations','orders','delivery','customers','receipts','business','catalog','gastro','health']);
     if(companyTabs.has(tab)&&!companyId){
       if(String(currentUser?.role||'').toUpperCase()==='SUPERADMIN'){
         await go('admin');
@@ -1459,6 +1497,7 @@
       if(tab==='business')await Promise.all([loadBusiness(),loadOrderHours(),loadBotInstructions()]);
       if(tab==='catalog')await loadCatalog();
       if(tab==='gastro')await loadGastro();
+      if(tab==='health')await loadHealth();
       if(tab==='admin')await loadAdmin();
       if(tab==='more')updateModuleNavigation();
     }catch(err){
@@ -2100,7 +2139,7 @@
     $('modEventos').checked=!!m.eventos;
     $('modServicios').checked=!!m.servicios;
     const isSuper=String(currentUser?.role||'').toUpperCase()==='SUPERADMIN';
-    ['modVentas','modGastro','modEventos','modServicios'].forEach(id=>$(id).disabled=!isSuper);
+    ['modVentas','modGastro','modEventos','modServicios'].forEach(id=>$(id).disabled=!isSuper||selectedCompany()?.modules?.salud===true);
     $('moduleHelp').textContent=isSuper
       ?'Como Super Admin podés activar o desactivar módulos del plan.'
       :'Los módulos de tu plan los administra DLL ONE.';

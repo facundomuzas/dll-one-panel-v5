@@ -9,7 +9,7 @@ async function loadMigrationAudit(){
   function line(parent,text){const p=document.createElement('p');p.textContent=text;parent.appendChild(p);return p;}
   const time=new Date(r.checkedAt).toLocaleString();
   $('migrationAuditStatus').textContent=r.reviewClear?`Revisión del ${time}: datos evaluados preparados y sin pendientes detectados. Mantené Apps Script activo hasta completar la prueba de desconexión.`:`Revisión del ${time}: quedan puntos por revisar. Seguí las indicaciones de abajo.`;
-  if(!r.motor.available)line(box,'⚠ No pude consultar el motor. Verificá que esté activo, actualizado a 4.3.14 y conectado al panel. Los pendientes no se consideran resueltos.');
+  if(!r.motor.available)line(box,'⚠ No pude consultar el motor. Verificá que esté activo, actualizado a 4.3.15 y conectado al panel. Los pendientes no se consideran resueltos.');
   else{
    line(box,`Motor ${r.motor.version}. Pendientes globales de todas las empresas:`);
    if(r.motor.storage){

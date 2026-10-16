@@ -1,3 +1,4 @@
+import {initHealthDemo,isHealth,seedHealthDemo,doctors,saveDoctor,availability,reserve,appointments,appointmentState,healthChat,printAgenda,localToday} from './health_demo.js';
 import {listCompanyServices,changeCompanyService} from './company_service.js';
 import {auditCompanyMigration,combineMigrationAudit} from './migration_audit.js';
 import {getBotInstructions,saveBotInstructions} from './bot_instructions.js';
@@ -914,7 +915,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.9",
+      version: "5.8.0",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -932,7 +933,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.9",
+      version: "5.8.0",
       error: String(err?.message || err)
     });
   }
@@ -1127,6 +1128,12 @@ app.post('/api/admin/companies/:companyId/connection/check',authRequired,require
   res.json({ok:true,...result,revision:row.revision});
  }catch(err){res.status(400).json({ok:false,error:err.message});}
 });
+app.post('/api/admin/health-demo',authRequired,requireSuperadmin,async(req,res)=>{
+ try{
+ const result=await createNativeCompany(pool,{requestId:'one-salud-demo-v580',nombreEmpresa:'ONE Salud · Demostración',tipoNegocio:'SERVICIOS',modules:{salud:true}},req.session.sub);
+ await seedHealthDemo(pool,result.idEmpresa);res.json({ok:true,...result});
+ }catch(e){res.status(400).json({ok:false,error:e.code?'No se pudo preparar la demo. Reintentá.':e.message});}
+});
 app.get('/api/admin/company-services',authRequired,requireSuperadmin,async(req,res)=>{
  res.set('Cache-Control','no-store');try{res.json({ok:true,items:await listCompanyServices(pool)});}catch{res.status(503).json({ok:false,error:'No pude consultar las empresas.'});}
 });
@@ -1170,6 +1177,18 @@ app.post('/motor/config-snapshot',authenticateMotorRequest,async(req,res)=>{
  catch{res.status(400).json({ok:false,error:'No se pudo guardar la configuración del motor. Revisá que esté completa.'});}
 });
 
+app.post('/motor/health/chat',authenticateMotorRequest,async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ try{
+ const c=await getCompany(req.body?.companyId);
+ if(!isHealth(c)||c.service_state!=='ACTIVE'||String(c.phone_number_id)!==String(req.body.phoneNumberId))return res.status(403).json({ok:false,error:'Servicio demo no habilitado.'});
+ const response=await healthChat(pool,c.company_id,{contact:'WA-'+String(req.body.waId||'').replace(/\D/g,''),text:req.body.text,messageId:req.body.messageId});
+ res.json({ok:true,response});
+ }catch(e){
+  if(e.code)return res.status(503).json({ok:false,error:'No se pudo consultar la agenda demo.'});
+  res.json({ok:true,response:'DEMO — '+e.message+' Escribí TURNOS para empezar otra vez.'});
+ }
+});
 app.get('/motor/company/:companyId/service',authenticateMotorRequest,async(req,res)=>{
  res.set('Cache-Control','no-store');try{
  const c=await getCompany(req.params.companyId);
@@ -1397,6 +1416,20 @@ app.use(
   authRequired,
   companyAccessRequired
 );
+
+// Demo administrative scheduling, isolated from production Gastro and other tenants.
+app.use('/api/company/:companyId/health',async(req,res,next)=>{
+ try{const c=await getCompany(req.params.companyId);if(!isHealth(c))return res.status(403).json({ok:false,error:'Esta empresa no tiene la demo Salud.'});req.healthCompany=c;res.set('Cache-Control','no-store');next();}catch{res.status(503).json({ok:false,error:'No se pudo consultar la demo.'});}
+});
+const healthError=(res,e)=>res.status(400).json({ok:false,error:e.code?'No se pudo completar la operación. Actualizá la agenda.':e.message});
+app.get('/api/company/:companyId/health/doctors',async(req,res)=>{try{res.json({ok:true,today:localToday(),items:await doctors(pool,req.params.companyId)});}catch(e){healthError(res,e);}});
+app.post('/api/company/:companyId/health/doctors',requireSuperadmin,async(req,res)=>{try{res.json({ok:true,id:await saveDoctor(pool,req.params.companyId,req.body||{})});}catch(e){healthError(res,e);}});
+app.get('/api/company/:companyId/health/availability',async(req,res)=>{try{res.json({ok:true,...await availability(pool,req.params.companyId,req.query.doctorId,String(req.query.date||''))});}catch(e){healthError(res,e);}});
+app.get('/api/company/:companyId/health/agenda',async(req,res)=>{try{res.json({ok:true,items:await appointments(pool,req.params.companyId,String(req.query.date||''),String(req.query.doctorId||''))});}catch(e){healthError(res,e);}});
+app.post('/api/company/:companyId/health/book',async(req,res)=>{try{if(req.healthCompany.service_state!=='ACTIVE')throw Error('Servicio demo pausado.');res.json({ok:true,appointment:await reserve(pool,req.params.companyId,req.body||{})});}catch(e){healthError(res,e);}});
+app.post('/api/company/:companyId/health/state',async(req,res)=>{try{res.json({ok:true,appointment:await appointmentState(pool,req.params.companyId,req.body.id,req.body.state)});}catch(e){healthError(res,e);}});
+app.post('/api/company/:companyId/health/chat',async(req,res)=>{try{if(req.healthCompany.service_state!=='ACTIVE')throw Error('Servicio demo pausado.');const response=await healthChat(pool,req.params.companyId,{contact:'SIM-'+crypto.createHash('sha256').update(req.session.sub+'|'+String(req.body.sessionId||'').slice(0,40)).digest('hex'),text:req.body.text,messageId:req.body.messageId});res.json({ok:true,response});}catch(e){healthError(res,e);}});
+app.get('/api/company/:companyId/health/print',async(req,res)=>{try{const date=String(req.query.date||'');res.type('html').send(printAgenda(req.healthCompany.company_name,date,await appointments(pool,req.params.companyId,date,String(req.query.doctorId||'')),(await doctors(pool,req.params.companyId)).find(d=>d.id===req.query.doctorId)?.name||'Todos los especialistas'));}catch(e){healthError(res,e);}});
 
 app.get("/api/company/:companyId/receipts",authRequired,async(req,res)=>{
  try{return res.json({ok:true,items:await listReceipts(pool,req.params.companyId)});}
@@ -2455,9 +2488,10 @@ app.get("/{*splat}", (_req, res) => {
 });
 
 await initDb();
+await initHealthDemo(pool);
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.7.9 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.8.0 escuchando en puerto ${PORT}`
   );
 });
