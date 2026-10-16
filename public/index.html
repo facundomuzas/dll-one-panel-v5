@@ -693,7 +693,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.8 · Autogestión</small>
+          <small>Panel Cloud V5.7.9 · Autogestión</small>
         </div>
       </div>
 
@@ -718,7 +718,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.7.8</small>
+          <small>Panel Cloud V5.7.9</small>
         </div>
       </div>
 
@@ -1159,6 +1159,13 @@
               </div>
 
               <div class="card">
+                <h3 class="card-title">Control de empresas</h3>
+                <p class="card-sub">Pausar bot conserva el acceso al panel. Suspender servicio bloquea también el acceso de la empresa. Dar de baja oculta la empresa y conserva sus datos. Solo Super Admin puede reactivar.</p>
+                <button class="btn btn-light" onclick="loadCompanyServices()">Actualizar lista</button>
+                <p id="companyServiceStatus" role="status" aria-live="polite"></p>
+                <div id="companyServiceList"></div>
+              </div>
+              <div class="card">
                 <h3 class="card-title">Estado de migración</h3>
                 <p class="card-sub">Revisá todas las empresas y los pendientes del motor. Esta consulta no copia datos ni desconecta Apps Script.</p>
                 <button id="migrationAuditButton" class="btn btn-primary" onclick="loadMigrationAudit()">Revisar migración</button>
@@ -1215,6 +1222,7 @@
 <script src="/native_companies.js"></script>
 <script src="/bot_instructions.js"></script>
 <script src="/migration_audit.js"></script>
+<script src="/company_service.js"></script>
 <script src="/notification_state.js"></script>
 <script src="/notifications.js"></script>
 <script>
@@ -1308,6 +1316,7 @@
       });
 
       if(r.ok){
+        $('loginPassword').value='';
         await start();
       }
     }catch(err){
@@ -1321,6 +1330,7 @@
   }
 
   function showLogin(){
+    $('loginPassword').value='';
     stopNotifications();
     clearInterval(inboxTimer);
     currentUser=null;companyId="";selectedChat=null;resetDeliveryView();
@@ -1362,7 +1372,7 @@
           await go('admin');
           return;
         }
-        throw new Error('Tu usuario todavía no tiene una empresa asignada.');
+        throw new Error('No tenés empresas activas asignadas. Consultá al administrador.');
       }
 
       await loadTab('dashboard');
@@ -2426,6 +2436,7 @@
     }
     await refreshCompanies();
     await loadNativeConnection();
+    await loadCompanyServices();
     const r=await api('/api/admin/users');
     const users=r.items||[];
     $('adminUsersList').innerHTML=users.length?users.map(u=>{

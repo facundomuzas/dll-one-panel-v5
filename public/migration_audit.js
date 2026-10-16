@@ -9,9 +9,17 @@ async function loadMigrationAudit(){
   function line(parent,text){const p=document.createElement('p');p.textContent=text;parent.appendChild(p);return p;}
   const time=new Date(r.checkedAt).toLocaleString();
   $('migrationAuditStatus').textContent=r.reviewClear?`Revisión del ${time}: datos evaluados preparados y sin pendientes detectados. Mantené Apps Script activo hasta completar la prueba de desconexión.`:`Revisión del ${time}: quedan puntos por revisar. Seguí las indicaciones de abajo.`;
-  if(!r.motor.available)line(box,'⚠ No pude consultar el motor. Verificá que esté activo, actualizado a 4.3.13 y conectado al panel. Los pendientes no se consideran resueltos.');
+  if(!r.motor.available)line(box,'⚠ No pude consultar el motor. Verificá que esté activo, actualizado a 4.3.14 y conectado al panel. Los pendientes no se consideran resueltos.');
   else{
    line(box,`Motor ${r.motor.version}. Pendientes globales de todas las empresas:`);
+   if(r.motor.storage){
+    const storage=r.motor.storage;
+    line(box,'Panel: datos, comprobantes e imágenes del menú en PostgreSQL.');
+    line(box,'Motor: '+storage.runtimeFile+' (conversaciones en curso y pendientes); '+storage.configFile+' (configuración local).');
+    const mount=String(storage.volumeMount||'').replace(/\/+$/,'');
+    const inVolume=mount&&[storage.runtimeFile,storage.configFile].every(p=>String(p).startsWith(mount+'/'));
+    line(box,inVolume?'El motor declara un volumen en '+mount+'. Falta comprobar recuperación tras reinicio y respaldos.':'⚠ No se confirmó un volumen para ambos archivos del motor. Revisá almacenamiento antes de desconectar Apps Script.');
+   }
    line(box,`Copias antiguas hacia Apps Script: ${r.motor.legacyMirrors}. Mensajes por procesar: ${r.motor.messagesPending}. Registros de conversación por guardar: ${r.motor.conversationEventsPending}.`);
    if(r.motor.legacyMirrors)line(box,'Mantené Apps Script activo para que el motor complete las copias antiguas. No borres la cola. Si el número no baja, revisá los logs del motor.');
    if(r.motor.messagesPending||r.motor.conversationEventsPending)line(box,'Esperá a que termine el procesamiento y volvé a revisar. Estos contadores no significan necesariamente que falten datos por migrar.');

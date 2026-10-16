@@ -56,6 +56,8 @@ export async function initDb() {
     )
   `);
 
+  await pool.query(`ALTER TABLE panel_companies ADD COLUMN IF NOT EXISTS service_state TEXT NOT NULL DEFAULT 'ACTIVE', ADD COLUMN IF NOT EXISTS service_revision INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS panel_service_log(id BIGSERIAL PRIMARY KEY,company_id TEXT NOT NULL,previous_state TEXT NOT NULL,next_state TEXT NOT NULL,actor TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_panel_companies_synced_at
       ON panel_companies (synced_at DESC)
@@ -271,6 +273,7 @@ export async function upsertCompanySnapshot(payload) {
         snapshot = EXCLUDED.snapshot,
         source_version = EXCLUDED.source_version,
         synced_at = NOW()
+      WHERE panel_companies.service_state<>'ARCHIVED'
     `,
     [
       companyId,
@@ -311,6 +314,7 @@ export async function listCompanies() {
       source_version,
       synced_at
     FROM panel_companies
+    WHERE service_state<>'ARCHIVED'
     ORDER BY company_name ASC
   `);
 
@@ -334,7 +338,7 @@ export async function listCompaniesForUser(userId, role) {
       FROM panel_companies c
       INNER JOIN panel_user_companies uc
         ON uc.company_id = c.company_id
-      WHERE uc.user_id = $1
+      WHERE uc.user_id = $1 AND c.service_state IN ('ACTIVE','PAUSED')
       ORDER BY c.company_name ASC
     `,
     [Number(userId)]
@@ -358,6 +362,9 @@ export async function getCompany(companyId) {
 }
 
 export async function userCanAccessCompany(userId, role, companyId) {
+  const service=(await pool.query('SELECT service_state FROM panel_companies WHERE company_id=$1',[companyId])).rows[0];
+  if(!service||service.service_state==='ARCHIVED')return false;
+  if(service.service_state==='SUSPENDED'&&String(role||'').toUpperCase()!=='SUPERADMIN')return false;
   if (String(role || "").toUpperCase() === "SUPERADMIN" || !Number(userId)) {
     return true;
   }

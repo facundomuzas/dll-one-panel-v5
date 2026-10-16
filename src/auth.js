@@ -1,3 +1,4 @@
+import {sessionSeconds,sessionAllowed} from "./session_policy.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
@@ -64,6 +65,7 @@ export async function validLogin(user, password) {
 export function issueSession(res, user) {
   const token = jwt.sign(
     {
+      policy:2,
       sub: String(user.loginKey || ""),
       uid: Number(user.userId || 0),
       name: String(user.displayName || user.loginKey || "Usuario"),
@@ -71,7 +73,7 @@ export function issueSession(res, user) {
     },
     secret(),
     {
-      expiresIn: "12h",
+      expiresIn: sessionSeconds(),
       issuer: "DLL ONE Panel V5"
     }
   );
@@ -82,8 +84,7 @@ export function issueSession(res, user) {
     {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 12 * 60 * 60 * 1000
+      secure: process.env.NODE_ENV === "production"
     }
   );
 }
@@ -110,6 +111,7 @@ export function authRequired(req, res, next) {
         issuer: "DLL ONE Panel V5"
       }
     );
+    if(!sessionAllowed(req.session))throw Error("SESSION_EXPIRED");
     next();
   } catch {
     return res.status(401).json({

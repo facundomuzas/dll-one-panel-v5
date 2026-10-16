@@ -5,6 +5,7 @@ import {gastroMigrationStatus} from './gastro_migration.js';
 // Read-only. No import, bridge call, credential export or change to company data.
 export async function auditCompanyMigration(db,company){
  const id=company.company_id,checks=[];
+ if(company.service_state&&company.service_state!=='ACTIVE')return {companyId:id,name:company.company_name,phoneNumberId:String(company.phone_number_id||''),connected:false,checks:[{key:'paused',ready:true,label:'Servicio pausado/suspendido: datos conservados; reactivación pendiente de revisión',action:''}],dataPrepared:true};
  const native=(await db.query('SELECT connected,runtime,bot_instructions FROM panel_native_companies WHERE company_id=$1',[id])).rows[0];
  checks.push({key:'connection',ready:!!native,label:'Conexión administrada por el panel',action:native?'':'Super Admin → Conexión con Meta / WhatsApp → Traer conexión actual al panel.'});
  const credentialsReady=!!native&&(!native.connected||!!native.runtime?.accessToken&&String(native.runtime?.phoneNumberId)===String(company.phone_number_id));
@@ -33,7 +34,7 @@ export function combineMigrationAudit(companies,motor){
   return {...c,motorObserved:observed};
  });
  return {checkedAt:new Date().toISOString(),companies:rows,motor:available?{
-  available:true,version:String(motor.version||''),legacyMirrors:motor.legacyMirrors,messagesPending:motor.messagesPending,conversationEventsPending:motor.conversationEventsPending,unknownCompanies
+  available:true,storage:motor.storage||null,version:String(motor.version||''),legacyMirrors:motor.legacyMirrors,messagesPending:motor.messagesPending,conversationEventsPending:motor.conversationEventsPending,unknownCompanies
  }:{available:false},
  reviewClear:available&&rows.length>0&&rows.every(x=>x.dataPrepared&&x.motorObserved)&&unknownCompanies.length===0&&motor.legacyMirrors===0&&motor.messagesPending===0&&motor.conversationEventsPending===0};
 }

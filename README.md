@@ -1,4 +1,4 @@
-# DLL ONE Panel 5.7.8
+# DLL ONE Panel 5.7.9
 
 V575 crea empresas directamente en PostgreSQL y permite administrar las conexiones
 nativas de empresas nuevas desde Super Admin. Requiere motor 4.3.10 para leerlas.

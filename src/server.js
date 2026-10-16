@@ -1,3 +1,4 @@
+import {listCompanyServices,changeCompanyService} from './company_service.js';
 import {auditCompanyMigration,combineMigrationAudit} from './migration_audit.js';
 import {getBotInstructions,saveBotInstructions} from './bot_instructions.js';
 import {importExistingConnection,checkMetaCredentials} from './meta_connection.js';
@@ -913,7 +914,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.8",
+      version: "5.7.9",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -931,7 +932,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.7.8",
+      version: "5.7.9",
       error: String(err?.message || err)
     });
   }
@@ -1126,10 +1127,21 @@ app.post('/api/admin/companies/:companyId/connection/check',authRequired,require
   res.json({ok:true,...result,revision:row.revision});
  }catch(err){res.status(400).json({ok:false,error:err.message});}
 });
+app.get('/api/admin/company-services',authRequired,requireSuperadmin,async(req,res)=>{
+ res.set('Cache-Control','no-store');try{res.json({ok:true,items:await listCompanyServices(pool)});}catch{res.status(503).json({ok:false,error:'No pude consultar las empresas.'});}
+});
+app.post('/api/admin/companies/:companyId/service',authRequired,requireSuperadmin,async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ try{
+  const company=await changeCompanyService(pool,req.params.companyId,req.body||{},req.session.sub);
+  let motorApplied=false;try{const r=await postMotor('/admin/panel/refresh-config',{companyId:company.company_id,state:company.service_state});motorApplied=r.applied===true;}catch{}
+  res.json({ok:true,company,motorApplied});
+ }catch(e){res.status(400).json({ok:false,error:e.message});}
+});
 app.get('/api/admin/migration-audit',authRequired,requireSuperadmin,async(req,res)=>{
  res.set('Cache-Control','no-store');
  try{
-  const companies=(await pool.query('SELECT company_id,company_name,phone_number_id,modules FROM panel_companies ORDER BY company_name')).rows;
+  const companies=(await pool.query("SELECT company_id,company_name,phone_number_id,modules,service_state FROM panel_companies WHERE service_state<>'ARCHIVED' ORDER BY company_name")).rows;
   const rows=[];for(const company of companies)rows.push(await auditCompanyMigration(pool,company));
   let motor=null;try{motor=await postMotor('/admin/panel/migration-status');}catch{}
   res.json({ok:true,...combineMigrationAudit(rows,motor)});
@@ -1158,6 +1170,13 @@ app.post('/motor/config-snapshot',authenticateMotorRequest,async(req,res)=>{
  catch{res.status(400).json({ok:false,error:'No se pudo guardar la configuración del motor. Revisá que esté completa.'});}
 });
 
+app.get('/motor/company/:companyId/service',authenticateMotorRequest,async(req,res)=>{
+ res.set('Cache-Control','no-store');try{
+ const c=await getCompany(req.params.companyId);
+ const active=!!c&&c.service_state==='ACTIVE'&&String(c.phone_number_id)===String(req.query.phoneNumberId||'');
+ res.json({ok:true,active});
+ }catch{res.status(503).json({ok:false,error:'No se pudo verificar el servicio.'});}
+});
 app.get("/motor/company/:companyId/pickup", authenticateMotorRequest, async (req,res) => {
   try {
     const company=await getCompany(req.params.companyId);
@@ -2439,6 +2458,6 @@ await initDb();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.7.8 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.7.9 escuchando en puerto ${PORT}`
   );
 });
