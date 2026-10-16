@@ -915,7 +915,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.8.0",
+      version: "5.8.1",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -933,7 +933,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.8.0",
+      version: "5.8.1",
       error: String(err?.message || err)
     });
   }
@@ -2473,6 +2473,7 @@ app.use(
   express.static(
     path.join(__dirname, "..", "public"),
     {
+      setHeaders(res,filePath){if(/\.(html|js)$/.test(filePath))res.setHeader('Cache-Control','no-cache');},
       maxAge:
         process.env.NODE_ENV === "production"
           ? "10m"
@@ -2481,6 +2482,7 @@ app.use(
   )
 );
 
+app.get(/\.js$/, (_req,res)=>res.status(404).type('text/plain').send('Archivo JavaScript ausente. Revisá la carga completa del panel V581.'));
 app.get("/{*splat}", (_req, res) => {
   res.sendFile(
     path.join(__dirname, "..", "public", "index.html")
@@ -2492,6 +2494,6 @@ await initHealthDemo(pool);
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.8.0 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.8.1 escuchando en puerto ${PORT}`
   );
 });

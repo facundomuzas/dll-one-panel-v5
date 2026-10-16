@@ -694,7 +694,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.8.0 · Autogestión</small>
+          <small>Panel Cloud V5.8.1 · Autogestión</small>
         </div>
       </div>
 
@@ -719,7 +719,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.8.0</small>
+          <small>Panel Cloud V5.8.1</small>
         </div>
       </div>
 
@@ -731,9 +731,10 @@
         <button data-tab="receipts" onclick="go('receipts',this)">📎 Comprobantes <span class="notice-badge" data-notice="receipts" hidden></span></button>
         <button data-tab="customers" onclick="go('customers',this)">👥 Clientes</button>
         <button data-tab="business" onclick="go('business',this)">🏢 Mi negocio</button>
-        <button id="navCatalog" data-tab="catalog" onclick="go('catalog',this)">💲 Catálogo / precios</button>
-        <button id="navGastro" data-tab="gastro" onclick="go('gastro',this)">🍔 Gastro</button>
-        <button id="navHealth" data-tab="health" onclick="go('health',this)" style="display:none">🏥 Salud · Demo</button>
+        <button data-tab="products" onclick="go('products')">▦ Categorías ONE</button>
+        <button id="navCatalog" data-tab="catalog" onclick="go('catalog',this)">💲 ONE Ventas</button>
+        <button id="navGastro" data-tab="gastro" onclick="go('gastro',this)">🍔 ONE Gastro</button>
+        <button id="navHealth" data-tab="health" onclick="go('health',this)" style="display:none">🏥 ONE Salud · Demo</button>
         <button id="navAdmin" class="admin-only hidden-admin" data-tab="admin" onclick="go('admin',this)">⚙ Super Admin</button>
       </div>
 
@@ -1109,6 +1110,7 @@
           </fieldset>
         </section>
 
+        <section id="products" class="section"><div class="hero"><div><h1>Categorías ONE</h1><p>Elegí una categoría y luego la empresa que querés administrar.</p></div></div><div id="productCategories" class="grid-2"></div></section>
         <section id="health" class="section">
         <div class="hero"><div><h1>ONE Salud <small>Demostración</small></h1><p>Turnos por horario o por cupo. Usá especialistas y pacientes ficticios. No está conectado a un hospital.</p></div></div>
         <p id="healthStatus" role="status" aria-live="polite"></p>
@@ -1227,9 +1229,10 @@
           <div class="hero"><div><h1>Más</h1><p>Configuración y administración.</p><button class="btn btn-light" onclick="go('receipts')">📎 Comprobantes <span class="notice-badge" data-notice="receipts" hidden></span></button></div></div>
           <div class="more-grid">
             <button class="more-card" onclick="go('business')">🏢<strong>Mi negocio</strong><small>Datos generales y módulos.</small></button>
-            <button id="moreCatalog" class="more-card" onclick="go('catalog')">💲<strong>Catálogo</strong><small>Productos, servicios y listas de precios.</small></button>
-            <button id="moreHealth" class="more-card" onclick="go('health')">🏥<strong>Salud · Demo</strong><small>Agenda y turnos.</small></button>
-            <button id="moreGastro" class="more-card" onclick="go('gastro')">🍔<strong>Gastro</strong><small>Menú, variantes y extras.</small></button>
+            <button class="more-card" onclick="go('products')">▦<strong>Categorías ONE</strong><small>Salud, Gastro, Ventas y Eventos.</small></button>
+            <button id="moreCatalog" class="more-card" onclick="go('catalog')">💲<strong>ONE Ventas</strong><small>Productos, servicios y listas de precios.</small></button>
+            <button id="moreHealth" class="more-card" onclick="go('health')">🏥<strong>ONE Salud · Demo</strong><small>Agenda y turnos.</small></button>
+            <button id="moreGastro" class="more-card" onclick="go('gastro')">🍔<strong>ONE Gastro</strong><small>Menú, variantes y extras.</small></button>
             <button class="more-card" onclick="go('customers')">👥<strong>Clientes</strong><small>Base de clientes.</small></button>
             <button id="moreAdmin" class="more-card admin-only hidden-admin" onclick="go('admin')">⚙<strong>Super Admin</strong><small>Crear empresas y accesos.</small></button>
           </div>
@@ -1323,7 +1326,7 @@
     });
 
     let data={};
-    try{data=await r.json()}catch{}
+    try{data=await r.json()}catch{throw new Error('El servidor no devolvió una respuesta válida. Comprobá que terminó el despliegue del panel V581 y recargá.');}
 
     if(r.status===401){
       showLogin();
@@ -1414,6 +1417,26 @@
     }
   }
 
+  function renderProductCategories(){
+    const box=$('productCategories');box.replaceChildren();
+    for(const [key,name,tab,description] of [
+      ['salud','ONE Salud','health','Demostración: especialistas, agenda y turnos.'],
+      ['gastro','ONE Gastro','gastro','Menú, precios, pagos y zonas de delivery.'],
+      ['ventas','ONE Ventas','catalog','Productos y listas de precios.'],
+      ['eventos','ONE Eventos',null,'Gestión de entradas y acreditaciones pendiente de implementación.']]){
+      const card=document.createElement('div');card.className='card';const title=document.createElement('h2');title.textContent=name;card.appendChild(title);
+      const info=document.createElement('p');info.textContent=description;card.appendChild(info);
+      const matching=companies.filter(c=>{const value=c.modules?.[key];return [true,'SI','TRUE','1'].includes(typeof value==='string'?value.toUpperCase():value);});
+      for(const c of matching){
+        if(!tab){const text=document.createElement('p');text.textContent=c.nombreEmpresa+' — Módulo pendiente';card.appendChild(text);continue;}
+        const b=document.createElement('button');b.className='btn btn-light';b.textContent='Abrir '+c.nombreEmpresa;b.onclick=async()=>{b.disabled=true;try{$('companySelect').value=c.idEmpresa;await changeCompany();await go(tab);}catch(e){showNotice(e.message);}finally{b.disabled=false;}};card.appendChild(b);
+      }
+      if(!matching.length){const empty=document.createElement('p');empty.textContent='No hay empresas de esta categoría en tu acceso.';card.appendChild(empty);}
+      if(key==='salud'&&currentUser?.role==='SUPERADMIN'){const b=document.createElement('button');b.className='btn btn-primary';b.textContent='Crear / abrir demo ONE Salud';b.onclick=async()=>{b.disabled=true;try{if(typeof createHealthDemo!=='function')throw Error('Falta health_demo.js. Subí todos los archivos del panel V581.');await createHealthDemo();if(currentTab==='products')showNotice($('healthDemoCreateStatus').textContent);}catch(e){showNotice(e.message);}finally{b.disabled=false;}};card.appendChild(b);}
+      box.appendChild(card);
+    }
+  }
+
   function selectedCompany(){
     return companies.find(c=>c.idEmpresa===companyId)||null;
   }
@@ -1497,7 +1520,8 @@
       if(tab==='business')await Promise.all([loadBusiness(),loadOrderHours(),loadBotInstructions()]);
       if(tab==='catalog')await loadCatalog();
       if(tab==='gastro')await loadGastro();
-      if(tab==='health')await loadHealth();
+      if(tab==='health'){if(typeof loadHealth!=='function')throw Error('Falta cargar health_demo.js. Volvé a subir todos los archivos del panel V581 y recargá.');await loadHealth();}
+      if(tab==='products')renderProductCategories();
       if(tab==='admin')await loadAdmin();
       if(tab==='more')updateModuleNavigation();
     }catch(err){

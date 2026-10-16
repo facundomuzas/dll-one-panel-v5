@@ -8,6 +8,11 @@ async function createHealthDemo(){
  catch(e){$('healthDemoCreateStatus').textContent=e.message;}finally{b.disabled=false;}
 }
 async function loadHealth(){
+ $('healthStatus').textContent='Cargando agenda y especialistas…';
+ try{await loadHealthData();$('healthStatus').textContent='Agenda lista. Podés probar el bot, reservar o editar especialistas.';}
+ catch(e){$('healthStatus').textContent='No se pudo cargar ONE Salud: '+e.message+' Usá Actualizar agenda y especialistas para reintentar.';$('healthBookButton').disabled=true;}
+}
+async function loadHealthData(){
  const id=companyId;const r=await api(healthUrl(id,'doctors'));if(companyId!==id)return;
  const changed=healthCompany!==id;if(changed)resetHealthDemo();healthCompany=id;healthDoctors=r.items||[];
  if(changed||!$('healthDate').value)$('healthDate').value=r.today;
@@ -47,7 +52,7 @@ async function healthSlots(){
  const slots=r.doctor.mode==='QUEUE'?(r.slots.length?['QUEUE']:[]):r.slots;
  for(const value of slots){const opt=document.createElement('option');opt.value=value;opt.textContent=value==='QUEUE'?'Reservar un cupo por llegada':value;$('healthBookSlot').appendChild(opt);}
  $('healthSlotInfo').textContent=r.doctor.mode==='QUEUE'?r.slots.length+' cupos disponibles. Atención '+r.doctor.start+'–'+r.doctor.end+'. No se asigna hora ni prioridad.':r.slots.length+' horarios disponibles.';
- $('healthBookButton').disabled=!slots.length;
+ $('healthBookButton').disabled=!slots.length;if(!slots.length)$('healthSlotInfo').textContent+=' Elegí otra fecha en Agenda diaria o revisá los días y horarios del especialista.';
  }catch(e){if(id===companyId&&sequence===healthSlotsSequence)$('healthSlotInfo').textContent=e.message;}
 }
 async function bookHealth(){
@@ -59,10 +64,10 @@ async function bookHealth(){
 }
 function newHealthChat(){if(healthChatBusy)return;healthChatAttempt=null;healthChatId=crypto.randomUUID();$('healthChatLog').replaceChildren();$('healthChatInput').value='TURNOS';}
 async function sendHealthChat(){
- if(healthChatBusy)return;const text=$('healthChatInput').value.trim();if(!text)return;const id=companyId,sessionId=healthChatId||(healthChatId=crypto.randomUUID());healthChatBusy=true;$('healthChatSend').disabled=true;
+ if(healthChatBusy)return;const text=$('healthChatInput').value.trim()||'TURNOS';const id=companyId,sessionId=healthChatId||(healthChatId=crypto.randomUUID());healthChatBusy=true;$('healthChatSend').disabled=true;$('healthChatSend').textContent='Enviando…';
  const key=JSON.stringify({id,sessionId,text});if(healthChatAttempt?.key!==key)healthChatAttempt={key,messageId:crypto.randomUUID()};
  const line=(who,value)=>{const p=document.createElement('p');p.textContent=who+': '+value;$('healthChatLog').appendChild(p);$('healthChatLog').scrollTop=$('healthChatLog').scrollHeight;};
  try{const r=await api(healthUrl(id,'chat'),{method:'POST',body:JSON.stringify({sessionId,text,messageId:healthChatAttempt.messageId})});if(companyId!==id||healthChatId!==sessionId)return;healthChatAttempt=null;line('Paciente demo',text);line('ONE Salud',r.response);$('healthChatInput').value='';await loadHealthAgenda();await healthSlots();}
- catch(e){if(companyId===id)line('Aviso',e.message+' Podés escribir TURNOS para comenzar de nuevo.');}finally{healthChatBusy=false;$('healthChatSend').disabled=false;}
+ catch(e){if(companyId===id)line('Aviso',e.message+' Podés escribir TURNOS para comenzar de nuevo.');}finally{healthChatBusy=false;$('healthChatSend').disabled=false;$('healthChatSend').textContent='Enviar prueba';}
 }
 function printHealthAgenda(){const q='?date='+encodeURIComponent($('healthDate').value)+'&doctorId='+encodeURIComponent($('healthFilter').value);window.open(healthUrl(companyId,'print')+q,'_blank','noopener');}
