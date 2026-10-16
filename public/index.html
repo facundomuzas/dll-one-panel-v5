@@ -694,7 +694,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.8.1 · Autogestión</small>
+          <small>Panel Cloud V5.8.2 · Autogestión</small>
         </div>
       </div>
 
@@ -719,7 +719,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.8.1</small>
+          <small>Panel Cloud V5.8.2</small>
         </div>
       </div>
 
@@ -731,7 +731,7 @@
         <button data-tab="receipts" onclick="go('receipts',this)">📎 Comprobantes <span class="notice-badge" data-notice="receipts" hidden></span></button>
         <button data-tab="customers" onclick="go('customers',this)">👥 Clientes</button>
         <button data-tab="business" onclick="go('business',this)">🏢 Mi negocio</button>
-        <button data-tab="products" onclick="go('products')">▦ Categorías ONE</button>
+        <button class="admin-only hidden-admin" data-tab="products" onclick="go('products')">▦ Categorías ONE</button>
         <button id="navCatalog" data-tab="catalog" onclick="go('catalog',this)">💲 ONE Ventas</button>
         <button id="navGastro" data-tab="gastro" onclick="go('gastro',this)">🍔 ONE Gastro</button>
         <button id="navHealth" data-tab="health" onclick="go('health',this)" style="display:none">🏥 ONE Salud · Demo</button>
@@ -1125,6 +1125,7 @@
             <div class="form-field full"><label>Especialista</label><select id="healthBookDoctor" onchange="healthSlots()"></select></div>
             <div class="form-field"><label>Horario / cupo para la fecha de la agenda</label><select id="healthBookSlot"></select></div>
             <div class="form-field"><label>Nombre ficticio</label><input id="healthPatient" value="Paciente Demo" maxlength="80"></div>
+            <div class="form-field"><label>DNI ficticio del paciente</label><input id="healthDni" inputmode="numeric" maxlength="12" placeholder="Ej.: 12345678"></div>
             <div class="form-field"><label>Código de paciente de prueba</label><input id="healthContact" value="DEMO-001" maxlength="80"></div>
           </div><p id="healthSlotInfo"></p><button id="healthBookButton" class="btn btn-primary" onclick="bookHealth()">Reservar turno demo</button></div>
         </div>
@@ -1229,7 +1230,7 @@
           <div class="hero"><div><h1>Más</h1><p>Configuración y administración.</p><button class="btn btn-light" onclick="go('receipts')">📎 Comprobantes <span class="notice-badge" data-notice="receipts" hidden></span></button></div></div>
           <div class="more-grid">
             <button class="more-card" onclick="go('business')">🏢<strong>Mi negocio</strong><small>Datos generales y módulos.</small></button>
-            <button class="more-card" onclick="go('products')">▦<strong>Categorías ONE</strong><small>Salud, Gastro, Ventas y Eventos.</small></button>
+            <button class="more-card admin-only hidden-admin" onclick="go('products')">▦<strong>Categorías ONE</strong><small>Salud, Gastro, Ventas y Eventos.</small></button>
             <button id="moreCatalog" class="more-card" onclick="go('catalog')">💲<strong>ONE Ventas</strong><small>Productos, servicios y listas de precios.</small></button>
             <button id="moreHealth" class="more-card" onclick="go('health')">🏥<strong>ONE Salud · Demo</strong><small>Agenda y turnos.</small></button>
             <button id="moreGastro" class="more-card" onclick="go('gastro')">🍔<strong>ONE Gastro</strong><small>Menú, variantes y extras.</small></button>
@@ -1326,7 +1327,7 @@
     });
 
     let data={};
-    try{data=await r.json()}catch{throw new Error('El servidor no devolvió una respuesta válida. Comprobá que terminó el despliegue del panel V581 y recargá.');}
+    try{data=await r.json()}catch{throw new Error('El servidor no devolvió una respuesta válida. Comprobá que terminó el despliegue del panel V582 y recargá.');}
 
     if(r.status===401){
       showLogin();
@@ -1418,7 +1419,7 @@
   }
 
   function renderProductCategories(){
-    const box=$('productCategories');box.replaceChildren();
+    const box=$('productCategories');box.replaceChildren();if(currentUser?.role!=='SUPERADMIN')return;
     for(const [key,name,tab,description] of [
       ['salud','ONE Salud','health','Demostración: especialistas, agenda y turnos.'],
       ['gastro','ONE Gastro','gastro','Menú, precios, pagos y zonas de delivery.'],
@@ -1432,7 +1433,7 @@
         const b=document.createElement('button');b.className='btn btn-light';b.textContent='Abrir '+c.nombreEmpresa;b.onclick=async()=>{b.disabled=true;try{$('companySelect').value=c.idEmpresa;await changeCompany();await go(tab);}catch(e){showNotice(e.message);}finally{b.disabled=false;}};card.appendChild(b);
       }
       if(!matching.length){const empty=document.createElement('p');empty.textContent='No hay empresas de esta categoría en tu acceso.';card.appendChild(empty);}
-      if(key==='salud'&&currentUser?.role==='SUPERADMIN'){const b=document.createElement('button');b.className='btn btn-primary';b.textContent='Crear / abrir demo ONE Salud';b.onclick=async()=>{b.disabled=true;try{if(typeof createHealthDemo!=='function')throw Error('Falta health_demo.js. Subí todos los archivos del panel V581.');await createHealthDemo();if(currentTab==='products')showNotice($('healthDemoCreateStatus').textContent);}catch(e){showNotice(e.message);}finally{b.disabled=false;}};card.appendChild(b);}
+      if(key==='salud'&&currentUser?.role==='SUPERADMIN'){const b=document.createElement('button');b.className='btn btn-primary';b.textContent='Crear / abrir demo ONE Salud';b.onclick=async()=>{b.disabled=true;try{if(typeof createHealthDemo!=='function')throw Error('Falta health_demo.js. Subí todos los archivos del panel V582.');await createHealthDemo();if(currentTab==='products')showNotice($('healthDemoCreateStatus').textContent);}catch(e){showNotice(e.message);}finally{b.disabled=false;}};card.appendChild(b);}
       box.appendChild(card);
     }
   }
@@ -1443,6 +1444,7 @@
 
   function gastroEnabled(){const m=selectedCompany()?.modules||{};return [true,'SI','TRUE','1'].includes(typeof (m.gastro??m.MODULO_GASTRO)==='string'?String(m.gastro??m.MODULO_GASTRO).toUpperCase():(m.gastro??m.MODULO_GASTRO));}
   function resolveModuleTab(tab){
+    if(tab==='products'&&currentUser?.role!=='SUPERADMIN')return 'dashboard';
     if(tab==='catalog'&&gastroEnabled())return 'gastro';
     if(tab==='gastro'&&!gastroEnabled())return 'dashboard';
     if(tab==='health'&&selectedCompany()?.modules?.salud!==true)return 'dashboard';
@@ -1520,7 +1522,7 @@
       if(tab==='business')await Promise.all([loadBusiness(),loadOrderHours(),loadBotInstructions()]);
       if(tab==='catalog')await loadCatalog();
       if(tab==='gastro')await loadGastro();
-      if(tab==='health'){if(typeof loadHealth!=='function')throw Error('Falta cargar health_demo.js. Volvé a subir todos los archivos del panel V581 y recargá.');await loadHealth();}
+      if(tab==='health'){if(typeof loadHealth!=='function')throw Error('Falta cargar health_demo.js. Volvé a subir todos los archivos del panel V582 y recargá.');await loadHealth();}
       if(tab==='products')renderProductCategories();
       if(tab==='admin')await loadAdmin();
       if(tab==='more')updateModuleNavigation();

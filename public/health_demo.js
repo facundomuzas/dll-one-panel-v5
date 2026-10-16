@@ -40,7 +40,7 @@ async function loadHealthAgendaData(){
  const id=companyId,date=$('healthDate').value,doctor=$('healthFilter').value;if(!date)return;
  const r=await api(healthUrl(id,'agenda')+'?date='+encodeURIComponent(date)+'&doctorId='+encodeURIComponent(doctor));if(companyId!==id||date!==$('healthDate').value||doctor!==$('healthFilter').value)return;
  const box=$('healthAgenda');box.replaceChildren();
- for(const a of r.items||[]){const row=document.createElement('div');row.className='data-row';const text=document.createElement('div');text.className='data-row-main';text.textContent=a.patient+' · '+a.doctor_name+' · '+(a.mode==='FIXED'?a.slot:'Llegada, cupo '+a.slot+' ('+a.start_time+'–'+a.end_time+')')+' · '+healthStates[a.state]+' · '+a.id;row.appendChild(text);
+ for(const a of r.items||[]){const row=document.createElement('div');row.className='data-row';const text=document.createElement('div');text.className='data-row-main';text.textContent=a.patient+' · DNI: '+(a.dni||'Sin registrar')+' · '+a.doctor_name+' · '+(a.mode==='FIXED'?a.slot:'Llegada, cupo '+a.slot+' ('+a.start_time+'–'+a.end_time+')')+' · '+healthStates[a.state]+' · '+a.id;row.appendChild(text);
   if(a.state!=='CANCELLED'){const select=document.createElement('select');for(const [value,label] of Object.entries(healthStates)){const opt=document.createElement('option');opt.value=value;opt.textContent=label;select.appendChild(opt);}select.value=a.state;select.onchange=async()=>{select.disabled=true;try{await api(healthUrl(id,'state'),{method:'POST',body:JSON.stringify({id:a.id,state:select.value})});if(companyId===id){await loadHealthAgenda();await healthSlots();}}catch(e){select.value=a.state;if(companyId===id)$('healthStatus').textContent=e.message;}finally{select.disabled=false;}};row.appendChild(select);}box.appendChild(row);
  }
  if(!r.items?.length)box.textContent='No hay turnos para esta fecha y especialista.';
@@ -56,7 +56,8 @@ async function healthSlots(){
  }catch(e){if(id===companyId&&sequence===healthSlotsSequence)$('healthSlotInfo').textContent=e.message;}
 }
 async function bookHealth(){
- if(healthBookBusy)return;const id=companyId,body={doctorId:$('healthBookDoctor').value,date:$('healthDate').value,slot:$('healthBookSlot').value,patient:$('healthPatient').value,contact:'MANUAL-'+$('healthContact').value.trim()};
+ if(healthBookBusy)return;const id=companyId,body={doctorId:$('healthBookDoctor').value,date:$('healthDate').value,slot:$('healthBookSlot').value,patient:$('healthPatient').value,dni:$('healthDni').value,contact:'MANUAL-'+$('healthContact').value.trim()};
+ if(!/^[0-9]{7,8}$/.test(body.dni.replace(/[.\s]/g,''))){$('healthStatus').textContent='Ingresá un DNI ficticio de 7 u 8 dígitos.';return;}
  if(!$('healthContact').value.trim()){$('healthStatus').textContent='Ingresá un código de paciente demo.';return;}
  const serialized=JSON.stringify(body);if(healthBookAttempt?.serialized!==serialized)healthBookAttempt={serialized,requestId:crypto.randomUUID()};healthBookBusy=true;$('healthBookButton').disabled=true;
  try{const r=await api(healthUrl(id,'book'),{method:'POST',body:JSON.stringify({...body,requestId:healthBookAttempt.requestId})});if(companyId!==id)return;healthBookAttempt=null;$('healthStatus').textContent='Turno demo registrado: '+r.appointment.id;await loadHealthAgenda();}

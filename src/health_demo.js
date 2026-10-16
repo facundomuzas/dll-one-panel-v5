@@ -1,4 +1,5 @@
 import {randomUUID,createHash} from 'node:crypto';
+export function normalizeDni(value){const dni=String(value??'').trim().replace(/[.\s]/g,'');if(!/^[0-9]{7,8}$/.test(dni))throw Error('Ingresá un DNI ficticio de 7 u 8 dígitos, sin letras.');return dni;}
 export const isHealth=c=>c?.modules?.salud===true;
 const clean=(v,n=100)=>String(v??'').trim().slice(0,n);
 export function localToday(now=new Date()){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Argentina/Buenos_Aires',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);}
@@ -20,8 +21,10 @@ export function validateDoctor(input){
 export async function initHealthDemo(db){
  await db.query(`CREATE TABLE IF NOT EXISTS panel_health_doctors(company_id TEXT NOT NULL,id TEXT NOT NULL,data JSONB NOT NULL,revision INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(company_id,id))`);
  await db.query(`CREATE TABLE IF NOT EXISTS panel_health_appointments(company_id TEXT NOT NULL,id TEXT NOT NULL,doctor_id TEXT NOT NULL,day TEXT NOT NULL,slot TEXT NOT NULL,patient TEXT NOT NULL,contact TEXT NOT NULL,mode TEXT NOT NULL,doctor_name TEXT NOT NULL,specialty TEXT NOT NULL,room TEXT NOT NULL,start_time TEXT NOT NULL,end_time TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'BOOKED',request_id TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(company_id,id),UNIQUE(company_id,request_id))`);
+ await db.query(`ALTER TABLE panel_health_appointments ADD COLUMN IF NOT EXISTS dni TEXT`);
+ await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS panel_health_dni_unique ON panel_health_appointments(company_id,doctor_id,day,dni) WHERE state<>'CANCELLED' AND dni IS NOT NULL`);
  await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS panel_health_slot_unique ON panel_health_appointments(company_id,doctor_id,day,slot) WHERE state<>'CANCELLED'`);
- await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS panel_health_patient_unique ON panel_health_appointments(company_id,doctor_id,day,contact) WHERE state<>'CANCELLED'`);
+ await db.query(`DROP INDEX IF EXISTS panel_health_patient_unique`);
  await db.query(`CREATE TABLE IF NOT EXISTS panel_health_chats(company_id TEXT NOT NULL,contact TEXT NOT NULL,state JSONB NOT NULL DEFAULT '{}',updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(company_id,contact))`);
  await db.query(`CREATE TABLE IF NOT EXISTS panel_health_chat_events(company_id TEXT NOT NULL,contact TEXT NOT NULL,message_id TEXT NOT NULL,response TEXT NOT NULL,PRIMARY KEY(company_id,contact,message_id))`);
 }
@@ -59,18 +62,18 @@ async function availabilityOn(db,id,doctor,date){
 }
 export async function availability(db,id,doctorId,date){const d=(await doctors(db,id)).find(d=>d.id===doctorId);if(!d)throw Error('Especialista no encontrado.');return {doctor:d,slots:await availabilityOn(db,id,d,date)};}
 async function reserveOn(cx,id,input){
- const requestId=clean(input.requestId,150),contact=clean(input.contact,120),patient=clean(input.patient,80);
+ const requestId=clean(input.requestId,150),contact=clean(input.contact,120),patient=clean(input.patient,80),dni=normalizeDni(input.dni);
  if(!requestId||!contact||patient.length<2)throw Error('Completá nombre ficticio y código de paciente demo.');
  const old=(await cx.query('SELECT * FROM panel_health_appointments WHERE company_id=$1 AND request_id=$2',[id,requestId])).rows[0];
- const replay=a=>{if(a.state==='CANCELLED')throw Error('Ese intento corresponde a un turno cancelado. Iniciá una reserva nueva.');if(a.contact!==contact||a.doctor_id!==input.doctorId||a.day!==input.date||a.patient!==patient||(a.mode==='FIXED'&&a.slot!==input.slot))throw Error('La solicitud ya corresponde a otro turno.');return a;};
+ const replay=a=>{if(a.state==='CANCELLED')throw Error('Ese intento corresponde a un turno cancelado. Iniciá una reserva nueva.');if(a.contact!==contact||a.doctor_id!==input.doctorId||a.day!==input.date||a.patient!==patient||a.dni!==dni||(a.mode==='FIXED'&&a.slot!==input.slot))throw Error('La solicitud ya corresponde a otro turno.');return a;};
  if(old)return replay(old);
  const row=(await cx.query('SELECT * FROM panel_health_doctors WHERE company_id=$1 AND id=$2 FOR UPDATE',[id,input.doctorId])).rows[0];if(!row)throw Error('Especialista no encontrado.');
  const repeated=(await cx.query('SELECT * FROM panel_health_appointments WHERE company_id=$1 AND request_id=$2',[id,requestId])).rows[0];if(repeated)return replay(repeated);
  const d={...row.data,id:row.id},slots=await availabilityOn(cx,id,d,input.date);
- const existing=(await cx.query("SELECT 1 FROM panel_health_appointments WHERE company_id=$1 AND doctor_id=$2 AND day=$3 AND contact=$4 AND state<>'CANCELLED'",[id,d.id,input.date,contact])).rows.length;
+ const existing=(await cx.query("SELECT 1 FROM panel_health_appointments WHERE company_id=$1 AND doctor_id=$2 AND day=$3 AND (dni=$4 OR (dni IS NULL AND contact=$5)) AND state<>'CANCELLED'",[id,d.id,input.date,dni,contact])).rows.length;
  if(existing)throw Error('Este paciente demo ya tiene un turno con ese especialista ese día.');
  const slot=d.mode==='QUEUE'?slots[0]:String(input.slot||'');if(!slot||!slots.includes(slot))throw Error('Ese turno o cupo ya no está disponible. Elegí otro.');
- return (await cx.query(`INSERT INTO panel_health_appointments(company_id,id,doctor_id,day,slot,patient,contact,mode,doctor_name,specialty,room,start_time,end_time,request_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,[id,'TUR-'+randomUUID().slice(0,8).toUpperCase(),d.id,input.date,slot,patient,contact,d.mode,d.name,d.specialty,d.room,d.start,d.end,requestId])).rows[0];
+ return (await cx.query(`INSERT INTO panel_health_appointments(company_id,id,doctor_id,day,slot,patient,contact,mode,doctor_name,specialty,room,start_time,end_time,request_id,dni) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,[id,'TUR-'+randomUUID().slice(0,8).toUpperCase(),d.id,input.date,slot,patient,contact,d.mode,d.name,d.specialty,d.room,d.start,d.end,requestId,dni])).rows[0];
 }
 export async function reserve(db,id,input){const cx=await db.connect();try{await cx.query('BEGIN');const r=await reserveOn(cx,id,input);await cx.query('COMMIT');return r;}catch(e){await cx.query('ROLLBACK');if(e.code==='23505')throw Error('El turno ya fue reservado. Actualizá la disponibilidad.');throw e;}finally{cx.release();}}
 export async function appointments(db,id,date,doctorId=''){return (await db.query('SELECT * FROM panel_health_appointments WHERE company_id=$1 AND day=$2 AND ($3=\'\' OR doctor_id=$3) ORDER BY doctor_name,CASE WHEN mode=\'QUEUE\' THEN LPAD(slot,3,\'0\') ELSE slot END',[id,date,doctorId])).rows;}
@@ -80,6 +83,7 @@ export async function appointmentState(db,id,appointmentId,state,contact=null){
  if(!r)throw Error('Turno no encontrado o ya cancelado.');return r;
 }
 export function bookingText(a){return `DEMO — Turno registrado: ${a.id}\n${a.patient}\n${a.doctor_name} · ${a.specialty}\n${a.day} · ${a.mode==='FIXED'?a.slot:'Orden de llegada, atención de '+a.start_time+' a '+a.end_time+'. Cupo asignado '+a.slot+' (no indica hora ni prioridad).'}\n${a.room}\nPodés escribir MIS TURNOS o CANCELAR ${a.id}. No es un turno hospitalario real.`;}
+function confirmPatient(s,docs){const d=docs.find(d=>d.id===s.doctorId);return `DEMO — ${s.patient}\nDNI: terminado en ${s.dni.slice(-3)}\n${d?.name||'Especialista'} · ${s.date}\n${s.mode==='FIXED'?s.slot:'Por orden de llegada'}\n¿Confirmás? Respondé SI o NO.`;}
 export async function healthChat(db,id,{contact,text,messageId}){
  contact=clean(contact,120);text=clean(text,500);messageId=clean(messageId,150);if(!contact||!messageId)throw Error('Faltan datos de conversación.');
  const cx=await db.connect();try{
@@ -101,13 +105,20 @@ export async function healthChat(db,id,{contact,text,messageId}){
    if(!dates.length){s={};response='No quedan lugares en los próximos 15 días. Escribí TURNOS para elegir otro especialista.';}else{s={step:'date',doctorId:d.id,dates};response='Elegí un día:\n'+dates.map((x,i)=>`${i+1}. ${x}`).join('\n');}}
  }else if(s.step==='date'){
   const date=s.dates[Number(text)-1],d=docs.find(d=>d.id===s.doctorId);if(!date||!d)response='Elegí el número de un día o escribí TURNOS.';
-  else{const slots=await availabilityOn(cx,id,d,date);if(!slots.length){s={};response='Ese día ya no tiene lugares. Escribí TURNOS para actualizar.';}else if(d.mode==='QUEUE'){s={step:'name',doctorId:d.id,date,slot:'',mode:d.mode};response=`Orden de llegada, atención de ${d.start} a ${d.end}. El cupo no indica una hora ni prioridad.\nEscribí el nombre ficticio del paciente.`;}else{s={step:'slot',doctorId:d.id,date,slots};response='Elegí un horario:\n'+slots.map((x,i)=>`${i+1}. ${x}`).join('\n');}}
+  else{const slots=await availabilityOn(cx,id,d,date);if(!slots.length){s={};response='Ese día ya no tiene lugares. Escribí TURNOS para actualizar.';}else if(d.mode==='QUEUE'){s={step:'name',doctorId:d.id,date,slot:'',mode:d.mode};response=`Orden de llegada, atención de ${d.start} a ${d.end}. El cupo no indica una hora ni prioridad.\nEscribí nombre completo y DNI ficticios del paciente en un solo mensaje. Ejemplo: Persona Demo, 12345678.`;}else{s={step:'slot',doctorId:d.id,date,slots};response='Elegí un horario:\n'+slots.map((x,i)=>`${i+1}. ${x}`).join('\n');}}
  }else if(s.step==='slot'){
-  const slot=s.slots[Number(text)-1];if(!slot)response='Elegí el número de un horario o escribí TURNOS.';else{s={step:'name',doctorId:s.doctorId,date:s.date,slot,mode:'FIXED'};response='Escribí el nombre ficticio del paciente.';}
+  const slot=s.slots[Number(text)-1];if(!slot)response='Elegí el número de un horario o escribí TURNOS.';else{s={step:'name',doctorId:s.doctorId,date:s.date,slot,mode:'FIXED'};response='Escribí nombre completo y DNI ficticios del paciente en un solo mensaje. Ejemplo: Persona Demo, 12345678.';}
  }else if(s.step==='name'){
-  if(text.length<2||text.length>80)response='Usá un nombre ficticio de entre 2 y 80 caracteres.';else{s={...s,step:'confirm',patient:text};const d=docs.find(d=>d.id===s.doctorId);response=`DEMO — ${text}\n${d?.name||'Especialista'} · ${s.date}\n${s.mode==='FIXED'?s.slot:'Por orden de llegada'}\n¿Confirmás? Respondé SI o NO.`;}
+  const match=text.match(/^(.+?)[,;]\s*(?:DNI\s*[:\s]?\s*)?(.+)$/i)||text.match(/^(.+?)\s+(?:DNI\s*[:\s]?\s*)?([0-9][0-9.\s]*)$/i);
+  const patient=(match?match[1]:text).trim();let dni=null;
+  if(match){try{dni=normalizeDni(match[2]);}catch{}}
+  if(patient.length<2||patient.length>80)response='Usá un nombre completo ficticio de entre 2 y 80 caracteres y el DNI ficticio.';
+  else{s={...s,patient,dni,step:dni?'confirm':'dni'};response=dni?confirmPatient(s,docs):'Me falta el DNI ficticio del paciente (7 u 8 dígitos). Escribilo para continuar.';}
+ }else if(s.step==='dni'){
+  try{s={...s,dni:normalizeDni(text),step:'confirm'};response=confirmPatient(s,docs);}catch(e){response=e.message;}
  }else if(s.step==='confirm'){
-  if(['SI','SÍ'].includes(upper)){const a=await reserveOn(cx,id,{...s,contact,requestId:'CHAT-'+createHash('sha256').update(contact+'\0'+messageId).digest('hex')});response=bookingText(a);s={};}
+  if(['SI','SÍ'].includes(upper)&&!s.dni){s={...s,step:'dni'};response='Antes de confirmar, ingresá el DNI ficticio del paciente (7 u 8 dígitos).';}
+  else if(['SI','SÍ'].includes(upper)){const a=await reserveOn(cx,id,{...s,contact,requestId:'CHAT-'+createHash('sha256').update(contact+'\0'+messageId).digest('hex')});response=bookingText(a);s={};}
   else if(upper==='NO'){s={};response='No se reservó el turno. Escribí TURNOS para empezar.';}else response='Respondé SI para reservar, NO para descartar o TURNOS para empezar otra vez.';
  }
  await cx.query('UPDATE panel_health_chats SET state=$3,updated_at=NOW() WHERE company_id=$1 AND contact=$2',[id,contact,JSON.stringify(s)]);
@@ -115,4 +126,4 @@ export async function healthChat(db,id,{contact,text,messageId}){
  }catch(e){await cx.query('ROLLBACK');throw e;}finally{cx.release();}
 }
 const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function printAgenda(name,date,rows,professional='Todos los especialistas'){return `<!doctype html><html lang="es"><meta charset="utf-8"><title>Agenda demo ONE Salud</title><style>body{font:14px Arial;margin:32px;color:#16312b}h1{font-size:24px}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #ccd7ce;text-align:left}thead{display:table-header-group}tr{break-inside:avoid}@media print{button{display:none}@page{size:A4;margin:15mm}}</style><button onclick="window.print()">Imprimir / Guardar PDF</button><h1>${escape(name)} — Agenda de demostración</h1><p>${escape(professional)}</p><p>${escape(date)} · Datos ficticios · No válido como turno hospitalario</p><table><thead><tr><th>Profesional</th><th>Hora / cupo</th><th>Paciente ficticio</th><th>Consultorio</th><th>Estado</th></tr></thead><tbody>${rows.filter(a=>a.state!=='CANCELLED').map(a=>`<tr><td>${escape(a.doctor_name)}</td><td>${escape(a.mode==='FIXED'?a.slot:'Llegada · cupo '+a.slot+' · '+a.start_time+'–'+a.end_time)}</td><td>${escape(a.patient)}</td><td>${escape(a.room)}</td><td>${escape({BOOKED:'Reservado',ARRIVED:'Llegó',ATTENDED:'Atendido',ABSENT:'No asistió'}[a.state]||a.state)}</td></tr>`).join('')}</tbody></table><p>Orden de llegada: el cupo no representa hora ni prioridad. Generado: ${escape(new Date().toISOString())}.</p></html>`;}
+export function printAgenda(name,date,rows,professional='Todos los especialistas'){return `<!doctype html><html lang="es"><meta charset="utf-8"><title>Agenda demo ONE Salud</title><style>body{font:14px Arial;margin:32px;color:#16312b}h1{font-size:24px}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #ccd7ce;text-align:left}thead{display:table-header-group}tr{break-inside:avoid}@media print{button{display:none}@page{size:A4;margin:15mm}}</style><button onclick="window.print()">Imprimir / Guardar PDF</button><h1>${escape(name)} — Agenda de demostración</h1><p>${escape(professional)}</p><p>${escape(date)} · Datos ficticios · No válido como turno hospitalario</p><table><thead><tr><th>Profesional</th><th>Hora / cupo</th><th>Paciente ficticio</th><th>DNI ficticio</th><th>Consultorio</th><th>Estado</th></tr></thead><tbody>${rows.filter(a=>a.state!=='CANCELLED').map(a=>`<tr><td>${escape(a.doctor_name)}</td><td>${escape(a.mode==='FIXED'?a.slot:'Llegada · cupo '+a.slot+' · '+a.start_time+'–'+a.end_time)}</td><td>${escape(a.patient)}</td><td>${escape(a.dni||'Sin registrar')}</td><td>${escape(a.room)}</td><td>${escape({BOOKED:'Reservado',ARRIVED:'Llegó',ATTENDED:'Atendido',ABSENT:'No asistió'}[a.state]||a.state)}</td></tr>`).join('')}</tbody></table><p>Orden de llegada: el cupo no representa hora ni prioridad. Generado: ${escape(new Date().toISOString())}.</p></html>`;}
