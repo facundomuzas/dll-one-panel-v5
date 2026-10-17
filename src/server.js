@@ -1,3 +1,4 @@
+import {requireConfiguredModule} from './module_access.js';
 import {initHealthDemo,isHealth,seedHealthDemo,doctors,saveDoctor,availability,reserve,appointments,appointmentState,healthChat,printAgenda,localToday} from './health_demo.js';
 import {listCompanyServices,changeCompanyService} from './company_service.js';
 import {auditCompanyMigration,combineMigrationAudit} from './migration_audit.js';
@@ -915,7 +916,7 @@ app.get("/health", async (_req, res) => {
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.8.2",
+      version: "5.8.3",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -933,7 +934,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.8.2",
+      version: "5.8.3",
       error: String(err?.message || err)
     });
   }
@@ -1232,7 +1233,7 @@ app.get("/motor/company/:companyId/catalog",authenticateMotorRequest,async(req,r
 app.get('/motor/company/:companyId/menu/:imageId',authenticateMotorRequest,async(req,res)=>{
  try{
   const company=await getCompany(req.params.companyId);
-  if(!company||String(company.phone_number_id)!==String(req.query.phoneNumberId))return res.status(403).json({ok:false,error:'Empresa o número incorrecto.'});
+  if(!company||!isGastro(company)||String(company.phone_number_id)!==String(req.query.phoneNumberId))return res.status(403).json({ok:false,error:'Empresa o número incorrecto.'});
   const settings=await getGastroSettings(pool,company);
   if(!settings.settings.menu.auto||!settings.settings.menu.imagenes.some(x=>x.idImagen===req.params.imageId&&x.activa))throw new Error('Imagen desactivada.');
   const file=await getMenuFile(pool,company,req.params.imageId,id=>postBridge(company,'gastro_menu_preview',{idImagen:id}));
@@ -1414,7 +1415,8 @@ app.post(
 app.use(
   "/api/company/:companyId",
   authRequired,
-  companyAccessRequired
+  companyAccessRequired,
+  requireConfiguredModule(getCompany)
 );
 
 // Demo administrative scheduling, isolated from production Gastro and other tenants.
@@ -2482,7 +2484,7 @@ app.use(
   )
 );
 
-app.get(/\.js$/, (_req,res)=>res.status(404).type('text/plain').send('Archivo JavaScript ausente. Revisá la carga completa del panel V582.'));
+app.get(/\.js$/, (_req,res)=>res.status(404).type('text/plain').send('Archivo JavaScript ausente. Revisá la carga completa del panel V583.'));
 app.get("/{*splat}", (_req, res) => {
   res.sendFile(
     path.join(__dirname, "..", "public", "index.html")
@@ -2494,6 +2496,6 @@ await initHealthDemo(pool);
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.8.2 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.8.3 escuchando en puerto ${PORT}`
   );
 });

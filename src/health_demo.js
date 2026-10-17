@@ -1,6 +1,7 @@
+import {configuredModule} from './module_access.js';
 import {randomUUID,createHash} from 'node:crypto';
 export function normalizeDni(value){const dni=String(value??'').trim().replace(/[.\s]/g,'');if(!/^[0-9]{7,8}$/.test(dni))throw Error('Ingresá un DNI ficticio de 7 u 8 dígitos, sin letras.');return dni;}
-export const isHealth=c=>c?.modules?.salud===true;
+export const isHealth=c=>configuredModule(c,'salud');
 const clean=(v,n=100)=>String(v??'').trim().slice(0,n);
 export function localToday(now=new Date()){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Argentina/Buenos_Aires',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);}
 const minutes=t=>{if(!/^\d{2}:\d{2}$/.test(t))throw Error('Horario inválido.');const [h,m]=t.split(':').map(Number);if(h>23||m>59)throw Error('Horario inválido.');return h*60+m;};

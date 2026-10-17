@@ -1,3 +1,4 @@
+import {validateSingleModule,configuredModule} from './module_access.js';
 import {randomUUID,createHash} from 'node:crypto';
 import {defaultHours} from './order_hours.js';
 import {validateMotorSnapshot,readMotorSnapshot} from './motor_snapshot.js';
@@ -10,7 +11,7 @@ export async function createNativeCompany(db,input,actor){
  if(!['PRODUCTOS','SERVICIOS','MIXTO'].includes(type))throw Error('Tipo de negocio inválido.');
  if(slug&&!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))throw Error('Usá letras minúsculas, números y guiones para el slug.');
  const modules=Object.fromEntries(['ventas','gastro','eventos','servicios','salud'].map(k=>[k,input.modules?.[k]===true]));
- if(modules.salud&&['ventas','gastro','eventos','servicios'].some(k=>modules[k]))throw Error('La demo Salud necesita una empresa separada, sin otros módulos.');
+ validateSingleModule(modules);
  if(!Object.values(modules).some(Boolean))throw Error('Elegí al menos un módulo.');
  const requestId=clean(input.requestId,100);if(!/^[a-zA-Z0-9_-]{16,100}$/.test(requestId))throw Error('Recargá el formulario para crear la empresa.');
  const hash=createHash('sha256').update(JSON.stringify({name,type,slug,phoneId,modules})).digest('hex');
@@ -66,7 +67,7 @@ export async function effectiveMotorSnapshot(db,base){
  const ids=new Set([...rows.map(x=>x.company_id),...blocked.map(x=>x.company_id)]);
  const blockedIds=new Set(blocked.map(x=>x.company_id));
  const empresas=[...(base?.empresas||[]).filter(x=>!ids.has(x.idEmpresa))];
- for(const row of rows){if(!blockedIds.has(row.company_id)&&row.connected&&row.runtime?.accessToken&&row.phone_number_id){empresas.push({...row.runtime,nombre:row.company_name,phoneNumberId:row.phone_number_id,context:{...row.runtime.context,...(row.modules?.salud===true?{healthDemo:true}:{}),...(row.bot_instructions!==null?{instruccionesIA:row.bot_instructions}:{})}});}}
+ for(const row of rows){if(!blockedIds.has(row.company_id)&&row.connected&&row.runtime?.accessToken&&row.phone_number_id){empresas.push({...row.runtime,nombre:row.company_name,phoneNumberId:row.phone_number_id,context:{...row.runtime.context,...((configuredModule({modules:row.modules},'salud')||Object.hasOwn(row.runtime.context||{},'healthDemo'))?{healthDemo:configuredModule({modules:row.modules},'salud')} : {}),...(row.bot_instructions!==null?{instruccionesIA:row.bot_instructions}:{})}});}}
  if(empresas.length)validateMotorSnapshot({empresas});
  return {...base,empresas,managedByPanel:true,nativeCompanyIds:[...ids],blockedCompanies:blocked.map(x=>({companyId:x.company_id,phoneNumberId:x.phone_number_id,state:x.service_state}))};
 }

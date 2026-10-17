@@ -1,6 +1,7 @@
+import {configuredModule} from './module_access.js';
 import {randomUUID} from 'node:crypto';
 import {enabled,isGastro} from './gastro_catalog.js';
-export const isSales=c=>!isGastro(c)&&enabled(c?.modules?.ventas??c?.modules?.MODULO_VENTAS);
+export const isSales=c=>configuredModule(c,'ventas');
 export async function initSalesCatalog(db){await db.query(`CREATE TABLE IF NOT EXISTS panel_sales_catalog(company_id TEXT PRIMARY KEY,items JSONB NOT NULL,revision INTEGER NOT NULL DEFAULT 1,updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);}
 const str=(x,n=200)=>String(x??'').trim().slice(0,n);
 function normalize(input,old={}){

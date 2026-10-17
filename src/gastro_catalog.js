@@ -1,7 +1,8 @@
+import {configuredModule} from './module_access.js';
 import {randomUUID} from 'node:crypto';
 
 export const enabled = value => value === true || ['SI','TRUE','1'].includes(String(value).toUpperCase());
-export const isGastro = company => enabled(company?.modules?.gastro ?? company?.modules?.MODULO_GASTRO);
+export const isGastro = company => configuredModule(company,'gastro');
 const specs = {category:['categorias','idCategoria','activa'],product:['productos','idProducto','activo'],variant:['variantes','idVariante','activa'],extra:['extras','idExtra','activo']};
 export async function initGastroCatalog(db){
   await db.query(`CREATE TABLE IF NOT EXISTS panel_gastro_catalog (
