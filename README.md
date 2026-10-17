@@ -1,3 +1,11 @@
+# DLL ONE Panel 5.8.4
+
+Selector único de configuración en Mi negocio, exclusivo de Super Admin, para
+asignar Gastro, Ventas, Salud o Eventos a empresas existentes sin borrar datos.
+Ver LEEME_INSTALACION_V584.txt incluido en el ZIP.
+
+## Historial anterior
+
 # DLL ONE Panel 5.8.0
 
 V575 crea empresas directamente en PostgreSQL y permite administrar las conexiones

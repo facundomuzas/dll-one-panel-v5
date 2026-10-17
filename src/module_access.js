@@ -8,7 +8,7 @@ export function configuredModule(company,key){
  // Historical Gastro+Ventas plans keep their existing Gastro behavior until the admin edits the plan.
  return key!=='ventas'||!moduleFlag(m,'gastro');
 }
-export function validateSingleModule(modules){if(keys.filter(k=>moduleFlag(modules,k)).length!==1)throw Error('Elegí una sola configuración por empresa. ONE Salud y ONE Eventos requieren una empresa separada.');}
+export function validateSingleModule(modules){if(keys.filter(k=>moduleFlag(modules,k)).length!==1)throw Error('Elegí una sola configuración por empresa.');}
 export function requestedModule(path){const segment=String(path).toLowerCase().split('/').filter(Boolean)[0];return {health:'salud',gastro:'gastro',catalog:'ventas',events:'eventos',eventos:'eventos'}[segment]||null;}
 export function requireConfiguredModule(getCompany){return async(req,res,next)=>{
  const key=requestedModule(req.path);if(!key)return next();
@@ -17,3 +17,11 @@ export function requireConfiguredModule(getCompany){return async(req,res,next)=>
  req.moduleCompany=company;return next();
  }catch{return res.status(503).json({ok:false,error:'No se pudo verificar la configuración de la empresa.'});}
 };}
+
+// Replaces every known flag (including legacy aliases), preserving unrelated metadata.
+export function assignModule(previous,key){
+ if(!['gastro','ventas','salud','eventos'].includes(key))throw Error('Elegí ONE Gastro, ONE Ventas, ONE Salud o ONE Eventos.');
+ const modules={...previous};
+ for(const name of keys){modules[name]=name===key;delete modules['MODULO_'+name.toUpperCase()];}
+ return modules;
+}

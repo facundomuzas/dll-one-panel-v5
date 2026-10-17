@@ -694,7 +694,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.8.3 · Autogestión</small>
+          <small>Panel Cloud V5.8.4 · Autogestión</small>
         </div>
       </div>
 
@@ -719,7 +719,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.8.3</small>
+          <small>Panel Cloud V5.8.4</small>
         </div>
       </div>
 
@@ -904,16 +904,18 @@
               <button class="btn" id="reloadBotInstructionsButton" onclick="loadBotInstructions(true)">Recargar instrucciones guardadas</button>
               <p id="botInstructionsStatus" role="status" aria-live="polite"></p>
             </div>
-            <div class="card">
-              <h3 class="card-title">Módulos DLL ONE</h3>
-              <p class="card-sub">Solo el Super Admin decide qué módulos forman parte del plan de cada empresa.</p>
-              <div class="module-checks">
-                <label class="module-check"><input id="modVentas" onchange="chooseOneModule(this.id,'modVentas,modGastro,modEventos,modServicios'.split(','))" type="checkbox"> ONE Ventas</label>
-                <label class="module-check"><input id="modGastro" onchange="chooseOneModule(this.id,'modVentas,modGastro,modEventos,modServicios'.split(','))" type="checkbox"> ONE Gastro</label>
-                <label class="module-check"><input id="modEventos" onchange="chooseOneModule(this.id,'modVentas,modGastro,modEventos,modServicios'.split(','))" type="checkbox"> ONE Eventos</label>
-                <label class="module-check"><input id="modServicios" onchange="chooseOneModule(this.id,'modVentas,modGastro,modEventos,modServicios'.split(','))" type="checkbox"> ONE Servicios</label>
-              </div>
-              <p id="moduleHelp" class="mini-note" style="margin-top:12px"></p>
+            <div id="moduleAssignmentCard" class="card admin-only hidden-admin">
+              <h3 class="card-title">Configuración ONE de esta empresa</h3>
+              <p class="card-sub">Solo el Super Admin puede cambiar esta configuración.</p>
+              <label for="businessModule">Módulo asignado</label>
+              <select id="businessModule" disabled>
+                <option value="">Elegí una configuración</option>
+                <option value="gastro">ONE Gastro</option>
+                <option value="ventas">ONE Ventas</option>
+                <option value="salud">ONE Salud</option>
+                <option value="eventos">ONE Eventos</option>
+              </select>
+              <p id="moduleHelp" class="mini-note" style="margin-top:12px">Se muestra únicamente el módulo elegido. Los datos anteriores se conservan. Usá Guardar cambios para aplicar.</p>
             </div>
           </div>
           <div class="card" style="margin-top:20px">
@@ -1330,7 +1332,7 @@
     });
 
     let data={};
-    try{data=await r.json()}catch{throw new Error('El servidor no devolvió una respuesta válida. Comprobá que terminó el despliegue del panel V583 y recargá.');}
+    try{data=await r.json()}catch{throw new Error('El servidor no devolvió una respuesta válida. Comprobá que terminó el despliegue del panel V584 y recargá.');}
 
     if(r.status===401){
       showLogin();
@@ -1436,7 +1438,7 @@
         const b=document.createElement('button');b.className='btn btn-light';b.textContent='Abrir '+c.nombreEmpresa;b.onclick=async()=>{b.disabled=true;try{$('companySelect').value=c.idEmpresa;await changeCompany();await go(tab);}catch(e){showNotice(e.message);}finally{b.disabled=false;}};card.appendChild(b);
       }
       if(!matching.length){const empty=document.createElement('p');empty.textContent='No hay empresas de esta categoría en tu acceso.';card.appendChild(empty);}
-      if(key==='salud'&&currentUser?.role==='SUPERADMIN'){const b=document.createElement('button');b.className='btn btn-primary';b.textContent='Crear / abrir demo ONE Salud';b.onclick=async()=>{b.disabled=true;try{if(typeof createHealthDemo!=='function')throw Error('Falta health_demo.js. Subí todos los archivos del panel V583.');await createHealthDemo();if(currentTab==='products')showNotice($('healthDemoCreateStatus').textContent);}catch(e){showNotice(e.message);}finally{b.disabled=false;}};card.appendChild(b);}
+      if(key==='salud'&&currentUser?.role==='SUPERADMIN'){const b=document.createElement('button');b.className='btn btn-primary';b.textContent='Crear / abrir demo ONE Salud';b.onclick=async()=>{b.disabled=true;try{if(typeof createHealthDemo!=='function')throw Error('Falta health_demo.js. Subí todos los archivos del panel V584.');await createHealthDemo();if(currentTab==='products')showNotice($('healthDemoCreateStatus').textContent);}catch(e){showNotice(e.message);}finally{b.disabled=false;}};card.appendChild(b);}
       box.appendChild(card);
     }
   }
@@ -1527,7 +1529,7 @@
       if(tab==='business')await Promise.all([loadBusiness(),loadOrderHours(),loadBotInstructions()]);
       if(tab==='catalog')await loadCatalog();
       if(tab==='gastro')await loadGastro();
-      if(tab==='health'){if(typeof loadHealth!=='function')throw Error('Falta cargar health_demo.js. Volvé a subir todos los archivos del panel V583 y recargá.');await loadHealth();}
+      if(tab==='health'){if(typeof loadHealth!=='function')throw Error('Falta cargar health_demo.js. Volvé a subir todos los archivos del panel V584 y recargá.');await loadHealth();}
       if(tab==='products')renderProductCategories();
       if(tab==='admin')await loadAdmin();
       if(tab==='more')updateModuleNavigation();
@@ -2165,15 +2167,12 @@
     $('bizAddress').value=c.DIRECCION||'';
     $('bizEmail').value=c.EMAIL||'';
     $('bizPhoneNumberId').value=e.phoneNumberId||'';
-    $('modVentas').checked=!!m.ventas;
-    $('modGastro').checked=!!m.gastro;
-    $('modEventos').checked=!!m.eventos;
-    $('modServicios').checked=!!m.servicios;
     const isSuper=String(currentUser?.role||'').toUpperCase()==='SUPERADMIN';
-    ['modVentas','modGastro','modEventos','modServicios'].forEach(id=>$(id).disabled=!isSuper||selectedCompany()?.modules?.salud===true);
-    $('moduleHelp').textContent=isSuper
-      ?'Elegí la configuración de esta empresa. Salud y Eventos se administran en empresas separadas.'
-      :'Los módulos de tu plan los administra DLL ONE.';
+    const active=['ventas','gastro','eventos','servicios','salud'].filter(k=>moduleFlag(m,k));
+    $('businessModule').value=active.length===1&&active[0]!=='servicios'?active[0]:'';
+    $('businessModule').disabled=!isSuper;
+    $('moduleAssignmentCard').classList.toggle('hidden-admin',!isSuper);
+
   }
 
   async function saveBusiness(){
@@ -2198,8 +2197,8 @@
     };
     if(isSuper){
       body.PHONE_NUMBER_ID=$('bizPhoneNumberId').value.trim();
-      body.modulos={ventas:$('modVentas').checked,gastro:$('modGastro').checked,
-        eventos:$('modEventos').checked,servicios:$('modServicios').checked};
+      body.module=$('businessModule').value;
+      if(!body.module){status.textContent='Elegí una configuración ONE para esta empresa.';return;}
     }
     button.disabled=true;button.textContent='Guardando…';
     status.style.color='#40523d';status.textContent='Guardando los datos del negocio…';
@@ -2208,7 +2207,7 @@
       if(selectedCompany!==companyId)return;
       businessRevision=result.revision;
       status.style.color='#28652a';
-      status.textContent=result.warning || 'Datos guardados. La ubicación ya está disponible para las próximas consultas por WhatsApp.';
+      status.textContent=result.warning || 'Cambios guardados. La configuración está aplicada y los datos anteriores se conservaron.';
       try{await refreshCompanies();}catch(error){
         status.textContent='Datos guardados. No se pudo actualizar el listado; recargá el panel.';
       }
