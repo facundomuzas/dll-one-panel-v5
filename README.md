@@ -1,3 +1,9 @@
+# DLL ONE Panel 5.8.7 — V587
+
+Extras y variantes independientes por empresa. El bot pregunta por separado
+extras, entrega, dirección y pago, conservando los datos que el cliente ya dio.
+Ver LEEME_INSTALACION_V587.txt. No requiere variables nuevas.
+
 # DLL ONE Panel 5.8.6 — V586
 
 Corrige pedidos de varios productos y secuencia de extras. Agrega «Usar

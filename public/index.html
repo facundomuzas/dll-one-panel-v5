@@ -694,7 +694,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.8.6 · Autogestión</small>
+          <small>Panel Cloud V5.8.7 · Autogestión</small>
         </div>
       </div>
 
@@ -719,7 +719,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.8.6</small>
+          <small>Panel Cloud V5.8.7</small>
         </div>
       </div>
 
@@ -1076,6 +1076,7 @@
             <div class="stack">
               <div class="card">
                 <h3 class="card-title">Opciones comerciales</h3>
+                <div class="toggle-line"><div><strong>Usar extras</strong><small>Ofrecer adicionales aplicables a los productos. Al desactivar, los extras guardados se conservan.</small></div><label class="switch"><input id="gExtrasEnabled" type="checkbox"><span></span></label></div>
                 <div class="toggle-line"><div><strong>Usar variantes</strong><small>Si desactivás esta opción, el bot usa el precio base de cada producto. Las variantes se conservan.</small></div><label class="switch"><input id="gVariantsEnabled" type="checkbox"><span></span></label></div>
                 <div class="toggle-line"><div><strong>Delivery</strong><small>Permitir pedidos con envío.</small></div><label class="switch"><input id="gDeliveryEnabled" type="checkbox"><span></span></label></div>
                 <div class="toggle-line"><div><strong>Retiro por el local</strong><small>Permitir que el cliente pase a buscarlo.</small></div><label class="switch"><input id="gPickupEnabled" type="checkbox"><span></span></label></div>
@@ -2411,7 +2412,7 @@
   let settingsRevision=null,settingsSaving=false;
   function acceptGastroSettings(r){
     settingsRevision=r.settingsRevision;
-    gastroSettingsData={menu:r.menu,pagos:r.pagos,entrega:r.entrega,variantesHabilitadas:r.variantesHabilitadas!==false};
+    gastroSettingsData={menu:r.menu,pagos:r.pagos,entrega:r.entrega,variantesHabilitadas:r.variantesHabilitadas!==false,extrasHabilitados:r.extrasHabilitados!==false};
     $('gSettingsFields').disabled=false;renderGastroSettings();
   }
   async function loadGastro(){
@@ -2436,6 +2437,7 @@
   function renderGastroSettings(){
     const {menu={},pagos={},entrega={}}=gastroSettingsData;
     $('gMenuAuto').checked=menu.auto!==false;
+    $('gExtrasEnabled').checked=gastroSettingsData.extrasHabilitados!==false;
     $('gVariantsEnabled').checked=gastroSettingsData.variantesHabilitadas!==false;
     $('gDeliveryEnabled').checked=entrega.deliveryHabilitado!==false;
     $('gPickupEnabled').checked=entrega.retiroHabilitado!==false;
@@ -2502,7 +2504,7 @@
   }
   function closeGastroMenuPreview(){$('gMenuLightbox').classList.add('hidden');$('gMenuPreviewImg').src='';}
   async function saveGastroCommercialConfig(){
-    await settingsRequest('config',{variantesHabilitadas:$('gVariantsEnabled').checked,deliveryHabilitado:$('gDeliveryEnabled').checked,retiroHabilitado:$('gPickupEnabled').checked,efectivoHabilitado:$('gCashEnabled').checked,transferenciaHabilitada:$('gTransferEnabled').checked,tiempoPreparacion:$('gPreparationTime').value.trim()});
+    await settingsRequest('config',{extrasHabilitados:$('gExtrasEnabled').checked,variantesHabilitadas:$('gVariantsEnabled').checked,deliveryHabilitado:$('gDeliveryEnabled').checked,retiroHabilitado:$('gPickupEnabled').checked,efectivoHabilitado:$('gCashEnabled').checked,transferenciaHabilitada:$('gTransferEnabled').checked,tiempoPreparacion:$('gPreparationTime').value.trim()});
   }
   function clearGastroPayment(){
     ['gPayId','gPayName','gPayAlias','gPayCbu','gPayHolder','gPayDetail'].forEach(id=>$(id).value='');
