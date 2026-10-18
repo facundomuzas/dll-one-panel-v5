@@ -1,3 +1,8 @@
+# DLL ONE Panel 5.8.6 — V586
+
+Corrige pedidos de varios productos y secuencia de extras. Agrega «Usar
+variantes» por empresa. Ver LEEME_INSTALACION_V586.txt del paquete.
+
 # DLL ONE Panel 5.8.5
 
 ONE Eventos con inscripción por WhatsApp, pagos manuales o Mercado Pago por

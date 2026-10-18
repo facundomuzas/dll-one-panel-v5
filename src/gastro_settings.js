@@ -20,6 +20,7 @@ export function normalizedSettings(raw){
  const s=raw?.settings||raw;
  if(!s||!Array.isArray(s.menu?.imagenes)||!Array.isArray(s.pagos?.items)||!Array.isArray(s.entrega?.zonas))throw new Error('La copia de cobro, entrega e imágenes está incompleta. Reintentá importar los datos existentes.');
  return {
+  variantesHabilitadas:yes(s.variantesHabilitadas),
   menu:{...s.menu,auto:yes(s.menu.auto),imagenes:s.menu.imagenes.map((x,i)=>({...x,idImagen:text(x.idImagen||x.id||'LEGACY-'+i,100),activa:yes(x.activa),posicion:Number(x.posicion||i+1)}))},
   pagos:{...s.pagos,efectivoHabilitado:yes(s.pagos.efectivoHabilitado),transferenciaHabilitada:yes(s.pagos.transferenciaHabilitada),items:s.pagos.items.map((x,i)=>({...paymentFields(x),idPago:text(x.idPago||'LEGACY-'+(x.fila||i+1),100),activo:yes(x.activo),preferido:yes(x.preferido,false)}))},
   entrega:{...s.entrega,deliveryHabilitado:yes(s.entrega.deliveryHabilitado),retiroHabilitado:yes(s.entrega.retiroHabilitado),zonas:s.entrega.zonas.map((x,i)=>({...x,idZona:text(x.idZona||'LEGACY-'+i,100),activa:yes(x.activa)}))}
@@ -50,6 +51,7 @@ export async function changeSettings(db,company,operation,input={},id=''){
   if(Number(input.revision)!==row.revision)throw new Error('La configuración cambió. Recargá Gastro antes de guardar.');
   const s=row.settings;
   if(operation==='config'){
+   if(input.variantesHabilitadas!==undefined){if(typeof input.variantesHabilitadas!=='boolean')throw Error('Opción de variantes inválida.');s.variantesHabilitadas=input.variantesHabilitadas;}
    for(const k of ['deliveryHabilitado','retiroHabilitado']){if(typeof input[k]!=='boolean')throw new Error('Opción de entrega inválida.');s.entrega[k]=input[k];}
    for(const k of ['efectivoHabilitado','transferenciaHabilitada']){if(typeof input[k]!=='boolean')throw new Error('Opción de pago inválida.');s.pagos[k]=input[k];}
    if(!s.entrega.deliveryHabilitado&&!s.entrega.retiroHabilitado)throw new Error('Habilitá al menos una forma de entrega.');
@@ -117,5 +119,5 @@ export async function getMenuFile(db,company,id,readLegacy){
 export function motorSettings(settings){
  const s=settings;
  const medios=s.pagos.items.filter(x=>x.activo).sort((a,b)=>Number(b.preferido)-Number(a.preferido)||Number(a.orden||0)-Number(b.orden||0)).map(x=>({medio:x.medio,detalle:[x.alias&&'Alias: '+x.alias,x.cbu&&'CBU/CVU: '+x.cbu,x.titular&&'Titular: '+x.titular,x.detalle].filter(Boolean).join('\n')}));
- return {pagos:{efectivo:s.pagos.efectivoHabilitado,transferencia:s.pagos.transferenciaHabilitada,medios},entrega:{...s.entrega,zonas:s.entrega.zonas.filter(x=>x.activa)},menu:{auto:s.menu.auto,imagenes:s.menu.imagenes.filter(x=>x.activa).map(x=>({idImagen:x.idImagen,nombre:x.nombre,native:true}))}};
+ return {variantesHabilitadas:s.variantesHabilitadas!==false,pagos:{efectivo:s.pagos.efectivoHabilitado,transferencia:s.pagos.transferenciaHabilitada,medios},entrega:{...s.entrega,zonas:s.entrega.zonas.filter(x=>x.activa)},menu:{auto:s.menu.auto,imagenes:s.menu.imagenes.filter(x=>x.activa).map(x=>({idImagen:x.idImagen,nombre:x.nombre,native:true}))}};
 }
