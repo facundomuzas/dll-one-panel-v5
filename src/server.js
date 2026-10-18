@@ -1,4 +1,10 @@
-import {requireConfiguredModule} from './module_access.js';
+import {eventsChat} from './events_chat.js';
+import {initPayments, paymentSettings} from './payment_settings.js';
+import {paymentRouter,publicPaymentRoutes,flushPaymentNotifications} from './payment_routes.js';
+import {createCheckout} from './payments.js';
+import {initEvents} from './events.js';
+import {eventsRouter} from './events_routes.js';
+import {requireConfiguredModule,configuredModule} from './module_access.js';
 import {initHealthDemo,isHealth,seedHealthDemo,doctors,saveDoctor,availability,reserve,appointments,appointmentState,healthChat,printAgenda,localToday} from './health_demo.js';
 import {listCompanyServices,changeCompanyService} from './company_service.js';
 import {auditCompanyMigration,combineMigrationAudit} from './migration_audit.js';
@@ -910,13 +916,15 @@ function summarize(companyRow) {
   };
 }
 
+publicPaymentRoutes(app,pool,getCompany);
+
 app.get("/health", async (_req, res) => {
   try {
     const db = await dbHealth();
     return res.json({
       ok: true,
       service: "DLL ONE Panel Cloud",
-      version: "5.8.4",
+      version: "5.8.5",
       mode: "GASTRO_OPERATIONS_DIRECT",
       bridge: {
         configured: !!String(process.env.APPS_SCRIPT_BRIDGE_URL || "").trim(),
@@ -934,7 +942,7 @@ app.get("/health", async (_req, res) => {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
-      version: "5.8.4",
+      version: "5.8.5",
       error: String(err?.message || err)
     });
   }
@@ -1178,6 +1186,19 @@ app.post('/motor/config-snapshot',authenticateMotorRequest,async(req,res)=>{
  catch{res.status(400).json({ok:false,error:'No se pudo guardar la configuración del motor. Revisá que esté completa.'});}
 });
 
+
+app.post('/motor/events/chat',authenticateMotorRequest,async(req,res)=>{
+ try{const c=await getCompany(req.body?.companyId);if(!configuredModule(c,'eventos')||c.service_state!=='ACTIVE'||String(c.phone_number_id)!==String(req.body.phoneNumberId))return res.status(403).json({ok:false,error:'ONE Eventos no está habilitado.'});
+ const response=await eventsChat(pool,c.company_id,req.body||{});res.json({ok:true,response});
+ }catch(e){res.json({ok:true,response:(e.code?'No se pudo consultar Eventos. Reintentá.':e.message)+' Escribí EVENTOS para ver las opciones.'});}
+});
+app.post('/motor/order/payment',authenticateMotorRequest,async(req,res)=>{
+ try{const c=await getCompany(req.body?.companyId);if(!c||c.service_state!=='ACTIVE'||String(c.phone_number_id)!==String(req.body.phoneNumberId))return res.status(403).json({ok:false,error:'Empresa no disponible.'});
+ const setting=await paymentSettings(pool,c.company_id);if(setting.mode!=='MP')return res.json({ok:true,mode:'MANUAL'});
+ try{res.json({ok:true,...await createCheckout(pool,c.company_id,'ORDER',req.body.orderId)});}catch{res.json({ok:true,mode:'MP',warning:'El pedido está guardado, pero no pudimos obtener el enlace de pago. Pedí ayuda al comercio.'});}
+ }catch{res.status(503).json({ok:false,error:'No se pudo consultar la modalidad de pago.'});}
+});
+
 app.post('/motor/health/chat',authenticateMotorRequest,async(req,res)=>{
  res.set('Cache-Control','no-store');
  try{
@@ -1194,7 +1215,7 @@ app.get('/motor/company/:companyId/service',authenticateMotorRequest,async(req,r
  res.set('Cache-Control','no-store');try{
  const c=await getCompany(req.params.companyId);
  const active=!!c&&c.service_state==='ACTIVE'&&String(c.phone_number_id)===String(req.query.phoneNumberId||'');
- res.json({ok:true,active});
+ res.json({ok:true,active,module:active?['eventos','salud','gastro','ventas'].find(key=>configuredModule(c,key))||null:null});
  }catch{res.status(503).json({ok:false,error:'No se pudo verificar el servicio.'});}
 });
 app.get("/motor/company/:companyId/pickup", authenticateMotorRequest, async (req,res) => {
@@ -1418,6 +1439,9 @@ app.use(
   companyAccessRequired,
   requireConfiguredModule(getCompany)
 );
+
+app.use('/api/company/:companyId/events',eventsRouter(pool));
+app.use('/api/company/:companyId/payments',paymentRouter(pool));
 
 // Demo administrative scheduling, isolated from production Gastro and other tenants.
 app.use('/api/company/:companyId/health',async(req,res,next)=>{
@@ -2493,9 +2517,13 @@ app.get("/{*splat}", (_req, res) => {
 
 await initDb();
 await initHealthDemo(pool);
+await initEvents(pool);
+await initPayments(pool);
+let paymentFlushBusy=false;
+setInterval(async()=>{if(paymentFlushBusy)return;paymentFlushBusy=true;try{await flushPaymentNotifications(pool,body=>postMotor('/admin/panel/payment-notice',body));}finally{paymentFlushBusy=false;}},30000).unref();
 
 app.listen(PORT, () => {
   console.log(
-    `DLL ONE Panel Cloud V5.8.4 escuchando en puerto ${PORT}`
+    `DLL ONE Panel Cloud V5.8.5 escuchando en puerto ${PORT}`
   );
 });

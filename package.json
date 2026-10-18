@@ -1,6 +1,6 @@
 {
   "name": "dll-one-panel-v5",
-  "version": "5.8.4",
+  "version": "5.8.5",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,13 +8,15 @@
     "check": "node --check src/server.js && node --check src/db.js && node --check src/auth.js"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "compression": "^1.7.5",
     "cookie-parser": "^1.4.7",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mercadopago": "^3.6.1",
     "pg": "^8.16.3",
-    "bcryptjs": "^2.4.3",
+    "qrcode": "^1.5.4",
     "xlsx": "^0.18.5"
   }
 }

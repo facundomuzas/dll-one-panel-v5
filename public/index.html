@@ -694,7 +694,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.8.4 · Autogestión</small>
+          <small>Panel Cloud V5.8.5 · Autogestión</small>
         </div>
       </div>
 
@@ -719,7 +719,7 @@
         <img src="/logo.png" alt="DLL ONE" onerror="this.style.display='none'">
         <div>
           <strong>DLL ONE</strong>
-          <small>Panel Cloud V5.8.4</small>
+          <small>Panel Cloud V5.8.5</small>
         </div>
       </div>
 
@@ -932,7 +932,14 @@
               <div class="actions-row"><button class="btn btn-primary" onclick="saveOrderHoursForm()">Guardar horarios</button></div>
             </fieldset>
             <p id="orderHoursStatus" role="status" aria-live="polite"></p>
-          </div>
+          </div>          <div class="card" style="margin-top:20px"><h3>Confirmación de pagos</h3><p>Cada empresa elige cómo comprobar sus pagos. Las nuevas inscripciones usan la opción elegida; las anteriores conservan su modalidad.</p>
+          <fieldset id="payFields" disabled style="border:0;padding:0;min-width:0"><label for="payMode">Modalidad</label><select id="payMode" onchange="paymentModeUi()"><option value="MANUAL">Manual — reviso y confirmo desde el panel</option><option value="MP">Automática — Mercado Pago</option></select>
+          <div id="payMpFields" class="hidden"><p>Usá las credenciales de la cuenta de esta empresa. Los pagos se verifican con Mercado Pago; una captura de pantalla no los aprueba automáticamente.</p><div class="form-grid">
+          <div class="form-field"><label for="payToken">Access Token</label><input id="payToken" type="password" autocomplete="new-password" placeholder="No se muestra después de guardar"></div>
+          <div class="form-field"><label for="paySecret">Secreto de Webhooks</label><input id="paySecret" type="password" autocomplete="new-password"></div>
+          <div class="form-field full"><label for="payWebhook">URL para notificaciones de pagos</label><input id="payWebhook" readonly></div></div>
+          <label><input id="payLive" type="checkbox"> Cuenta y pagos de producción (desmarcado: pruebas)</label></div><div class="actions-row"><button class="btn btn-primary" onclick="savePayments()">Guardar modalidad de pago</button></div></fieldset><p id="payStatus" role="status" aria-live="polite"></p></div>
+
         </section>
 
         <section id="catalog" class="section">
@@ -1113,7 +1120,37 @@
           </fieldset>
         </section>
 
-        <section id="events" class="section"><div class="hero"><div><h1>ONE Eventos</h1><p>Esta empresa está configurada para ONE Eventos.</p></div></div><div class="card"><h2>Módulo pendiente de implementación</h2><p>La gestión de eventos, entradas, cupos y acreditaciones todavía no está disponible.</p></div></section>
+        <section id="events" class="section">
+          <div class="hero"><div><h1>ONE Eventos</h1><p>Organizá eventos, controlá cupos y registrá el ingreso de asistentes.</p></div></div>
+          <p id="eventsStatus" role="status" aria-live="polite"></p>
+          <div class="card">
+            <div class="form-field"><label for="eventSelect">Evento</label><select id="eventSelect" onchange="selectEvent()"></select></div>
+            <div class="actions-row"><button class="btn btn-light" onclick="loadEvents()">Actualizar</button><button id="eventNew" class="btn btn-primary" onclick="newEvent()" disabled>Nuevo evento</button><button id="eventPrint" class="btn btn-light" onclick="printEventList()" disabled>Imprimir / guardar PDF</button></div>
+            <p id="eventSummary" role="status" style="margin-top:16px"></p>
+          </div>
+          <div class="grid-2">
+            <div class="card"><h2 id="eventEditorTitle">Nuevo evento</h2>
+              <fieldset id="eventEditor" disabled style="border:0;padding:0;min-width:0"><div class="form-grid">
+                <div class="form-field full"><label for="eventName">Nombre del evento</label><input id="eventName" maxlength="160" placeholder="Ej.: Noche de música en Buda"></div>
+                <div class="form-field"><label for="eventStart">Fecha y hora (Argentina)</label><input id="eventStart" type="datetime-local"></div>
+                <div class="form-field"><label for="eventCapacity">Cupo de asistentes</label><input id="eventCapacity" type="number" min="1" max="100000" step="1" value="100"></div>
+                <div class="form-field"><label for="eventPrice">Precio por persona (ARS; 0 = gratis)</label><input id="eventPrice" type="number" min="0" step="0.01" value="0"></div><div class="form-field full"><label for="eventLocation">Lugar / dirección</label><input id="eventLocation" maxlength="300"></div>
+                <div class="form-field"><label for="eventState">Estado</label><select id="eventState"><option value="OPEN">Inscripción abierta</option><option value="CLOSED">Inscripción cerrada</option><option value="CANCELLED">Evento cancelado</option></select></div>
+                <div class="form-field full"><label for="eventNotes">Notas internas</label><textarea id="eventNotes" maxlength="2000"></textarea></div>
+              </div><button id="eventSave" class="btn btn-primary" onclick="saveEventForm()" disabled>Guardar evento</button></fieldset>
+              <p class="mini-note">Cerrar inscripciones permite seguir registrando ingresos. Cancelar el evento bloquea inscripciones e ingresos y conserva el listado. Los cambios no envían avisos automáticos.</p>
+            </div>
+            <div class="card"><h2>Inscribir asistente</h2><p>Una inscripción por persona y evento. Cada inscripción ocupa un cupo.</p>
+              <fieldset id="eventRegistration" disabled style="border:0;padding:0;min-width:0"><div class="form-grid">
+                <div class="form-field full"><label for="eventPersonName">Nombre y apellido</label><input id="eventPersonName" maxlength="160"></div>
+                <div class="form-field"><label for="eventDni">DNI</label><input id="eventDni" inputmode="numeric" maxlength="12" placeholder="Sin puntos"></div>
+                <div class="form-field"><label for="eventContact">Teléfono / contacto (opcional)</label><input id="eventContact" maxlength="100"></div>
+              </div><button id="eventRegister" class="btn btn-primary" onclick="registerEventPerson()" disabled>Guardar inscripción</button></fieldset>
+              <p class="mini-note">El cobro usa la modalidad configurada en Mi negocio. El QR queda habilitado cuando el pago está confirmado o la entrada es gratuita.</p>
+            </div>
+          </div>
+          <div class="card"><h2>Asistentes y control de ingreso</h2><p>Escaneá el QR con la cámara del celular: se abrirá esta lista interna después de iniciar sesión. También podés pegar el código o enlace:</p><input id="eventScanInput" placeholder="Código o enlace del QR"><button class="btn btn-light" onclick="lookupEventTicket()">Buscar entrada</button><p id="eventTicketStatus" role="status"></p><div class="form-field"><label for="eventSearch">Buscar por nombre, DNI, contacto o código</label><input id="eventSearch" oninput="renderEventAttendees()" placeholder="Buscar asistente"></div><label for="eventPaymentNote">Referencia del pago manual comprobado (recibo, transferencia o efectivo)</label><input id="eventPaymentNote" maxlength="500" placeholder="Ej.: transferencia comprobada, operación 123"><div id="eventAttendees" class="data-list"></div><p class="mini-note">Cancelar una inscripción libera su cupo, pero no devuelve el dinero: revisá cualquier cobro en Mercado Pago. Un ingreso registrado se conserva y no puede registrarse dos veces.</p></div>
+        </section>
         <section id="products" class="section"><div class="hero"><div><h1>Categorías ONE</h1><p>Elegí una categoría y luego la empresa que querés administrar.</p></div></div><div id="productCategories" class="grid-2"></div></section>
         <section id="health" class="section">
         <div class="hero"><div><h1>ONE Salud <small>Demostración</small></h1><p>Turnos por horario o por cupo. Usá especialistas y pacientes ficticios. No está conectado a un hospital.</p></div></div>
@@ -1239,7 +1276,7 @@
             <button id="moreHealth" class="more-card" onclick="go('health')">🏥<strong>ONE Salud · Demo</strong><small>Agenda y turnos.</small></button>
             <button id="moreGastro" class="more-card" onclick="go('gastro')">🍔<strong>ONE Gastro</strong><small>Menú, variantes y extras.</small></button>
             <button class="more-card" onclick="go('customers')">👥<strong>Clientes</strong><small>Base de clientes.</small></button>
-            <button id="moreEvents" class="more-card" onclick="go('events')" style="display:none">🎟<strong>ONE Eventos</strong><small>Estado del módulo.</small></button>
+            <button id="moreEvents" class="more-card" onclick="go('events')" style="display:none">🎟<strong>ONE Eventos</strong><small>Eventos, cupos e ingresos.</small></button>
             <button id="moreAdmin" class="more-card admin-only hidden-admin" onclick="go('admin')">⚙<strong>Super Admin</strong><small>Crear empresas y accesos.</small></button>
           </div>
         </section>
@@ -1265,6 +1302,8 @@
 <script src="/migration_audit.js"></script>
 <script src="/company_service.js"></script>
 <script src="/health_demo.js"></script>
+<script src="/events.js"></script>
+<script src="/payments.js"></script>
 <script src="/notification_state.js"></script>
 <script src="/notifications.js"></script>
 <script>
@@ -1332,7 +1371,7 @@
     });
 
     let data={};
-    try{data=await r.json()}catch{throw new Error('El servidor no devolvió una respuesta válida. Comprobá que terminó el despliegue del panel V584 y recargá.');}
+    try{data=await r.json()}catch{throw new Error('El servidor no devolvió una respuesta válida. Comprobá que terminó el despliegue del panel V585 y recargá.');}
 
     if(r.status===401){
       showLogin();
@@ -1376,6 +1415,7 @@
     stopNotifications();
     clearInterval(inboxTimer);
     currentUser=null;companyId="";selectedChat=null;resetDeliveryView();
+    resetEvents();resetPayments();
     $('app').classList.add('hidden');
     $('login').classList.remove('hidden');
   }
@@ -1417,6 +1457,7 @@
         throw new Error('No tenés empresas activas asignadas. Consultá al administrador.');
       }
 
+      if(await openTicketFromHash())return;
       await go(moduleEnabled('salud')?'health':'dashboard');
     }finally{
       showLoading(false);
@@ -1429,7 +1470,7 @@
       ['salud','ONE Salud','health','Demostración: especialistas, agenda y turnos.'],
       ['gastro','ONE Gastro','gastro','Menú, precios, pagos y zonas de delivery.'],
       ['ventas','ONE Ventas','catalog','Productos y listas de precios.'],
-      ['eventos','ONE Eventos','events','Gestión de entradas y acreditaciones pendiente de implementación.']]){
+      ['eventos','ONE Eventos','events','Eventos, cupos, asistentes y control de ingreso.']]){
       const card=document.createElement('div');card.className='card';const title=document.createElement('h2');title.textContent=name;card.appendChild(title);
       const info=document.createElement('p');info.textContent=description;card.appendChild(info);
       const matching=companies.filter(c=>moduleEnabled(key,c));
@@ -1438,7 +1479,7 @@
         const b=document.createElement('button');b.className='btn btn-light';b.textContent='Abrir '+c.nombreEmpresa;b.onclick=async()=>{b.disabled=true;try{$('companySelect').value=c.idEmpresa;await changeCompany();await go(tab);}catch(e){showNotice(e.message);}finally{b.disabled=false;}};card.appendChild(b);
       }
       if(!matching.length){const empty=document.createElement('p');empty.textContent='No hay empresas de esta categoría en tu acceso.';card.appendChild(empty);}
-      if(key==='salud'&&currentUser?.role==='SUPERADMIN'){const b=document.createElement('button');b.className='btn btn-primary';b.textContent='Crear / abrir demo ONE Salud';b.onclick=async()=>{b.disabled=true;try{if(typeof createHealthDemo!=='function')throw Error('Falta health_demo.js. Subí todos los archivos del panel V584.');await createHealthDemo();if(currentTab==='products')showNotice($('healthDemoCreateStatus').textContent);}catch(e){showNotice(e.message);}finally{b.disabled=false;}};card.appendChild(b);}
+      if(key==='salud'&&currentUser?.role==='SUPERADMIN'){const b=document.createElement('button');b.className='btn btn-primary';b.textContent='Crear / abrir demo ONE Salud';b.onclick=async()=>{b.disabled=true;try{if(typeof createHealthDemo!=='function')throw Error('Falta health_demo.js. Subí todos los archivos del panel V585.');await createHealthDemo();if(currentTab==='products')showNotice($('healthDemoCreateStatus').textContent);}catch(e){showNotice(e.message);}finally{b.disabled=false;}};card.appendChild(b);}
       box.appendChild(card);
     }
   }
@@ -1477,6 +1518,8 @@
     resetOrderHours();
     resetBotInstructions();
     resetHealthDemo();
+    resetEvents();
+    resetPayments();
     selectedChat=null;
     $('chatContent').classList.add('hidden');$('chatEmpty').classList.remove('hidden');
     startNotifications();
@@ -1526,10 +1569,11 @@
       if(tab==='delivery')await loadDelivery();
       if(tab==='customers')await loadCustomers();
       if(tab==='receipts')await loadReceipts();
-      if(tab==='business')await Promise.all([loadBusiness(),loadOrderHours(),loadBotInstructions()]);
+      if(tab==='business')await Promise.all([loadBusiness(),loadOrderHours(),loadBotInstructions(),loadPayments()]);
       if(tab==='catalog')await loadCatalog();
       if(tab==='gastro')await loadGastro();
-      if(tab==='health'){if(typeof loadHealth!=='function')throw Error('Falta cargar health_demo.js. Volvé a subir todos los archivos del panel V584 y recargá.');await loadHealth();}
+      if(tab==='health'){if(typeof loadHealth!=='function')throw Error('Falta cargar health_demo.js. Volvé a subir todos los archivos del panel V585 y recargá.');await loadHealth();}
+      if(tab==='events')await loadEvents();
       if(tab==='products')renderProductCategories();
       if(tab==='admin')await loadAdmin();
       if(tab==='more')updateModuleNavigation();

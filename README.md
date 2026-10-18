@@ -1,3 +1,15 @@
+# DLL ONE Panel 5.8.5
+
+ONE Eventos con inscripción por WhatsApp, pagos manuales o Mercado Pago por
+empresa, QR único y lista privada con nombre completo/DNI. Incluye el selector
+de módulos de Super Admin de V584. Requiere motor 4.3.16 para el bot.
+
+Leer LEEME_INSTALACION_V585.txt del ZIP: nuevas variables PUBLIC_PANEL_URL y,
+para Mercado Pago, MP_CREDENTIALS_KEY. Pruebas locales con proveedor simulado;
+validación real pendiente con credenciales del comercio.
+
+## Historial anterior
+
 # DLL ONE Panel 5.8.4
 
 Selector único de configuración en Mi negocio, exclusivo de Super Admin, para
