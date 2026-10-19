@@ -2,7 +2,7 @@ import {sessionSeconds,sessionAllowed} from "./session_policy.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import { getPanelUserByLogin } from "./db.js";
+import { getPanelUserByLogin, getPanelUserById } from "./db.js";
 
 const COOKIE = "dllone_panel_v5";
 
@@ -26,9 +26,12 @@ export async function validLogin(user, password) {
   const loginKey = String(user || "").trim();
   const pass = String(password || "");
 
+  if (!loginKey || !pass) return null;
+
   // Super Admin de emergencia / bootstrap definido en Railway.
   if (
-    safeTextEqual(loginKey, process.env.PANEL_ADMIN_USER || "") &&
+    process.env.PANEL_ADMIN_USER && process.env.PANEL_ADMIN_PASSWORD &&
+    safeTextEqual(loginKey, process.env.PANEL_ADMIN_USER) &&
     safeTextEqual(pass, process.env.PANEL_ADMIN_PASSWORD || "")
   ) {
     return {
@@ -93,7 +96,11 @@ export function clearSession(res) {
   res.clearCookie(COOKIE);
 }
 
-export function authRequired(req, res, next) {
+const verifiedRequest = Symbol("verifiedPanelSession");
+
+export async function authRequired(req, res, next) {
+  // El middleware se usa también en rutas bajo el control global de empresa.
+  if (req[verifiedRequest]) return next();
   const token = req.cookies?.[COOKIE];
 
   if (!token) {
@@ -112,7 +119,23 @@ export function authRequired(req, res, next) {
       }
     );
     if(!sessionAllowed(req.session))throw Error("SESSION_EXPIRED");
-    next();
+    const uid = req.session.uid;
+    if (!Number.isSafeInteger(uid) || uid < 0) throw Error("SESSION_EXPIRED");
+    if (uid === 0) {
+      if (!process.env.PANEL_ADMIN_USER || !process.env.PANEL_ADMIN_PASSWORD ||
+          req.session.role !== "SUPERADMIN" ||
+          !safeTextEqual(req.session.sub, process.env.PANEL_ADMIN_USER)) {
+        throw Error("SESSION_EXPIRED");
+      }
+    } else {
+      const current = await getPanelUserById(uid);
+      if (!current?.active || current.login_key !== req.session.sub ||
+          String(current.role || "").toUpperCase() !== req.session.role) {
+        throw Error("SESSION_EXPIRED");
+      }
+    }
+    req[verifiedRequest] = true;
+    return next();
   } catch {
     return res.status(401).json({
       ok: false,

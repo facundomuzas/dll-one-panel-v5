@@ -1,3 +1,4 @@
+import {requireCompanyOperation} from './operation_access.js';
 import {eventsChat} from './events_chat.js';
 import {initPayments, paymentSettings} from './payment_settings.js';
 import {paymentRouter,publicPaymentRoutes,flushPaymentNotifications} from './payment_routes.js';
@@ -76,6 +77,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = Number(process.env.PORT || 8080);
+const canOperate = requireCompanyOperation(pool);
 
 const MOTOR_URL = String(
   process.env.DLL_ONE_MOTOR_URL || ""
@@ -1701,7 +1703,7 @@ app.get(
 
 app.post(
   "/api/company/:companyId/conversation/:clientId/take",
-  authRequired,
+  authRequired, canOperate,
   async (req, res) => {
     try {
       const company = await getCompany(req.params.companyId);
@@ -1760,7 +1762,7 @@ app.post(
 
 app.post(
   "/api/company/:companyId/conversation/:clientId/send",
-  authRequired,
+  authRequired, canOperate,
   async (req, res) => {
     const message = String(req.body?.message || "").trim();
 
@@ -1899,7 +1901,7 @@ app.post(
 
 app.post(
   "/api/company/:companyId/conversation/:clientId/return-bot",
-  authRequired,
+  authRequired, canOperate,
   async (req, res) => {
     try {
       const company = await getCompany(req.params.companyId);
@@ -2200,7 +2202,7 @@ app.get(
 
 app.post(
   "/api/company/:companyId/pedidos/:orderId/action",
-  authRequired,
+  authRequired, canOperate,
   async (req, res) => {
     try {
       const company =
@@ -2314,7 +2316,7 @@ app.get(
 
 app.post(
   "/api/company/:companyId/deliveryQuotes/:quoteId/quote",
-  authRequired,
+  authRequired, canOperate,
   async (req, res) => {
     try {
       const company =
