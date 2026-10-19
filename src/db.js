@@ -322,7 +322,7 @@ export async function listCompanies() {
 }
 
 export async function listCompaniesForUser(userId, role) {
-  if (String(role || "").toUpperCase() === "SUPERADMIN" || !Number(userId)) {
+  if (String(role || "").toUpperCase() === "SUPERADMIN") {
     return listCompanies();
   }
 
@@ -365,21 +365,31 @@ export async function userCanAccessCompany(userId, role, companyId) {
   const service=(await pool.query('SELECT service_state FROM panel_companies WHERE company_id=$1',[companyId])).rows[0];
   if(!service||service.service_state==='ARCHIVED')return false;
   if(service.service_state==='SUSPENDED'&&String(role||'').toUpperCase()!=='SUPERADMIN')return false;
-  if (String(role || "").toUpperCase() === "SUPERADMIN" || !Number(userId)) {
+  if (String(role || "").toUpperCase() === "SUPERADMIN") {
     return true;
   }
 
   const { rows } = await pool.query(
     `
       SELECT 1
-      FROM panel_user_companies
-      WHERE user_id=$1 AND company_id=$2
+      FROM panel_user_companies uc
+      JOIN panel_users u ON u.user_id=uc.user_id
+      WHERE uc.user_id=$1 AND uc.company_id=$2 AND u.active=TRUE
+        AND COALESCE(uc.permissions->>'view', 'true')='true'
       LIMIT 1
     `,
     [Number(userId), String(companyId || "")]
   );
 
   return !!rows[0];
+}
+
+export async function getPanelUserById(userId) {
+  const { rows } = await pool.query(
+    'SELECT user_id, login_key, role, active FROM panel_users WHERE user_id=$1 LIMIT 1',
+    [userId]
+  );
+  return rows[0] || null;
 }
 
 export async function getPanelUserByLogin(loginKey) {
