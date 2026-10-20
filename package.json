@@ -19,5 +19,9 @@
     "pg": "^8.16.3",
     "qrcode": "^1.5.4",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.9",
+    "jsdom": "26.1.0"
   }
 }

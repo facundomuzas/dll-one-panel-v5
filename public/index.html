@@ -885,7 +885,7 @@
                 <div class="form-field full"><label>Nombre comercial</label><input id="bizName"></div>
                 <div class="form-field"><label>Tipo de negocio</label><select id="bizType"><option value="PRODUCTOS">Productos</option><option value="SERVICIOS">Servicios</option><option value="MIXTO">Mixto</option></select></div>
                 <div class="form-field"><label>Teléfono</label><input id="bizPhone"></div>
-                <div class="form-field full"><label>Ubicación para retirar productos</label><input id="bizAddress" placeholder="Calle, número y localidad"><small>El bot informa esta dirección por WhatsApp. Al guardar, se usa en las próximas consultas.</small></div>
+                <div class="form-field full"><label>Dirección general del negocio</label><input id="bizAddress" placeholder="Calle, número y localidad"><small>Se usa para el retiro hasta que guardes locales en «Locales y sucursales». Desde entonces, el bot informa únicamente los locales activos que permiten retiro.</small></div>
                 <div class="form-field full"><label>Email</label><input id="bizEmail" type="email"></div>
                 <div id="bizPhoneNumberWrap" class="form-field full admin-only hidden-admin"><label>WhatsApp Phone Number ID</label><input id="bizPhoneNumberId"></div>
               </div>
@@ -904,6 +904,7 @@
               <button class="btn" id="reloadBotInstructionsButton" onclick="loadBotInstructions(true)">Recargar instrucciones guardadas</button>
               <p id="botInstructionsStatus" role="status" aria-live="polite"></p>
             </div>
+            <div id="businessAdmin" class="section-grid" style="grid-column:1/-1"></div>
             <div id="moduleAssignmentCard" class="card admin-only hidden-admin">
               <h3 class="card-title">Configuración ONE de esta empresa</h3>
               <p class="card-sub">Solo el Super Admin puede cambiar esta configuración.</p>
@@ -1301,6 +1302,7 @@
 <script src="/gastro_migration.js"></script>
 <script src="/native_companies.js"></script>
 <script src="/bot_instructions.js"></script>
+<script src="/business_admin.js"></script>
 <script src="/migration_audit.js"></script>
 <script src="/company_service.js"></script>
 <script src="/health_demo.js"></script>
@@ -1416,7 +1418,7 @@
     $('loginPassword').value='';
     stopNotifications();
     clearInterval(inboxTimer);
-    currentUser=null;companyId="";selectedChat=null;resetDeliveryView();
+    businessAdminDrafts.clear();resetBusinessAdmin();currentUser=null;companyId="";selectedChat=null;resetDeliveryView();
     resetEvents();resetPayments();
     $('app').classList.add('hidden');
     $('login').classList.remove('hidden');
@@ -1519,6 +1521,7 @@
     businessRevision=null;
     resetOrderHours();
     resetBotInstructions();
+    resetBusinessAdmin();
     resetHealthDemo();
     resetEvents();
     resetPayments();
@@ -1571,7 +1574,7 @@
       if(tab==='delivery')await loadDelivery();
       if(tab==='customers')await loadCustomers();
       if(tab==='receipts')await loadReceipts();
-      if(tab==='business')await Promise.all([loadBusiness(),loadOrderHours(),loadBotInstructions(),loadPayments()]);
+      if(tab==='business')await Promise.all([loadBusiness(),loadOrderHours(),loadBotInstructions(),loadPayments(),loadBusinessAdmin()]);
       if(tab==='catalog')await loadCatalog();
       if(tab==='gastro')await loadGastro();
       if(tab==='health'){if(typeof loadHealth!=='function')throw Error('Falta cargar health_demo.js. Volvé a subir todos los archivos del panel V585 y recargá.');await loadHealth();}
