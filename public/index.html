@@ -977,6 +977,7 @@
                 <input id="catalogFile" type="file" accept=".xlsx,.xls,.csv">
                 <div class="actions-row"><button class="btn btn-primary" onclick="importCatalogFile()">Importar archivo</button></div>
               </div>
+              <div id="salesTools" class="card"></div>
             </div>
 
             <div class="card">
@@ -1303,6 +1304,7 @@
 <script src="/native_companies.js"></script>
 <script src="/bot_instructions.js"></script>
 <script src="/business_admin.js"></script>
+<script src="/sales_tools.js"></script>
 <script src="/migration_audit.js"></script>
 <script src="/company_service.js"></script>
 <script src="/health_demo.js"></script>
@@ -1418,7 +1420,7 @@
     $('loginPassword').value='';
     stopNotifications();
     clearInterval(inboxTimer);
-    businessAdminDrafts.clear();resetBusinessAdmin();currentUser=null;companyId="";selectedChat=null;resetDeliveryView();
+    businessAdminDrafts.clear();resetBusinessAdmin();resetSalesTools();currentUser=null;companyId="";selectedChat=null;resetDeliveryView();
     resetEvents();resetPayments();
     $('app').classList.add('hidden');
     $('login').classList.remove('hidden');
@@ -1517,6 +1519,7 @@
   async function changeCompany(){
     companyId=$('companySelect').value;
     salesRevision=null;catalogItems=[];clearCatalogForm();
+    resetSalesTools();
     resetDeliveryView();
     businessRevision=null;
     resetOrderHours();
@@ -2314,14 +2317,16 @@
   }
 
   async function loadCatalog(){
+    resetSalesTools();
     const target=companyId;salesRevision=null;
     $('salesStatus').textContent='Cargando la lista…';
     try{const r=await api(`/api/company/${encodeURIComponent(target)}/catalog`);if(target!==companyId)return;
-      catalogItems=r.items||[];salesRevision=r.revision;renderCatalog();clearCatalogForm();$('salesStatus').textContent='Lista guardada en el panel.';
+      catalogItems=r.items||[];salesRevision=r.revision;renderCatalog();clearCatalogForm();$('salesStatus').textContent='Lista guardada en el panel.';await loadSalesTools();
     }catch(err){if(target===companyId)$('salesStatus').textContent='No se pudo cargar: '+err.message;}
   }
 
   async function saveCatalogItem(){
+    invalidateSalesPricePreview();
     if(salesBusy)return;
     if(salesRevision===null){showNotice('Primero cargá la lista existente.');return;}
     const target=companyId;
@@ -2349,6 +2354,7 @@
   }
 
   async function importCatalogFile(){
+    invalidateSalesPricePreview();
     if(salesBusy)return;
     if(salesRevision===null){showNotice('Primero cargá la lista existente.');return;}
     const file=$('catalogFile').files?.[0];

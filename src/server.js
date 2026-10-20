@@ -1,4 +1,6 @@
 import {initBusinessAdmin,businessRuntime} from './business_admin.js';
+import {initSalesTools} from './sales_tools.js';
+import {salesToolsRouter} from './sales_tools_routes.js';
 import {businessAdminRouter} from './business_admin_routes.js';
 import {requireCompanyOperation} from './operation_access.js';
 import {eventsChat} from './events_chat.js';
@@ -1447,6 +1449,7 @@ app.use(
 );
 
 app.use('/api/company/:companyId/business-admin',businessAdminRouter(pool,getCompany));
+app.use('/api/company/:companyId/catalog/tools',salesToolsRouter(pool,getCompany));
 app.use('/api/company/:companyId/events',eventsRouter(pool));
 app.use('/api/company/:companyId/payments',paymentRouter(pool));
 
@@ -2524,6 +2527,7 @@ app.get("/{*splat}", (_req, res) => {
 
 await initDb();
 await initBusinessAdmin(pool);
+await initSalesTools(pool);
 await initHealthDemo(pool);
 await initEvents(pool);
 await initPayments(pool);
