@@ -1,3 +1,5 @@
+import {initBusinessAdmin,businessRuntime} from './business_admin.js';
+import {businessAdminRouter} from './business_admin_routes.js';
 import {requireCompanyOperation} from './operation_access.js';
 import {eventsChat} from './events_chat.js';
 import {initPayments, paymentSettings} from './payment_settings.js';
@@ -1228,7 +1230,8 @@ app.get("/motor/company/:companyId/pickup", authenticateMotorRequest, async (req
     if(String(req.query.phoneNumberId || "") !== String(company.phone_number_id || ""))
       return res.status(409).json({ok:false,error:"El número no corresponde a esta empresa."});
     res.set("Cache-Control", "no-store");
-    return res.json({ok:true,pickup:await getPickup(pool,company)});
+    const business=await businessRuntime(pool,company);
+    return res.json({ok:true,pickup:{...await getPickup(pool,company),branchesNative:business.branchesNative,branches:business.branches}});
   } catch(err) {
     return res.status(503).json({ok:false,error:"No se pudo consultar la ubicación."});
   }
@@ -1247,6 +1250,7 @@ app.get("/motor/company/:companyId/catalog",authenticateMotorRequest,async(req,r
     return res.json({ok:true,companyId:company.company_id,native:!!(stored||sales),catalogType:sales?'SALES':'GASTRO',
       orderAvailability:evaluateHours((await getOrderHours(pool,company.company_id)).settings),
       profile:(await getBusinessProfile(pool,company)).config,
+      businessStyle:(await businessRuntime(pool,company)).style,
       botInstructions:await getBotInstructions(pool,company.company_id),
       ...(config&&isGastro(company)?{settings:motorSettings(config.settings)}:{}),
       ...(stored?{catalog: motorCatalog(stored.catalog),revision:stored.revision}:sales?{catalog:salesMotorCatalog(sales.items),revision:sales.revision}:{})});
@@ -1442,6 +1446,7 @@ app.use(
   requireConfiguredModule(getCompany)
 );
 
+app.use('/api/company/:companyId/business-admin',businessAdminRouter(pool,getCompany));
 app.use('/api/company/:companyId/events',eventsRouter(pool));
 app.use('/api/company/:companyId/payments',paymentRouter(pool));
 
@@ -2518,6 +2523,7 @@ app.get("/{*splat}", (_req, res) => {
 });
 
 await initDb();
+await initBusinessAdmin(pool);
 await initHealthDemo(pool);
 await initEvents(pool);
 await initPayments(pool);
