@@ -1,3 +1,5 @@
+import {initVoiceSettings,getVoiceSettings,saveVoiceSettings,voicePreference} from './voice_settings.js';
+import {initHealthAssistant,healthAssistant} from './health_assistant.js';
 import {initBusinessAdmin,businessRuntime} from './business_admin.js';
 import {initSalesTools} from './sales_tools.js';
 import {salesToolsRouter} from './sales_tools_routes.js';
@@ -95,7 +97,7 @@ const MOTOR_TIMEOUT_MS = Number(
   process.env.MOTOR_TIMEOUT_MS || 7000
 );
 
-async function postMotor(pathname, body = {}) {
+async function postMotor(pathname, body = {}, timeout = MOTOR_TIMEOUT_MS) {
   if (!MOTOR_URL) {
     throw new Error("Falta DLL_ONE_MOTOR_URL en Railway.");
   }
@@ -107,7 +109,7 @@ async function postMotor(pathname, body = {}) {
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(),
-    MOTOR_TIMEOUT_MS
+    timeout
   );
 
   try {
@@ -1150,8 +1152,17 @@ app.post('/api/admin/health-demo',authRequired,requireSuperadmin,async(req,res)=
  }catch(e){res.status(400).json({ok:false,error:e.code?'No se pudo preparar la demo. Reintentá.':e.message});}
 });
 app.get('/api/admin/company-services',authRequired,requireSuperadmin,async(req,res)=>{
- res.set('Cache-Control','no-store');try{res.json({ok:true,items:await listCompanyServices(pool)});}catch{res.status(503).json({ok:false,error:'No pude consultar las empresas.'});}
+ res.set('Cache-Control','no-store');try{res.json({ok:true,items:await Promise.all((await listCompanyServices(pool)).map(async c=>({...c,voice:await getVoiceSettings(pool,c.company_id)})))});}catch{res.status(503).json({ok:false,error:'No pude consultar las empresas.'});}
 });
+app.post('/api/admin/companies/:companyId/voice',authRequired,requireSuperadmin,async(req,res)=>{
+ res.set('Cache-Control','no-store');try{res.json({ok:true,voice:await saveVoiceSettings(pool,req.params.companyId,req.body||{},req.session)});}catch(e){res.status(400).json({ok:false,error:e.message});}
+});
+app.post('/motor/voice/preference',authenticateMotorRequest,async(req,res)=>{
+ try{const c=await getCompany(req.body.companyId);if(!c||c.service_state!=='ACTIVE'||String(c.phone_number_id)!==String(req.body.phoneNumberId))return res.status(403).json({ok:false,error:'Empresa no disponible.'});
+ res.json({ok:true,mode:await voicePreference(pool,c.company_id,String(req.body.contact||''),req.body.mode)});
+ }catch{res.status(400).json({ok:false,error:'No se pudo guardar la preferencia.'});}
+});
+const interpretHealth=async prompt=>(await postMotor('/admin/health/interpret',{prompt},20000)).interpretation;
 app.post('/api/admin/companies/:companyId/service',authRequired,requireSuperadmin,async(req,res)=>{
  res.set('Cache-Control','no-store');
  try{
@@ -1210,18 +1221,18 @@ app.post('/motor/health/chat',authenticateMotorRequest,async(req,res)=>{
  try{
  const c=await getCompany(req.body?.companyId);
  if(!isHealth(c)||c.service_state!=='ACTIVE'||String(c.phone_number_id)!==String(req.body.phoneNumberId))return res.status(403).json({ok:false,error:'Servicio demo no habilitado.'});
- const response=await healthChat(pool,c.company_id,{contact:'WA-'+String(req.body.waId||'').replace(/\D/g,''),text:req.body.text,messageId:req.body.messageId});
- res.json({ok:true,response});
+ const result=await healthAssistant(pool,c,{contact:'WA-'+String(req.body.waId||'').replace(/\D/g,''),text:req.body.text,messageId:req.body.messageId},interpretHealth);
+ res.json({ok:true,...result});
  }catch(e){
   if(e.code)return res.status(503).json({ok:false,error:'No se pudo consultar la agenda demo.'});
-  res.json({ok:true,response:'DEMO — '+e.message+' Escribí TURNOS para empezar otra vez.'});
+  res.json({ok:true,response:'No pude completar la gestión. El turno no se confirmó. Consultá tus turnos o intentá nuevamente.'});
  }
 });
 app.get('/motor/company/:companyId/service',authenticateMotorRequest,async(req,res)=>{
  res.set('Cache-Control','no-store');try{
  const c=await getCompany(req.params.companyId);
  const active=!!c&&c.service_state==='ACTIVE'&&String(c.phone_number_id)===String(req.query.phoneNumberId||'');
- res.json({ok:true,active,module:active?['eventos','salud','gastro','ventas'].find(key=>configuredModule(c,key))||null:null});
+ res.json({ok:true,active,voice:active?await getVoiceSettings(pool,c.company_id):{enabled:false},module:active?['eventos','salud','gastro','ventas'].find(key=>configuredModule(c,key))||null:null});
  }catch{res.status(503).json({ok:false,error:'No se pudo verificar el servicio.'});}
 });
 app.get("/motor/company/:companyId/pickup", authenticateMotorRequest, async (req,res) => {
@@ -1461,11 +1472,17 @@ const healthError=(res,e)=>res.status(400).json({ok:false,error:e.code?'No se pu
 app.get('/api/company/:companyId/health/doctors',async(req,res)=>{try{res.json({ok:true,today:localToday(),items:await doctors(pool,req.params.companyId)});}catch(e){healthError(res,e);}});
 app.post('/api/company/:companyId/health/doctors',requireSuperadmin,async(req,res)=>{try{res.json({ok:true,id:await saveDoctor(pool,req.params.companyId,req.body||{})});}catch(e){healthError(res,e);}});
 app.get('/api/company/:companyId/health/availability',async(req,res)=>{try{res.json({ok:true,...await availability(pool,req.params.companyId,req.query.doctorId,String(req.query.date||''))});}catch(e){healthError(res,e);}});
-app.get('/api/company/:companyId/health/agenda',async(req,res)=>{try{res.json({ok:true,items:await appointments(pool,req.params.companyId,String(req.query.date||''),String(req.query.doctorId||''))});}catch(e){healthError(res,e);}});
+app.get('/api/company/:companyId/health/agenda',async(req,res)=>{try{res.json({ok:true,items:await appointments(pool,req.params.companyId,String(req.query.date||''),String(req.query.doctorId||''),String(req.query.specialty||''),String(req.query.service||''))});}catch(e){healthError(res,e);}});
 app.post('/api/company/:companyId/health/book',async(req,res)=>{try{if(req.healthCompany.service_state!=='ACTIVE')throw Error('Servicio demo pausado.');res.json({ok:true,appointment:await reserve(pool,req.params.companyId,req.body||{})});}catch(e){healthError(res,e);}});
-app.post('/api/company/:companyId/health/state',async(req,res)=>{try{res.json({ok:true,appointment:await appointmentState(pool,req.params.companyId,req.body.id,req.body.state,null,req.session.sub)});}catch(e){healthError(res,e);}});
-app.post('/api/company/:companyId/health/chat',async(req,res)=>{try{if(req.healthCompany.service_state!=='ACTIVE')throw Error('Servicio demo pausado.');const response=await healthChat(pool,req.params.companyId,{contact:'SIM-'+crypto.createHash('sha256').update(req.session.sub+'|'+String(req.body.sessionId||'').slice(0,40)).digest('hex'),text:req.body.text,messageId:req.body.messageId});res.json({ok:true,response});}catch(e){healthError(res,e);}});
-app.get('/api/company/:companyId/health/print',async(req,res)=>{try{const date=String(req.query.date||'');res.type('html').send(printAgenda(req.healthCompany.company_name,date,await appointments(pool,req.params.companyId,date,String(req.query.doctorId||'')),(await doctors(pool,req.params.companyId)).find(d=>d.id===req.query.doctorId)?.name||'Todos los especialistas'));}catch(e){healthError(res,e);}});
+app.post('/api/company/:companyId/health/state',canOperate,async(req,res)=>{try{if(req.body.state!=='CANCELLED')throw Error('La agenda permite reservar y cancelar; no requiere un circuito clínico.');res.json({ok:true,appointment:await appointmentState(pool,req.params.companyId,req.body.id,req.body.state,null,req.session.sub)});}catch(e){healthError(res,e);}});
+app.post('/api/company/:companyId/health/chat',async(req,res)=>{try{if(req.healthCompany.service_state!=='ACTIVE')throw Error('Servicio pausado.');const result=await healthAssistant(pool,req.healthCompany,{contact:'SIM-'+crypto.createHash('sha256').update(req.session.sub+'|'+String(req.body.sessionId||'').slice(0,40)).digest('hex'),text:req.body.text,messageId:req.body.messageId},interpretHealth);res.json({ok:true,...result});}catch(e){healthError(res,e);}});
+app.get('/api/company/:companyId/health/verify',async(req,res)=>{
+ try{const code=String(req.query.code||'').replace(/^ONE-SALUD:/,'');if(!/^[a-f0-9]{48}$/.test(code))return res.status(400).json({ok:false,error:'QR inválido.'});
+ const appointment=(await pool.query('SELECT id,patient,dni,doctor_name,specialty,day,slot,mode,start_time,end_time,room,address,service,state FROM panel_health_appointments WHERE company_id=$1 AND qr_token=$2',[req.params.companyId,code])).rows[0];
+ if(!appointment)return res.status(404).json({ok:false,error:'Turno no encontrado en esta institución.'});res.json({ok:true,appointment});
+ }catch{res.status(503).json({ok:false,error:'No se pudo verificar el turno.'});}
+});
+app.get('/api/company/:companyId/health/print',async(req,res)=>{try{const date=String(req.query.date||'');res.type('html').send(printAgenda(req.healthCompany.company_name,date,await appointments(pool,req.params.companyId,date,String(req.query.doctorId||''),String(req.query.specialty||''),String(req.query.service||'')),(await doctors(pool,req.params.companyId)).find(d=>d.id===req.query.doctorId)?.name||'Todos los especialistas'));}catch(e){healthError(res,e);}});
 
 app.get("/api/company/:companyId/receipts",authRequired,async(req,res)=>{
  try{return res.json({ok:true,items:await listReceipts(pool,req.params.companyId)});}
@@ -2529,6 +2546,8 @@ await initDb();
 await initBusinessAdmin(pool);
 await initSalesTools(pool);
 await initHealthDemo(pool);
+await initHealthAssistant(pool);
+await initVoiceSettings(pool);
 await initEvents(pool);
 await initPayments(pool);
 let paymentFlushBusy=false;

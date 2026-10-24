@@ -1,31 +1,36 @@
-# One Salud: WhatsApp y operación institucional
+# One Salud: turnos por WhatsApp y agenda local
 
-Referencia funcional: propuesta aportada por el usuario del Hospital Teodoro J. Schestakow V2. Se usa como referencia de requisitos, sin copiar su implementación ni presentar afiliación con el hospital.
+## Alcance actual
 
-## Canales
+El paciente escribe una solicitud de turno en lenguaje natural. El panel pide al motor una interpretación con la IA configurada (Gemini por defecto), usando únicamente profesionales y contexto de esa institución. La aplicación consulta disponibilidad, solicita nombre y apellido y DNI faltantes, presenta un resumen y reserva solo ante un mensaje posterior de aceptación. Los cambios en el resumen requieren nueva confirmación.
 
-El paciente solicita, consulta y cancela turnos por WhatsApp. Recepción y profesionales gestionan su trabajo en el panel autenticado. El motor ya deriva las empresas con módulo Salud al servicio de agenda del panel. Actualmente el flujo sigue siendo una demostración con datos ficticios y selección numerada.
+Cada reserva se guarda en PostgreSQL. Repetir el mismo identificador de mensaje devuelve el resultado anterior; la validación transaccional del cupo impide dos reservas en el mismo lugar. Esto no implica entrega exactamente una vez de mensajes de Meta. Una caída de IA conserva el borrador y no reserva ni cancela.
 
-## Primera entrega: circuito de atención
+El comprobante de WhatsApp es un texto completo más una imagen QR: institución, código, paciente, DNI, profesional, especialidad, fecha, hora o franja por llegada, dirección y consultorio configurados. El QR contiene un token aleatorio, sin DNI. La consulta autenticada `GET /api/company/:companyId/health/verify?code=...` solo busca en la institución autorizada. No hay una ficha pública de paciente. El chat permite consultar y recuperar el comprobante, y cancelar con confirmación. Reprogramación atómica queda pendiente; no se ofrece como función implementada.
 
-Reservado → En sala → En consulta → Atendido. Desde Reservado se permite marcar ausencia o cancelar; desde En sala se permite cancelar. Los estados finales no se reabren desde el selector. Una repetición del mismo estado no genera eventos duplicados. Los turnos ya existentes conservan sus datos; los tiempos históricos desconocidos quedan vacíos.
+El panel permite imprimir la agenda por fecha, profesional, especialidad y servicio (filtros de texto por coincidencia exacta, sin distinguir mayúsculas). Incluye paciente, DNI, horario, especialidad, servicio y profesional. Se retiró el selector de circuito clínico; no requiere que el médico use el panel. Se conservan las columnas y eventos históricos para no eliminar datos.
 
-Cada cambio registra fecha, estado anterior, estado nuevo y usuario. El estado, el horario y el evento se guardan en una transacción. La cancelación por chat verifica el contacto y no cancela consultas iniciadas o terminadas. El historial operativo en PostgreSQL no constituye una historia clínica inmutable ni una certificación legal.
+## Puesta en marcha
 
-Validación: node --test test/health_workflow.test.js. Usa PostgreSQL embebido PGlite; no verifica el envío real de WhatsApp ni concurrencia distribuida de producción.
+1. Desplegar primero el motor compatible con `/admin/health/interpret`, luego el panel.
+2. Mantener GEMINI_API_KEY y GEMINI_MODEL en el motor, y las claves existentes del puente entre motor y panel. No enviar claves por chat ni almacenarlas en GitHub.
+3. Elegir la empresa Salud y cargar profesionales, especialidad, servicio, dirección, consultorio y disponibilidad. Si se usa la empresa de demostración, sigue conteniendo profesionales ficticios: sustituir/configurar la institución antes de atender pacientes.
+4. Probar texto → oferta → datos → resumen → aceptación → comprobante/QR → planilla. Después probar consulta, recuperación de QR y cancelación.
 
-## Siguientes entregas
+La agenda es LOCAL DLL One. No consulta ni sincroniza HSI. Cuando informática entregue la documentación y un entorno autorizado, habrá que integrar HSI como fuente de disponibilidad y confirmación, evitando una doble agenda independiente.
 
-1. Interpretación por IA con especialidades, profesionales, fechas relativas e historial de conversación; la agenda valida disponibilidad y confirma la reserva de forma transaccional. Una indisponibilidad de IA no modifica el turno.
-2. Reprogramación sin perder el turno original si el nuevo cupo deja de estar disponible; confirmación explícita y atención humana.
-3. Sala de espera y métricas calculadas sobre los horarios registrados; no estimar datos históricos inexistentes.
-4. Roles separados de recepción, profesional y dirección, con permisos por institución y profesional. El control actual por empresa no sustituye estos roles.
-5. Recordatorios y contingencias con registro de entrega, recuperación y prevención de duplicados.
-6. Historia clínica como alcance independiente: acceso autorizado, registro de autoría, enmiendas y revisión institucional antes de usar datos reales. No enviar evoluciones ni diagnósticos al chat de turnos.
+## ElevenLabs, adicional por empresa
 
-## Orden del dashboard propuesto
+Control de empresas ofrece un interruptor y un ID de voz, guardados exclusivamente por SUPERADMIN. La ruta y el servicio comprueban el rol, usan revisión para evitar sobrescrituras y registran los cambios. Desactivado por defecto; la empresa común y el usuario de WhatsApp no pueden habilitarlo.
 
-Navegación global: Inicio, Empresas, Conversaciones y Configuración.
-Para Salud: Agenda, Recepción, Profesionales e Indicadores. Consultorio e Historia clínica aparecerán cuando sus permisos y funciones estén implementados. Las pantallas de productos, carrito y delivery corresponden a Gastro, no a Salud.
+En el motor configurar ELEVENLABS_API_KEY. Opcionalmente ELEVENLABS_STT_MODEL (predeterminado scribe_v2) y ELEVENLABS_TTS_MODEL (eleven_multilingual_v2). El ID de voz se configura por empresa en el panel. La cuenta y su facturación se gestionan en ElevenLabs: activar el interruptor no contrata ni cobra un plan a la empresa.
 
-El diseño visual final queda pendiente de las referencias que enviará el usuario. La demo no debe presentarse como sistema hospitalario completo ni como habilitado para pacientes reales.
+Los audios entrantes se transcriben y se procesan por el mismo flujo que el texto. Se aceptan archivos de audio de hasta 5 MB. Se contesta por audio al recibir audio, salvo preferencia explícita de texto; se puede pedir «respondeme por audio» o «respondeme por escrito». La preferencia se guarda por empresa y contacto. Los comprobantes de turnos siempre se envían también escritos. Se usa MP3 como mensaje de audio, sin prometer presentación de nota de voz PTT. Ante fallo de síntesis se responde con texto; ante fallo de transcripción se solicita texto sin modificar reservas/pedidos.
+
+Los envíos administrativos automáticos, imágenes de menú y avisos externos al diálogo siguen en su formato actual. Los audios y el texto sintetizado se envían al proveedor ElevenLabs; este cambio no promete retención cero. La integración no incluye clonación de voces ni historia clínica.
+
+## Validación y límites
+
+Pruebas con PGlite para reservas, aislamiento, correcciones, consentimiento, duplicados, cancelación, filtros, migración y permisos de voz. Pruebas simuladas de ElevenLabs y de UI con jsdom. No sustituyen una prueba con Gemini, ElevenLabs y WhatsApp reales. No se configuraron claves ni se activó voz en ninguna empresa durante el desarrollo.
+
+Fuentes técnicas: https://elevenlabs.io/docs/api-reference/speech-to-text/convert y https://elevenlabs.io/docs/api-reference/text-to-speech/convert. Modelo del PDF hospitalario usado como referencia funcional, no como obligación de implementar circuitos clínicos.
