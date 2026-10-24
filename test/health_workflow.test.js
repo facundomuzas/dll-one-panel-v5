@@ -49,7 +49,7 @@ test('DNI validado, almacenado y único por especialista y día; permite familia
  await assert.rejects(()=>reserve(db,'A',{...input('OTRO','REQ-OTRO'),dni:'12345678',slot:'08:20'}),/ya tiene/);
  await assert.rejects(()=>reserve(db,'A',{...input(),dni:'23456789'}),/otro turno/);
  const family=await reserve(db,'A',{...input('P1','REQ-FAMILY'),dni:'23456789',slot:'08:20'});assert.equal(family.contact,a.contact);
- const html=printAgenda('Demo',date,[a,family,{...a,dni:null}]);assert.match(html,/DNI ficticio/);assert.match(html,/12345678/);assert.match(html,/Sin registrar/);
+ const html=printAgenda('Demo',date,[a,family,{...a,dni:null}]);assert.match(html,/DNI/);assert.match(html,/12345678/);assert.match(html,/Sin registrar/);
  await initHealthDemo(db);assert.equal((await appointments(db,'A',date)).length,2);
 });
 test('chat pide solo DNI faltante y conserva nombre, rechaza inválido y confirma una vez',async()=>{

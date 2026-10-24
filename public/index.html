@@ -734,7 +734,7 @@
         <button class="admin-only hidden-admin" data-tab="products" onclick="go('products')">▦ Categorías ONE</button>
         <button id="navCatalog" data-tab="catalog" onclick="go('catalog',this)">💲 ONE Ventas</button>
         <button id="navGastro" data-tab="gastro" onclick="go('gastro',this)">🍔 ONE Gastro</button>
-        <button id="navHealth" data-tab="health" onclick="go('health',this)" style="display:none">🏥 ONE Salud · Demo</button>
+        <button id="navHealth" data-tab="health" onclick="go('health',this)" style="display:none">🏥 ONE Salud</button>
         <button id="navEvents" data-tab="events" onclick="go('events')" style="display:none">🎟 ONE Eventos</button>
         <button id="navAdmin" class="admin-only hidden-admin" data-tab="admin" onclick="go('admin',this)">⚙ Super Admin</button>
       </div>
@@ -1157,15 +1157,15 @@
         </section>
         <section id="products" class="section"><div class="hero"><div><h1>Categorías ONE</h1><p>Elegí una categoría y luego la empresa que querés administrar.</p></div></div><div id="productCategories" class="grid-2"></div></section>
         <section id="health" class="section">
-        <div class="hero"><div><h1>ONE Salud <small>Demostración</small></h1><p>Turnos por horario o por cupo. Usá especialistas y pacientes ficticios. No está conectado a un hospital.</p></div></div>
+        <div class="hero"><div><h1>ONE Salud</h1><p>Turnos por WhatsApp y agenda diaria imprimible. Agenda local de DLL One; integración con HSI pendiente.</p></div></div>
         <p id="healthStatus" role="status" aria-live="polite"></p>
         <div class="actions-row"><button class="btn btn-light" onclick="loadHealth()">Actualizar agenda y especialistas</button></div>
         <div class="card"><h3>Agenda diaria</h3><div class="form-grid">
           <div class="form-field"><label>Fecha</label><input type="date" id="healthDate" onchange="loadHealthAgenda();healthSlots()"></div>
-          <div class="form-field"><label>Especialista</label><select id="healthFilter" onchange="loadHealthAgenda()"></select></div>
+          <div class="form-field"><label>Especialista</label><select id="healthFilter" onchange="loadHealthAgenda()"></select></div><div class="form-field"><label>Especialidad (opcional)</label><input id="healthSpecialtyFilter" onchange="loadHealthAgenda()" placeholder="Todas"></div><div class="form-field"><label>Servicio (opcional)</label><input id="healthServiceFilter" onchange="loadHealthAgenda()" placeholder="Todos"></div>
         </div><div class="actions-row"><button class="btn btn-primary" onclick="printHealthAgenda()">Imprimir / Guardar PDF</button></div><div id="healthAgenda"></div></div>
         <div class="grid-2">
-          <div class="card"><h3>Probar conversación</h3><p>Simula el diálogo del bot con la misma agenda. No envía mensajes a WhatsApp. Para comenzar escribí TURNOS.</p><div id="healthChatLog" style="max-height:400px;overflow:auto;white-space:pre-wrap"></div><div class="form-field"><label>Mensaje de prueba</label><input id="healthChatInput" placeholder="TURNOS" maxlength="500"></div><div class="actions-row"><button id="healthChatSend" class="btn btn-primary" onclick="sendHealthChat()">Enviar prueba</button><button class="btn btn-light" onclick="newHealthChat()">Otro paciente demo</button></div></div>
+          <div class="card"><h3>Probar conversación</h3><p>Simula el diálogo del bot con la misma agenda. No envía mensajes a WhatsApp. Podés escribir: quiero un turno para mañana con clínica médica.</p><div id="healthChatLog" style="max-height:400px;overflow:auto;white-space:pre-wrap"></div><div class="form-field"><label>Mensaje de prueba</label><input id="healthChatInput" placeholder="Quiero pedir un turno" maxlength="500"></div><div class="actions-row"><button id="healthChatSend" class="btn btn-primary" onclick="sendHealthChat()">Enviar prueba</button><button class="btn btn-light" onclick="newHealthChat()">Otro paciente demo</button></div></div>
           <div class="card"><h3>Cargar turno desde recepción</h3><p>Los turnos manuales comparten disponibilidad con el bot.</p><div class="form-grid">
             <div class="form-field full"><label>Especialista</label><select id="healthBookDoctor" onchange="healthSlots()"></select></div>
             <div class="form-field"><label>Horario / cupo para la fecha de la agenda</label><select id="healthBookSlot"></select></div>
@@ -1176,7 +1176,7 @@
         </div>
         <div class="card"><h3>Especialistas y disponibilidad</h3><p>La edición está disponible para Super Admin. Para cambiar horarios con reservas vigentes, primero cancelá o trasladá esos turnos.</p><div class="form-field"><label>Editar especialista</label><select id="healthDoctorEdit" onchange="editHealthDoctor()"></select></div>
           <fieldset id="healthDoctorFields" style="border:0;padding:0"><div class="form-grid">
-            <div class="form-field"><label>Nombre ficticio</label><input id="healthDoctorName" maxlength="100"></div><div class="form-field"><label>Especialidad</label><input id="healthSpecialty" maxlength="100"></div><div class="form-field"><label>Consultorio</label><input id="healthRoom" maxlength="100"></div>
+            <div class="form-field"><label>Nombre del profesional</label><input id="healthDoctorName" maxlength="100"></div><div class="form-field"><label>Especialidad</label><input id="healthSpecialty" maxlength="100"></div><div class="form-field"><label>Consultorio</label><input id="healthRoom" maxlength="100"></div><div class="form-field"><label>Dirección de atención</label><input id="healthAddress" maxlength="180"></div><div class="form-field"><label>Servicio</label><input id="healthService" maxlength="100"></div>
             <div class="form-field"><label>Modalidad</label><select id="healthMode"><option value="FIXED">Horario fijo</option><option value="QUEUE">Orden de llegada</option></select></div>
             <div class="form-field"><label>Desde</label><input id="healthStart" type="time" value="08:00"></div><div class="form-field"><label>Hasta</label><input id="healthEnd" type="time" value="12:00"></div>
             <div class="form-field"><label>Minutos por turno (horario fijo)</label><input id="healthMinutes" type="number" min="5" max="120" value="20"></div><div class="form-field"><label>Cupo diario (orden de llegada)</label><input id="healthCapacity" type="number" min="1" max="100" value="8"></div>
@@ -1277,7 +1277,7 @@
             <button class="more-card" onclick="go('business')">🏢<strong>Mi negocio</strong><small>Datos generales y módulos.</small></button>
             <button class="more-card admin-only hidden-admin" onclick="go('products')">▦<strong>Categorías ONE</strong><small>Salud, Gastro, Ventas y Eventos.</small></button>
             <button id="moreCatalog" class="more-card" onclick="go('catalog')">💲<strong>ONE Ventas</strong><small>Productos, servicios y listas de precios.</small></button>
-            <button id="moreHealth" class="more-card" onclick="go('health')">🏥<strong>ONE Salud · Demo</strong><small>Agenda y turnos.</small></button>
+            <button id="moreHealth" class="more-card" onclick="go('health')">🏥<strong>ONE Salud</strong><small>Agenda y turnos.</small></button>
             <button id="moreGastro" class="more-card" onclick="go('gastro')">🍔<strong>ONE Gastro</strong><small>Menú, variantes y extras.</small></button>
             <button class="more-card" onclick="go('customers')">👥<strong>Clientes</strong><small>Base de clientes.</small></button>
             <button id="moreEvents" class="more-card" onclick="go('events')" style="display:none">🎟<strong>ONE Eventos</strong><small>Eventos, cupos e ingresos.</small></button>
