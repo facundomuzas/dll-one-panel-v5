@@ -48,3 +48,15 @@ Esta matriz no convierte automáticamente en configuración central todas las op
 Railway tiene el panel V5 y el motor V4 desplegados en producción desde `main`. Esta propuesta está en una rama de revisión y **no se ha desplegado** a producción. Los proyectos vistos tienen solo entornos `production`; antes de fusionar, probar en un entorno separado o de revisión sin datos reales, especialmente edición de catálogos y cobros.
 
 Verificar `npm run check`, `npm test` y la auditoría de repositorio en GitHub Actions, y realizar un recorrido manual de la interfaz con cuentas SUPERADMIN, ADMIN_EMPRESA (con y sin `operate` / `editCatalog`) y servicio suspendido.
+
+
+## Administración de contraseñas — 15 de noviembre de 2026
+
+- `SUPERADMIN` puede restablecer la contraseña de **otra** cuenta de la base de datos, incluida otra cuenta `SUPERADMIN`, desde **Usuarios y accesos**. Una cuenta no puede restablecer su propia contraseña por esta vía.
+- La interfaz permite ingresar una contraseña nueva y confirmarla; **ninguna contraseña actual es recuperable ni visible**. El servidor valida de 12 caracteres como mínimo a 72 bytes UTF-8 como máximo (límite efectivo de bcrypt), y solo guarda el hash bcrypt.
+- Cada restablecimiento incrementa `panel_users.session_version`; las sesiones anteriores quedan invalidadas en la siguiente solicitud. El usuario vuelve a ingresar con la contraseña nueva.
+- `panel_user_security_log` registra IDs de usuario actor y destino y la acción; no registra claves ni hashes. La actualización del hash y el registro son transaccionales.
+- Un usuario suspendido sigue suspendido después del restablecimiento.
+- La cuenta bootstrap/recuperación configurada con `PANEL_ADMIN_USER` y `PANEL_ADMIN_PASSWORD` en Railway (UID 0) no está en el listado de usuarios de PostgreSQL y **no se modifica desde el panel**.
+- La pantalla de alta distingue el **Nombre visible** del **Usuario o correo de ingreso**. Los correos de la base se consultan sin distinguir mayúsculas, pero una contraseña errónea debe mostrar `Usuario o contraseña incorrectos.`, no `Sesión vencida`.
+- Checklist en entorno aislado: crear SUPERADMIN con correo de prueba, ingresar usando distinto uso de mayúsculas, fallar una clave a propósito y verificar el mensaje correcto; restablecer desde otro SUPERADMIN, confirmar la revocación de cookie anterior, la entrada con clave nueva y que ninguna cuenta no administradora pueda usar el endpoint.
