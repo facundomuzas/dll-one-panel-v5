@@ -1513,7 +1513,9 @@
     let data={};
     try{data=await r.json()}catch{throw new Error('El servidor no devolvió una respuesta válida. Comprobá que terminó el despliegue del panel V585 y recargá.');}
 
-    if(r.status===401){
+    // An incorrect password is not an expired session. Preserve the server's
+    // generic login error instead of erasing the user's input and context.
+    if(r.status===401 && url!=='/api/login'){
       showLogin();
       throw new Error('Sesión vencida');
     }
