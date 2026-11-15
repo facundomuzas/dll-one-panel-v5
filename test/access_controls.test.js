@@ -34,8 +34,8 @@ function reset() {
   user={user_id:7,login_key:'operador',role:'ADMIN_EMPRESA',active:true};
   permissions={view:true,operate:true};membership=true;service='ACTIVE';failDatabase=false;
 }
-function token(uid=7, role='ADMIN_EMPRESA', sub='operador') {
-  return jwt.sign({uid,role,sub,policy:2},process.env.JWT_SECRET,{issuer:'DLL ONE Panel V5',expiresIn:3600});
+function token(uid=7, role='ADMIN_EMPRESA', sub='operador', sv=0) {
+  return jwt.sign({uid,role,sub,policy:2,sv},process.env.JWT_SECRET,{issuer:'DLL ONE Panel V5',expiresIn:3600});
 }
 let writes = 0;
 const app=express();app.use(cookieParser());
@@ -67,6 +67,17 @@ test('sesión vigente se rechaza inmediatamente al desactivar usuario',async()=>
   reset();const session=token();assert.equal((await request('/me',session)).status,200);
   user.active=false;assert.equal((await request('/me',session)).status,401);
 });
+test('restablecer contraseña invalida de inmediato sesiones previas sin revocar las nuevas',async()=>{
+  reset();user.session_version=0;
+  const oldSession=token();
+  assert.equal((await request('/me',oldSession)).status,200);
+  user.session_version=1;
+  assert.equal((await request('/me',oldSession)).status,401);
+  assert.equal((await request('/me',token(7,'ADMIN_EMPRESA','operador',1))).status,200);
+  user.session_version=2;
+  assert.equal((await request('/me',token(7,'ADMIN_EMPRESA','operador',1))).status,401);
+});
+
 test('cambio de rol, eliminación y cambio de identidad invalidan sesión',async()=>{
   for (const change of [()=>user.role='SUPERADMIN',()=>user=null,()=>user.login_key='otro']) {
     reset();const session=token();change();assert.equal((await request('/me',session)).status,401);
