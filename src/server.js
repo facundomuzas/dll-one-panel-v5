@@ -1036,7 +1036,7 @@ app.post("/api/admin/users", authRequired, requireSuperadmin, async (req, res) =
     const companyIds = Array.isArray(req.body?.companyIds) ? req.body.companyIds : [];
 
     if (!loginKey) throw new Error("Ingresá un usuario o correo.");
-    if (password.length < 8) throw new Error("La contraseña debe tener al menos 8 caracteres.");
+    if (password.length < 12 || Buffer.byteLength(password,'utf8') > 72) throw new Error("La contraseña debe tener al menos 12 caracteres y no superar 72 bytes.");
     if (role !== "SUPERADMIN" && !companyIds.length) {
       throw new Error("Asigná al menos una empresa al usuario.");
     }
