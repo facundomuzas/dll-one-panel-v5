@@ -1,4 +1,5 @@
 import {registerUserAccessRoutes} from './user_access.js';
+import {registerPasswordResetRoutes} from './password_reset.js';
 import {initBarber,barberChat} from './barber.js';
 import {barberRouter} from './barber_routes.js';
 import {initLodging,lodgingCatalog,lodgingChat} from './lodging.js';
@@ -1050,6 +1051,7 @@ app.post("/api/admin/users", authRequired, requireSuperadmin, async (req, res) =
 });
 
 registerUserAccessRoutes(app, {pool, authRequired, requireSuperadmin});
+registerPasswordResetRoutes(app, {pool, authRequired, requireSuperadmin});
 
 app.post("/api/admin/companies", authRequired, requireSuperadmin, async (req, res) => {
   try {
