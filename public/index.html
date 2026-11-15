@@ -1558,6 +1558,7 @@
     resetEvents();
     resetLodging();resetBarber();resetPayments();
     gastroCanEdit=false;gastroSettingsCanEdit=false;
+    if(typeof resetWorkspaceMode==='function')resetWorkspaceMode();
     $('app').classList.add('hidden');
     $('login').classList.remove('hidden');
   }
