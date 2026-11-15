@@ -12,7 +12,7 @@ function setup(){
 }
 test('short password shows visible feedback and does not send a request',async()=>{
  const {dom,w}=setup();let calls=0;w.api=async()=>calls++;w.$('adminUserPassword').value='abcd';
- await w.createPanelUser();assert.equal(calls,0);assert.match(w.$('adminUserCreateStatus').textContent,/8 caracteres/);
+ await w.createPanelUser();assert.equal(calls,0);assert.match(w.$('adminUserCreateStatus').textContent,/12 caracteres/);
  assert.equal(w.document.activeElement.id,'adminUserPassword');assert.equal(w.$('adminUserPassword').getAttribute('aria-invalid'),'true');dom.window.close();
 });
 test('server errors remain visible, preserve input and allow retry; refresh failure does not report creation failure',async()=>{
