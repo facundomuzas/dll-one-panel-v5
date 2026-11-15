@@ -700,10 +700,10 @@ async function companyAccessRequired(req, res, next) {
     }
 
     next();
-  } catch (err) {
-    return res.status(500).json({
+  } catch {
+    return res.status(503).json({
       ok: false,
-      error: String(err?.message || err)
+      error: "No se pudo verificar el acceso a esta empresa. Reintentá."
     });
   }
 }
