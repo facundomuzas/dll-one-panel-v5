@@ -705,7 +705,7 @@
       </div>
 
       <div class="field">
-        <label>Usuario</label>
+        <label for="loginUser">Usuario o correo de ingreso</label>
         <input id="loginUser" autocomplete="username" placeholder="admin@dllone.com">
       </div>
 
@@ -1371,11 +1371,11 @@
                 <div id="migrationAuditResults"></div>
               </div>
               <div class="card">
-                <h3 class="card-title">Crear acceso para cliente</h3>
+                <h3 class="card-title">Crear usuario o superadministrador</h3>
                 <div class="form-grid">
-                  <div class="form-field full"><label>Nombre</label><input id="adminUserName"></div>
-                  <div class="form-field full"><label>Usuario / correo</label><input id="adminUserLogin"></div>
-                  <div class="form-field full"><label for="adminUserPassword">Contraseña inicial</label><input id="adminUserPassword" type="password" minlength="8" autocomplete="new-password" aria-describedby="adminUserPasswordHint adminUserCreateStatus"><small id="adminUserPasswordHint">Mínimo 12 caracteres. Para recuperar una cuenta, usá «Restablecer contraseña» desde Usuarios y accesos.</small></div>
+                  <div class="form-field full"><label for="adminUserName">Nombre visible (no se usa para ingresar)</label><input id="adminUserName"></div>
+                  <div class="form-field full"><label for="adminUserLogin">Usuario o correo de ingreso (escribilo en la pantalla de acceso)</label><input id="adminUserLogin" autocomplete="username"></div>
+                  <div class="form-field full"><label for="adminUserPassword">Contraseña inicial</label><input id="adminUserPassword" type="password" minlength="12" autocomplete="new-password" aria-describedby="adminUserPasswordHint adminUserCreateStatus"><small id="adminUserPasswordHint">Mínimo 12 caracteres. Para recuperar una cuenta, usá «Restablecer contraseña» desde Usuarios y accesos.</small></div>
                   <div class="form-field"><label>Rol</label><select id="adminUserRole" onchange="$('adminUserCompany').disabled=this.value==='SUPERADMIN'"><option value="ADMIN_EMPRESA">Administrador empresa</option><option value="OPERADOR">Operador</option><option value="SUPERADMIN">Superadministrador (todas las empresas)</option></select></div>
                   <div class="form-field"><label>Empresa</label><select id="adminUserCompany"></select></div>
                 </div>
