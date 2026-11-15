@@ -48,6 +48,58 @@ window.renderAdminUsers = function(container, users, {api, reload, currentUser, 
         `/api/admin/users/${encodeURIComponent(user.user_id)}`,{method:'DELETE'});
       deletion.style.marginTop='12px';main.append(deletion);
     }
+    // SUPERADMIN can reset other users, including another SUPERADMIN.
+    // Never display or return the existing password; the new value is sent
+    // exclusively to the authenticated reset endpoint in a JSON body.
+    if(!ownAccount){
+      const open=document.createElement('button');
+      open.type='button';open.className='btn';open.textContent='Restablecer contraseña';
+      open.setAttribute('aria-expanded','false');
+      const form=document.createElement('form');form.hidden=true;
+      form.style.cssText='margin-top:12px;display:grid;gap:8px;max-width:460px';
+      const heading=document.createElement('small');
+      heading.textContent='Contraseña nueva (mínimo 12 caracteres). Se cerrarán las sesiones anteriores.';
+      const password=document.createElement('input');
+      password.type='password';password.required=true;password.minLength=12;
+      password.autocomplete='new-password';password.placeholder='Nueva contraseña';
+      password.setAttribute('aria-label','Nueva contraseña de '+user.login_key);
+      const confirmPassword=document.createElement('input');
+      confirmPassword.type='password';confirmPassword.required=true;confirmPassword.minLength=12;
+      confirmPassword.autocomplete='new-password';confirmPassword.placeholder='Repetir contraseña';
+      confirmPassword.setAttribute('aria-label','Confirmar contraseña de '+user.login_key);
+      const save=document.createElement('button');save.type='submit';save.className='btn btn-primary';
+      save.textContent='Guardar contraseña nueva';
+      const status=document.createElement('small');status.setAttribute('role','status');
+      status.setAttribute('aria-live','polite');
+      form.append(heading,password,confirmPassword,save,status);
+      open.addEventListener('click',()=>{
+        form.hidden=!form.hidden;
+        open.setAttribute('aria-expanded',String(!form.hidden));
+        if(form.hidden){password.value='';confirmPassword.value='';status.textContent='';}
+        else password.focus();
+      });
+      form.addEventListener('submit',async event=>{
+        event.preventDefault();
+        status.textContent='';
+        if(password.value.length<12){status.textContent='Ingresá al menos 12 caracteres.';password.focus();return;}
+        if(password.value!==confirmPassword.value){status.textContent='Las contraseñas no coinciden.';confirmPassword.focus();return;}
+        if(!window.confirm('¿Cambiar la contraseña de '+user.login_key+'? Todas sus sesiones anteriores se cerrarán.'))return;
+        save.disabled=true;
+        try{
+          await api('/api/admin/users/'+encodeURIComponent(user.user_id)+'/password',{
+            method:'POST',
+            body:JSON.stringify({newPassword:password.value})
+          });
+          password.value='';confirmPassword.value='';
+          form.hidden=true;open.setAttribute('aria-expanded','false');
+          notify('Contraseña restablecida para '+user.login_key+'. Las sesiones anteriores fueron invalidadas.');
+        }catch(err){
+          status.textContent=err.message||'No se pudo restablecer la contraseña.';
+        }finally{save.disabled=false;}
+      });
+      open.style.marginTop='12px';
+      main.append(open,form);
+    }
     if(!protectedUser){
       const controls=document.createElement('div');controls.style.cssText='margin-top:12px;display:flex;flex-wrap:wrap;gap:8px';
       controls.append(button(user.active?'Suspender usuario':'Reactivar usuario',user.active?`¿Suspender a ${user.login_key}? No podrá ingresar a ninguna empresa y sus sesiones serán rechazadas en la próxima solicitud. Se conservan los datos.`:`¿Reactivar a ${user.login_key}? Recuperará acceso a las empresas que todavía tenga asignadas.`,
