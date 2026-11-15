@@ -59,5 +59,10 @@ test('los controles administrativos están ocultos a clientes y existe vista exp
     assert.equal(d.getElementById('workspaceModeButton').getAttribute('aria-pressed'),'true');
     dom.window.toggleWorkspaceMode();
     assert.equal(d.getElementById('app').classList.contains('focus-mode'),false);
+    dom.window.toggleWorkspaceMode();
+    dom.window.resetWorkspaceMode();
+    assert.equal(d.getElementById('app').classList.contains('focus-mode'),false);
+    assert.equal(d.getElementById('workspaceModeButton').getAttribute('aria-pressed'),'false');
+    assert.match(html,/if\(typeof resetWorkspaceMode==='function'\)resetWorkspaceMode\(\)/);
   } finally {dom.window.close();}
 });
