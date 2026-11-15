@@ -1203,7 +1203,7 @@ app.get('/motor/company/:companyId/service',authenticateMotorRequest,async(req,r
  res.set('Cache-Control','no-store');try{
  const c=await getCompany(req.params.companyId);
  const active=!!c&&c.service_state==='ACTIVE'&&String(c.phone_number_id)===String(req.query.phoneNumberId||'');
- res.json({ok:true,active,voice:active?await getVoiceSettings(pool,c.company_id):{enabled:false},module:active?['eventos','salud','gastro','ventas','cabanas','barberias'].find(key=>configuredModule(c,key))||null:null});
+ res.json({ok:true,companyId:req.params.companyId,active,voice:active?await getVoiceSettings(pool,c.company_id):{enabled:false},module:active?['eventos','salud','gastro','ventas','cabanas','barberias'].find(key=>configuredModule(c,key))||null:null});
  }catch{res.status(503).json({ok:false,error:'No se pudo verificar el servicio.'});}
 });
 app.get("/motor/company/:companyId/pickup", authenticateMotorRequest, async (req,res) => {
@@ -1215,7 +1215,7 @@ app.get("/motor/company/:companyId/pickup", authenticateMotorRequest, async (req
       return res.status(409).json({ok:false,error:"El número no corresponde a esta empresa."});
     res.set("Cache-Control", "no-store");
     const business=await businessRuntime(pool,company);
-    return res.json({ok:true,pickup:{...await getPickup(pool,company),branchesNative:business.branchesNative,branches:business.branches}});
+    return res.json({ok:true,companyId:company.company_id,pickup:{...await getPickup(pool,company),branchesNative:business.branchesNative,branches:business.branches}});
   } catch(err) {
     return res.status(503).json({ok:false,error:"No se pudo consultar la ubicación."});
   }
