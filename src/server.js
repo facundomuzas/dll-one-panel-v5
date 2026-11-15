@@ -892,12 +892,12 @@ app.get("/health", async (_req, res) => {
       },
       db
     });
-  } catch (err) {
+  } catch {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
       version: "5.8.7",
-      error: String(err?.message || err)
+      error: "Base de datos temporalmente no disponible."
     });
   }
 });
