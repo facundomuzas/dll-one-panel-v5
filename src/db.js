@@ -352,7 +352,12 @@ export async function listCompaniesForUser(userId, role) {
       FROM panel_companies c
       INNER JOIN panel_user_companies uc
         ON uc.company_id = c.company_id
-      WHERE uc.user_id = $1 AND c.service_state IN ('ACTIVE','PAUSED')
+      INNER JOIN panel_users u
+        ON u.user_id = uc.user_id
+      WHERE uc.user_id = $1
+        AND u.active = TRUE
+        AND COALESCE(uc.permissions->>'view', 'true') = 'true'
+        AND c.service_state IN ('ACTIVE','PAUSED')
       ORDER BY c.company_name ASC
     `,
     [Number(userId)]
