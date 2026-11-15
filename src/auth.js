@@ -61,6 +61,7 @@ export async function validLogin(user, password) {
     loginKey: dbUser.login_key,
     displayName: dbUser.display_name,
     role: String(dbUser.role || "ADMIN_EMPRESA").toUpperCase(),
+    sessionVersion: Number(dbUser.session_version || 0),
     source: "DB"
   };
 }
@@ -71,6 +72,7 @@ export function issueSession(res, user) {
       policy:2,
       sub: String(user.loginKey || ""),
       uid: Number(user.userId || 0),
+      sv: Number(user.sessionVersion || 0),
       name: String(user.displayName || user.loginKey || "Usuario"),
       role: String(user.role || "ADMIN_EMPRESA").toUpperCase()
     },
@@ -130,7 +132,9 @@ export async function authRequired(req, res, next) {
     } else {
       const current = await getPanelUserById(uid);
       if (!current?.active || current.login_key !== req.session.sub ||
-          String(current.role || "").toUpperCase() !== req.session.role) {
+          String(current.role || "").toUpperCase() !== req.session.role ||
+          !Number.isSafeInteger(Number(req.session.sv ?? 0)) ||
+          Number(current.session_version || 0) !== Number(req.session.sv ?? 0)) {
         throw Error("SESSION_EXPIRED");
       }
     }
