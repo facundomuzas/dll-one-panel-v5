@@ -1375,7 +1375,7 @@
                 <div class="form-grid">
                   <div class="form-field full"><label>Nombre</label><input id="adminUserName"></div>
                   <div class="form-field full"><label>Usuario / correo</label><input id="adminUserLogin"></div>
-                  <div class="form-field full"><label for="adminUserPassword">Contraseña inicial</label><input id="adminUserPassword" type="password" minlength="8" autocomplete="new-password" aria-describedby="adminUserPasswordHint adminUserCreateStatus"><small id="adminUserPasswordHint">Mínimo 8 caracteres.</small></div>
+                  <div class="form-field full"><label for="adminUserPassword">Contraseña inicial</label><input id="adminUserPassword" type="password" minlength="8" autocomplete="new-password" aria-describedby="adminUserPasswordHint adminUserCreateStatus"><small id="adminUserPasswordHint">Mínimo 12 caracteres. Para recuperar una cuenta, usá «Restablecer contraseña» desde Usuarios y accesos.</small></div>
                   <div class="form-field"><label>Rol</label><select id="adminUserRole" onchange="$('adminUserCompany').disabled=this.value==='SUPERADMIN'"><option value="ADMIN_EMPRESA">Administrador empresa</option><option value="OPERADOR">Operador</option><option value="SUPERADMIN">Superadministrador (todas las empresas)</option></select></div>
                   <div class="form-field"><label>Empresa</label><select id="adminUserCompany"></select></div>
                 </div>
@@ -1386,7 +1386,7 @@
 
             <div class="card">
               <h3 class="card-title">Usuarios y accesos</h3>
-              <p class="card-sub">Quitá el acceso a una empresa o suspendé el usuario completo. Se conservan los datos del negocio. Para detener también el bot por falta de pago, usá Suspender empresa en la sección de servicios.</p>
+              <p class="card-sub">Administrá usuarios, accesos y contraseñas. Podés restablecer la clave de otra cuenta, incluso de un SUPERADMIN; las contraseñas actuales nunca se muestran y las sesiones anteriores se cierran. Para detener también el bot por falta de pago, usá Suspender empresa en Servicios.</p>
               <div id="adminUsersList" class="data-list"><div class="empty">Cargando usuarios…</div></div>
             </div>
           </div>
@@ -3112,7 +3112,7 @@
     }
     if(!body.loginKey){invalid('Ingresá un usuario o correo.',$('adminUserLogin'));return;}
     $('adminUserLogin').removeAttribute('aria-invalid');
-    if(body.password.length<8){invalid('La contraseña debe tener al menos 8 caracteres.',password);return;}
+    if(body.password.length<12){invalid('La contraseña debe tener al menos 12 caracteres.',password);return;}
     if(body.role!=='SUPERADMIN'&&!body.companyIds.length){invalid('Seleccioná una empresa para este usuario.',$('adminUserCompany'));return;}
     $('adminUserCompany').removeAttribute('aria-invalid');
     if(body.role==='SUPERADMIN'){body.companyIds=[];if(!confirm('Este usuario podrá administrar todas las empresas, crear usuarios y eliminar accesos. ¿Crear superadministrador?'))return;}
