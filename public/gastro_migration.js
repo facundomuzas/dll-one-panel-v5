@@ -9,12 +9,14 @@ function renderGastroMigration(status){
  $('gMigrationStart').textContent=status.complete?'Verificar y copiar pendientes':'Copiar datos y fotos pendientes';
 }
 async function loadGastroMigration(){
+ if(String(currentUser?.role||'').toUpperCase()!=='SUPERADMIN')return;
  const target=companyId;
  if(!target)return;
  try{const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/migration`);if(target===companyId&&!gastroMigrationBusy)renderGastroMigration(r);}
  catch(err){if(target===companyId&&!gastroMigrationBusy)$('gMigrationStatus').textContent='No se pudo verificar la copia: '+err.message;}
 }
 async function runGastroMigration(){
+ if(String(currentUser?.role||'').toUpperCase()!=='SUPERADMIN')return;
  if(gastroMigrationBusy||!companyId)return;
  const target=companyId,base=`/api/company/${encodeURIComponent(target)}/gastro/migration`,errors=[];
  gastroMigrationBusy=true;$('gMigrationStart').disabled=true;$('gMigrationStart').textContent='Verificando…';$('gMigrationStatus').textContent='Verificando datos y fotos…';

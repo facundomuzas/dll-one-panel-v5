@@ -4,10 +4,9 @@ import {readBusinessAdmin,changeBusinessAdmin,businessLogo} from './business_adm
 // El servidor monta este router después del acceso global a la empresa.
 export function businessAdminRouter(db,getCompany) {
   const router=Router({mergeParams:true});
+  // Los clientes pueden operar sus negocios, pero no modificar la configuración de DLL ONE.
   async function canEdit(req) {
-    if(req.session?.role==='SUPERADMIN')return true;
-    const access=(await db.query('SELECT permissions FROM panel_user_companies WHERE company_id=$1 AND user_id=$2',[req.params.companyId,req.session.uid])).rows[0];
-    return !!access&&access.permissions?.view!==false&&access.permissions?.editBusiness!==false;
+    return String(req.session?.role||'').toUpperCase()==='SUPERADMIN';
   }
   router.use((_req,res,next)=>{res.set('Cache-Control','no-store');next();});
   router.get('/',async(req,res)=>{try{

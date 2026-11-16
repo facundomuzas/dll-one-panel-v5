@@ -690,6 +690,8 @@
   <link rel="stylesheet" href="/whatsapp-chat.css">
   <link rel="stylesheet" href="/mobile-layout.css">
   <link rel="stylesheet" href="/lodging.css">
+  <link rel="stylesheet" href="/workspace-layout.css">
+  <script src="/workspace-layout.js" defer></script>
 </head>
 <body>
   <div id="login" class="login">
@@ -703,7 +705,7 @@
       </div>
 
       <div class="field">
-        <label>Usuario</label>
+        <label for="loginUser">Usuario o correo de ingreso</label>
         <input id="loginUser" autocomplete="username" placeholder="admin@dllone.com">
       </div>
 
@@ -727,7 +729,7 @@
         </div>
       </div>
 
-<nav class="nav" aria-label="Navegación principal"><div class="nav-group"><p class="nav-heading">Tu espacio</p><button class="active" data-tab="dashboard" onclick="go('dashboard',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10 12 3l9 7v11h-6v-7H9v7H3Z"/></svg><span>Inicio</span><span class="notice-badge" data-notice="dashboard" hidden></span></button></div><div class="nav-group"><p class="nav-heading">Operación</p><button data-tab="conversations" onclick="go('conversations',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11a8 8 0 0 1-8 8H7l-4 3V11a9 9 0 0 1 18 0Z"/></svg><span>Conversaciones</span><span class="notice-badge" data-notice="conversations" hidden></span></button><button data-tab="orders" onclick="go('orders',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v19l-4-2-3 2-3-2-4 2ZM8 8h8M8 12h8M8 16h5"/></svg><span>Pedidos</span><span class="notice-badge" data-notice="orders" hidden></span></button><button data-tab="delivery" onclick="go('delivery',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h11v12H3ZM14 10h4l3 4v3h-7M6 17v3M18 17v3"/></svg><span>Delivery</span><span class="notice-badge" data-notice="delivery" hidden></span></button><button data-tab="receipts" onclick="go('receipts',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m8 13 6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l9-9"/></svg><span>Comprobantes </span><span class="notice-badge" data-notice="receipts" hidden></span></button><button data-tab="outbound" onclick="go('outbound',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM17 17l5 5M11 7v5M11 15h.01"/></svg><span>Entregas en revisión</span></button></div><div class="nav-group"><p class="nav-heading">Clientes</p><button data-tab="customers" onclick="go('customers',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM1 21v-3a7 7 0 0 1 14 0v3M16 4a4 4 0 0 1 0 8M18 15a5 5 0 0 1 5 5v1"/></svg><span>Clientes</span></button><button data-tab="commercial" onclick="go('commercial',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h16v18H4ZM8 8h8M8 12h8M8 16h5"/></svg><span>Seguimiento comercial</span></button></div><div class="nav-group"><p class="nav-heading">Módulos ONE</p><button id="navCatalog" data-tab="catalog" onclick="go('catalog',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h8l11 11-8 8L3 11ZM7 7h.01"/></svg><span>ONE Ventas</span></button><button id="navGastro" data-tab="gastro" onclick="go('gastro',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v7a3 3 0 0 0 6 0V3M7 3v19M20 3c-5 3-5 8 0 10v9M20 3v10"/></svg><span>ONE Gastro</span></button><button id="navHealth" data-tab="health" onclick="go('health',this)" style="display:none"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z"/></svg><span>ONE Salud</span></button><button id="navBarber" data-tab="barber" onclick="go('barber')" style="display:none"><span>✂</span><span>ONE Barberías</span></button><button id="navLodging" data-tab="lodging" onclick="go('lodging')" style="display:none"><span>⌂</span><span>ONE Cabañas</span></button><button id="navEvents" data-tab="events" onclick="go('events')" style="display:none"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v16H4ZM8 2v6M16 2v6M4 11h16M8 15h2M14 15h2"/></svg><span>ONE Eventos</span></button></div><div class="nav-group"><p class="nav-heading">Administración</p><button data-tab="business" onclick="go('business',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V4h12v17M15 10h6v11M7 8h4M7 12h4M7 16h4M1 21h22"/></svg><span>Mi negocio</span></button><button class="admin-only hidden-admin" data-tab="products" onclick="go('products')"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3ZM14 3h7v7h-7ZM3 14h7v7H3ZM14 14h7v7h-7Z"/></svg><span>Categorías ONE</span></button><button id="navAdmin" class="admin-only hidden-admin" data-tab="admin" onclick="go('admin',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M9 15v6"/></svg><span>Super Admin</span></button></div></nav><div class="sidebar-footer"><span class="brand-dot"></span> Un espacio para tu negocio</div>
+<nav class="nav" aria-label="Navegación principal"><div class="nav-group"><p class="nav-heading">Tu espacio</p><button class="active" data-tab="dashboard" onclick="go('dashboard',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10 12 3l9 7v11h-6v-7H9v7H3Z"/></svg><span>Inicio</span><span class="notice-badge" data-notice="dashboard" hidden></span></button></div><div class="nav-group"><p class="nav-heading">Operación</p><button data-tab="conversations" onclick="go('conversations',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11a8 8 0 0 1-8 8H7l-4 3V11a9 9 0 0 1 18 0Z"/></svg><span>Conversaciones</span><span class="notice-badge" data-notice="conversations" hidden></span></button><button data-tab="orders" onclick="go('orders',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v19l-4-2-3 2-3-2-4 2ZM8 8h8M8 12h8M8 16h5"/></svg><span>Pedidos</span><span class="notice-badge" data-notice="orders" hidden></span></button><button data-tab="delivery" onclick="go('delivery',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h11v12H3ZM14 10h4l3 4v3h-7M6 17v3M18 17v3"/></svg><span>Delivery</span><span class="notice-badge" data-notice="delivery" hidden></span></button><button data-tab="receipts" onclick="go('receipts',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m8 13 6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l9-9"/></svg><span>Comprobantes </span><span class="notice-badge" data-notice="receipts" hidden></span></button><button data-tab="outbound" onclick="go('outbound',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM17 17l5 5M11 7v5M11 15h.01"/></svg><span>Entregas en revisión</span></button></div><div class="nav-group"><p class="nav-heading">Clientes</p><button data-tab="customers" onclick="go('customers',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM1 21v-3a7 7 0 0 1 14 0v3M16 4a4 4 0 0 1 0 8M18 15a5 5 0 0 1 5 5v1"/></svg><span>Clientes</span></button><button data-tab="commercial" onclick="go('commercial',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h16v18H4ZM8 8h8M8 12h8M8 16h5"/></svg><span>Seguimiento comercial</span></button></div><div class="nav-group"><p class="nav-heading">Módulos ONE</p><button id="navCatalog" data-tab="catalog" onclick="go('catalog',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h8l11 11-8 8L3 11ZM7 7h.01"/></svg><span>ONE Ventas</span></button><button id="navGastro" data-tab="gastro" onclick="go('gastro',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v7a3 3 0 0 0 6 0V3M7 3v19M20 3c-5 3-5 8 0 10v9M20 3v10"/></svg><span>ONE Gastro</span></button><button id="navHealth" data-tab="health" onclick="go('health',this)" style="display:none"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z"/></svg><span>ONE Salud</span></button><button id="navBarber" data-tab="barber" onclick="go('barber')" style="display:none"><span>✂</span><span>ONE Barberías</span></button><button id="navLodging" data-tab="lodging" onclick="go('lodging')" style="display:none"><span>⌂</span><span>ONE Cabañas</span></button><button id="navEvents" data-tab="events" onclick="go('events')" style="display:none"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v16H4ZM8 2v6M16 2v6M4 11h16M8 15h2M14 15h2"/></svg><span>ONE Eventos</span></button></div><div class="nav-group"><p class="nav-heading">Administración</p><button class="admin-only hidden-admin" data-tab="business" onclick="go('business',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V4h12v17M15 10h6v11M7 8h4M7 12h4M7 16h4M1 21h22"/></svg><span>Mi negocio</span></button><button class="admin-only hidden-admin" data-tab="products" onclick="go('products')"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3ZM14 3h7v7h-7ZM3 14h7v7H3ZM14 14h7v7h-7Z"/></svg><span>Categorías ONE</span></button><button id="navAdmin" class="admin-only hidden-admin" data-tab="admin" onclick="go('admin',this)"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M9 15v6"/></svg><span>Super Admin</span></button></div></nav><div class="sidebar-footer"><span class="brand-dot"></span> Un espacio para tu negocio</div>
     </aside>
 
     <main>
@@ -739,6 +741,7 @@
           </div>
         </div>
         <div style="display:flex;gap:6px">
+          <button id="workspaceModeButton" type="button" class="btn btn-light" onclick="toggleWorkspaceMode()" aria-pressed="false" aria-label="Expandir espacio de trabajo" title="Ocultar menú y aprovechar toda la pantalla">⤢ Expandir</button>
           <button id="noticeSoundButton" class="btn btn-light" onclick="toggleNoticeSound()" aria-pressed="false">🔇 Activar sonido</button>
           <button class="btn btn-light refresh-btn" title="Actualizar" aria-label="Actualizar" onclick="loadTab(currentTab)">↻</button>
           <button class="btn btn-light" title="Cerrar sesión" aria-label="Cerrar sesión" onclick="logout()">⎋ <span class="logout-label">Salir</span></button>
@@ -1079,7 +1082,7 @@
             <button class="btn btn-light" onclick="document.getElementById('gZonesHeading').scrollIntoView({behavior:'smooth'})">Delivery</button>
             <button class="btn btn-light" onclick="loadGastro()">Recargar / reintentar importación</button>
           </div>
-          <div class="card" style="margin-bottom:18px">
+          <div class="card admin-only hidden-admin" style="margin-bottom:18px">
             <h3 class="card-title">Datos de Gastro en el panel</h3>
             <p class="card-sub">Copiá los datos y las fotos pendientes para que el menú se consulte desde el panel. Se conservan los precios, alias y cambios que ya guardaste.</p>
             <p id="gMigrationStatus" role="status">Verificando copia de Gastro…</p>
@@ -1279,7 +1282,7 @@
           <div class="form-field"><label>Especialista</label><select id="healthFilter" onchange="loadHealthAgenda()"></select></div><div class="form-field"><label>Especialidad (opcional)</label><input id="healthSpecialtyFilter" onchange="loadHealthAgenda()" placeholder="Todas"></div><div class="form-field"><label>Servicio (opcional)</label><input id="healthServiceFilter" onchange="loadHealthAgenda()" placeholder="Todos"></div>
         </div><div class="actions-row"><button class="btn btn-primary" onclick="printHealthAgenda()">Imprimir / Guardar PDF</button></div><div id="healthAgenda"></div></div>
         <div class="grid-2">
-          <div class="card"><h3>Probar conversación</h3><p>Simula el diálogo del bot con la misma agenda. No envía mensajes a WhatsApp. Podés escribir: quiero un turno para mañana con clínica médica.</p><div id="healthChatLog" style="max-height:400px;overflow:auto;white-space:pre-wrap"></div><div class="form-field"><label>Mensaje de prueba</label><input id="healthChatInput" placeholder="Quiero pedir un turno" maxlength="500"></div><div class="actions-row"><button id="healthChatSend" class="btn btn-primary" onclick="sendHealthChat()">Enviar prueba</button><button class="btn btn-light" onclick="newHealthChat()">Otro paciente demo</button></div></div>
+          <div class="card"><h3>Probar conversación</h3><p>Simula el diálogo del bot con la misma agenda. No envía mensajes a WhatsApp. Podés escribir: quiero un turno para mañana con clínica médica.</p><div id="healthChatLog" style="max-height:400px;overflow:auto;white-space:pre-wrap"></div><div class="form-field"><label>Mensaje de prueba</label><input id="healthChatInput" placeholder="Quiero pedir un turno" maxlength="500"></div><div class="actions-row"><button id="healthChatSend" class="btn btn-primary" onclick="sendHealthChat()">Enviar prueba</button><button id="healthChatNew" class="btn btn-light" onclick="newHealthChat()">Otro paciente demo</button></div></div>
           <div class="card"><h3>Cargar turno desde recepción</h3><p>Los turnos manuales comparten disponibilidad con el bot.</p><div class="form-grid">
             <div class="form-field full"><label>Especialista</label><select id="healthBookDoctor" onchange="healthSlots()"></select></div>
             <div class="form-field"><label>Horario / cupo para la fecha de la agenda</label><select id="healthBookSlot"></select></div>
@@ -1368,11 +1371,11 @@
                 <div id="migrationAuditResults"></div>
               </div>
               <div class="card">
-                <h3 class="card-title">Crear acceso para cliente</h3>
+                <h3 class="card-title">Crear usuario o superadministrador</h3>
                 <div class="form-grid">
-                  <div class="form-field full"><label>Nombre</label><input id="adminUserName"></div>
-                  <div class="form-field full"><label>Usuario / correo</label><input id="adminUserLogin"></div>
-                  <div class="form-field full"><label for="adminUserPassword">Contraseña inicial</label><input id="adminUserPassword" type="password" minlength="8" autocomplete="new-password" aria-describedby="adminUserPasswordHint adminUserCreateStatus"><small id="adminUserPasswordHint">Mínimo 8 caracteres.</small></div>
+                  <div class="form-field full"><label for="adminUserName">Nombre visible (no se usa para ingresar)</label><input id="adminUserName"></div>
+                  <div class="form-field full"><label for="adminUserLogin">Usuario o correo de ingreso (escribilo en la pantalla de acceso)</label><input id="adminUserLogin" autocomplete="username"></div>
+                  <div class="form-field full"><label for="adminUserPassword">Contraseña inicial</label><input id="adminUserPassword" type="password" minlength="12" autocomplete="new-password" aria-describedby="adminUserPasswordHint adminUserCreateStatus"><small id="adminUserPasswordHint">Mínimo 12 caracteres. Para recuperar una cuenta, usá «Restablecer contraseña» desde Usuarios y accesos.</small></div>
                   <div class="form-field"><label>Rol</label><select id="adminUserRole" onchange="$('adminUserCompany').disabled=this.value==='SUPERADMIN'"><option value="ADMIN_EMPRESA">Administrador empresa</option><option value="OPERADOR">Operador</option><option value="SUPERADMIN">Superadministrador (todas las empresas)</option></select></div>
                   <div class="form-field"><label>Empresa</label><select id="adminUserCompany"></select></div>
                 </div>
@@ -1383,7 +1386,7 @@
 
             <div class="card">
               <h3 class="card-title">Usuarios y accesos</h3>
-              <p class="card-sub">Quitá el acceso a una empresa o suspendé el usuario completo. Se conservan los datos del negocio. Para detener también el bot por falta de pago, usá Suspender empresa en la sección de servicios.</p>
+              <p class="card-sub">Administrá usuarios, accesos y contraseñas. Podés restablecer la clave de otra cuenta, incluso de un SUPERADMIN; las contraseñas actuales nunca se muestran y las sesiones anteriores se cierran. Para detener también el bot por falta de pago, usá Suspender empresa en Servicios.</p>
               <div id="adminUsersList" class="data-list"><div class="empty">Cargando usuarios…</div></div>
             </div>
           </div>
@@ -1393,7 +1396,7 @@
           <div class="hero"><div><h1>Más</h1><p>Configuración y administración.</p><button class="btn btn-light" onclick="go('receipts')">📎 Comprobantes <span class="notice-badge" data-notice="receipts" hidden></span></button></div></div>
           <div class="more-grid">
             <button class="more-card" onclick="go('commercial')">📋<strong>Seguimiento comercial</strong><small>Consultas, presupuestos y oportunidades.</small></button>
-            <button class="more-card" onclick="go('business')">🏢<strong>Mi negocio</strong><small>Datos generales y módulos.</small></button>
+            <button class="more-card admin-only hidden-admin" onclick="go('business')">🏢<strong>Mi negocio</strong><small>Datos generales y módulos.</small></button>
             <button class="more-card" onclick="go('outbound')">🔎<strong>Entregas en revisión</strong><small>Consultar y documentar envíos inciertos.</small></button>
             <button class="more-card admin-only hidden-admin" onclick="go('products')">▦<strong>Categorías ONE</strong><small>Salud, Gastro, Ventas y Eventos.</small></button>
             <button id="moreCatalog" class="more-card" onclick="go('catalog')">💲<strong>ONE Ventas</strong><small>Productos, servicios y listas de precios.</small></button>
@@ -1510,7 +1513,9 @@
     let data={};
     try{data=await r.json()}catch{throw new Error('El servidor no devolvió una respuesta válida. Comprobá que terminó el despliegue del panel V585 y recargá.');}
 
-    if(r.status===401){
+    // An incorrect password is not an expired session. Preserve the server's
+    // generic login error instead of erasing the user's input and context.
+    if(r.status===401 && url!=='/api/login'){
       showLogin();
       throw new Error('Sesión vencida');
     }
@@ -1554,6 +1559,8 @@
     businessAdminDrafts.clear();resetBusinessAdmin();resetSalesTools();currentUser=null;companyId="";selectedChat=null;resetDeliveryView();
     resetEvents();
     resetLodging();resetBarber();resetPayments();
+    gastroCanEdit=false;gastroSettingsCanEdit=false;
+    if(typeof resetWorkspaceMode==='function')resetWorkspaceMode();
     $('app').classList.add('hidden');
     $('login').classList.remove('hidden');
   }
@@ -1638,7 +1645,7 @@
   function gastroEnabled(){return moduleEnabled('gastro');}
   function chooseOneModule(id,group){if(!$(id).checked)return;for(const other of group)if(other!==id)$(other).checked=false;}
   function resolveModuleTab(tab){
-    if(tab==='products'&&currentUser?.role!=='SUPERADMIN')return 'dashboard';
+    if(['business','products','admin'].includes(tab)&&String(currentUser?.role||'').toUpperCase()!=='SUPERADMIN')return 'dashboard';
     if(tab==='catalog'&&gastroEnabled())return 'gastro';
     const key={catalog:'ventas',gastro:'gastro',health:'salud',events:'eventos',lodging:'cabanas',barber:'barberias'}[tab];
     if(key&&!moduleEnabled(key))return 'dashboard';
@@ -1656,6 +1663,7 @@
     commercialOffset=0;commercialItems.clear();
     outboundLoadSeq++;outboundCloseAllowed=false;outboundClosureRequests.clear();
     salesRevision=null;catalogItems=[];clearCatalogForm();
+    gastroCanEdit=false;gastroSettingsCanEdit=false;
     resetSalesTools();
     resetDeliveryView();
     businessRevision=null;
@@ -2889,7 +2897,7 @@
   }
 
 
-  let gastroRevision=null;
+  let gastroRevision=null,gastroCanEdit=false;
   const gastroEdits={};
   const gastroKinds={category:['categorias','idCategoria','activa'],product:['productos','idProducto','activo'],variant:['variantes','idVariante','activa'],extra:['extras','idExtra','activo']};
   const gastroFields={category:{nombre:'gCatName',orden:'gCatOrder'},product:{nombre:'gProductName',idCategoria:'gProductCategory',descripcion:'gProductDescription',precioBase:'gProductPrice',orden:'gProductOrder'},variant:{nombre:'gVariantName',idProducto:'gVariantProduct',precio:'gVariantPrice'},extra:{nombre:'gExtraName',precio:'gExtraPrice'}};
@@ -2921,6 +2929,7 @@
   let gastroSaving=false;
   async function persistGastroItem(kind,data,clear=false){
     if(gastroSaving)return;
+    if(!gastroCanEdit){showNotice('Tu usuario no tiene permiso para editar el catálogo.');return;}
     if(gastroRevision===null){showNotice('Primero cargá Gastro.');return;}
     gastroSaving=true;showLoading(true);const target=companyId;
     try{
@@ -2936,30 +2945,31 @@
     await persistGastroItem(kind,{...item,[active]:item[active]==='SI'?'NO':'SI'});
   }
 
-  let settingsRevision=null,settingsSaving=false;
+  let settingsRevision=null,settingsSaving=false,gastroSettingsCanEdit=false;
   function acceptGastroSettings(r){
     settingsRevision=r.settingsRevision;
     gastroSettingsData={menu:r.menu,pagos:r.pagos,entrega:r.entrega,variantesHabilitadas:r.variantesHabilitadas!==false,extrasHabilitados:r.extrasHabilitados!==false};
-    $('gSettingsFields').disabled=false;renderGastroSettings();
+    gastroSettingsCanEdit=r.canEdit===true;
+    $('gSettingsFields').disabled=!gastroSettingsCanEdit;renderGastroSettings();
   }
   async function loadGastro(){
     const target=companyId;
     $('gMigrationDetails').replaceChildren();$('gMigrationStatus').textContent='Verificando copia de Gastro…';
-    gastroRevision=null;settingsRevision=null;
+    gastroRevision=null;settingsRevision=null;gastroCanEdit=false;gastroSettingsCanEdit=false;
     $('gCatalogFields').disabled=true;$('gSettingsFields').disabled=true;
     $('gCatalogStatus').textContent='Cargando productos…';$('gSettingsStatus').textContent='Cargando cobro, entrega e imágenes…';
     await Promise.allSettled([
       (async()=>{try{
         const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/bundle`);if(target!==companyId)return;
-        gastroRevision=r.revision;gastroData={categorias:r.categorias||[],productos:r.productos||[],variantes:r.variantes||[],extras:r.extras||[]};
-        renderGastro();$('gCatalogFields').disabled=false;$('gCatalogStatus').textContent='Productos y precios listos.';
+        gastroRevision=r.revision;gastroCanEdit=r.canEdit===true;gastroData={categorias:r.categorias||[],productos:r.productos||[],variantes:r.variantes||[],extras:r.extras||[]};
+        renderGastro();$('gCatalogFields').disabled=!gastroCanEdit;$('gCatalogStatus').textContent=gastroCanEdit?'Productos y precios listos.':'Catálogo disponible en modo consulta. Pedí permiso de edición al administrador.';
       }catch(err){if(target===companyId){gastroData={categorias:[],productos:[],variantes:[],extras:[]};renderGastro();$('gCatalogStatus').textContent='Productos: '+(err.message||err);}}})(),
       (async()=>{try{
         const r=await api(`/api/company/${encodeURIComponent(target)}/gastro/settings`);if(target!==companyId)return;
-        acceptGastroSettings(r);$('gSettingsStatus').textContent='Cobro, entrega e imágenes listos.';
+        acceptGastroSettings(r);$('gSettingsStatus').textContent=gastroSettingsCanEdit?'Cobro, entrega e imágenes listos.':'Cobro, entrega e imágenes en modo consulta.';
       }catch(err){if(target===companyId){gastroSettingsData={menu:{imagenes:[]},pagos:{items:[]},entrega:{zonas:[]}};renderGastroSettings();$('gSettingsStatus').textContent='Configuración: '+(err.message||err);}}})()
     ]);
-    if(target===companyId)await loadGastroMigration();
+    if(target===companyId&&String(currentUser?.role||'').toUpperCase()==='SUPERADMIN')await loadGastroMigration();
   }
   function renderGastroSettings(){
     const {menu={},pagos={},entrega={}}=gastroSettingsData;
@@ -2977,6 +2987,7 @@
   }
   async function settingsRequest(path,data={},message='Cambios guardados.'){
     if(settingsSaving)return false;
+    if(!gastroSettingsCanEdit){showNotice('Tu usuario no tiene permiso para editar estos datos.');return false;}
     if(settingsRevision===null){showNotice('Primero cargá la configuración de Gastro.');return false;}
     const target=companyId;settingsSaving=true;$('gSettingsFields').disabled=true;
     try{
@@ -2984,7 +2995,7 @@
       if(target!==companyId)return false;
       acceptGastroSettings(r);$('gSettingsStatus').textContent=message;return true;
     }catch(err){if(target===companyId){$('gSettingsStatus').textContent='No se guardó: '+(err.message||err);showNotice(err.message||String(err));}return false;}
-    finally{settingsSaving=false;if(target===companyId)$('gSettingsFields').disabled=settingsRevision===null;}
+    finally{settingsSaving=false;if(target===companyId)$('gSettingsFields').disabled=settingsRevision===null||!gastroSettingsCanEdit;}
   }
   async function saveGastroMenuConfig(){
     const ok=await settingsRequest('menu/config',{auto:$('gMenuAuto').checked});if(!ok)renderGastroSettings();
@@ -3103,7 +3114,7 @@
     }
     if(!body.loginKey){invalid('Ingresá un usuario o correo.',$('adminUserLogin'));return;}
     $('adminUserLogin').removeAttribute('aria-invalid');
-    if(body.password.length<8){invalid('La contraseña debe tener al menos 8 caracteres.',password);return;}
+    if(body.password.length<12){invalid('La contraseña debe tener al menos 12 caracteres.',password);return;}
     if(body.role!=='SUPERADMIN'&&!body.companyIds.length){invalid('Seleccioná una empresa para este usuario.',$('adminUserCompany'));return;}
     $('adminUserCompany').removeAttribute('aria-invalid');
     if(body.role==='SUPERADMIN'){body.companyIds=[];if(!confirm('Este usuario podrá administrar todas las empresas, crear usuarios y eliminar accesos. ¿Crear superadministrador?'))return;}

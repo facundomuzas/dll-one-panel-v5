@@ -1,4 +1,5 @@
 import {registerUserAccessRoutes} from './user_access.js';
+import {registerPasswordResetRoutes} from './password_reset.js';
 import {initBarber,barberChat} from './barber.js';
 import {barberRouter} from './barber_routes.js';
 import {initLodging,lodgingCatalog,lodgingChat} from './lodging.js';
@@ -700,10 +701,10 @@ async function companyAccessRequired(req, res, next) {
     }
 
     next();
-  } catch (err) {
-    return res.status(500).json({
+  } catch {
+    return res.status(503).json({
       ok: false,
-      error: String(err?.message || err)
+      error: "No se pudo verificar el acceso a esta empresa. Reintentá."
     });
   }
 }
@@ -892,12 +893,12 @@ app.get("/health", async (_req, res) => {
       },
       db
     });
-  } catch (err) {
+  } catch {
     return res.status(503).json({
       ok: false,
       service: "DLL ONE Panel Cloud",
       version: "5.8.7",
-      error: String(err?.message || err)
+      error: "Base de datos temporalmente no disponible."
     });
   }
 });
@@ -1035,7 +1036,7 @@ app.post("/api/admin/users", authRequired, requireSuperadmin, async (req, res) =
     const companyIds = Array.isArray(req.body?.companyIds) ? req.body.companyIds : [];
 
     if (!loginKey) throw new Error("Ingresá un usuario o correo.");
-    if (password.length < 8) throw new Error("La contraseña debe tener al menos 8 caracteres.");
+    if (password.length < 12 || Buffer.byteLength(password,'utf8') > 72) throw new Error("La contraseña debe tener al menos 12 caracteres y no superar 72 bytes.");
     if (role !== "SUPERADMIN" && !companyIds.length) {
       throw new Error("Asigná al menos una empresa al usuario.");
     }
@@ -1050,6 +1051,7 @@ app.post("/api/admin/users", authRequired, requireSuperadmin, async (req, res) =
 });
 
 registerUserAccessRoutes(app, {pool, authRequired, requireSuperadmin});
+registerPasswordResetRoutes(app, {pool, authRequired, requireSuperadmin});
 
 app.post("/api/admin/companies", authRequired, requireSuperadmin, async (req, res) => {
   try {
@@ -1203,7 +1205,7 @@ app.get('/motor/company/:companyId/service',authenticateMotorRequest,async(req,r
  res.set('Cache-Control','no-store');try{
  const c=await getCompany(req.params.companyId);
  const active=!!c&&c.service_state==='ACTIVE'&&String(c.phone_number_id)===String(req.query.phoneNumberId||'');
- res.json({ok:true,active,voice:active?await getVoiceSettings(pool,c.company_id):{enabled:false},module:active?['eventos','salud','gastro','ventas','cabanas','barberias'].find(key=>configuredModule(c,key))||null:null});
+ res.json({ok:true,companyId:req.params.companyId,active,voice:active?await getVoiceSettings(pool,c.company_id):{enabled:false},module:active?['eventos','salud','gastro','ventas','cabanas','barberias'].find(key=>configuredModule(c,key))||null:null});
  }catch{res.status(503).json({ok:false,error:'No se pudo verificar el servicio.'});}
 });
 app.get("/motor/company/:companyId/pickup", authenticateMotorRequest, async (req,res) => {
@@ -1215,7 +1217,7 @@ app.get("/motor/company/:companyId/pickup", authenticateMotorRequest, async (req
       return res.status(409).json({ok:false,error:"El número no corresponde a esta empresa."});
     res.set("Cache-Control", "no-store");
     const business=await businessRuntime(pool,company);
-    return res.json({ok:true,pickup:{...await getPickup(pool,company),branchesNative:business.branchesNative,branches:business.branches}});
+    return res.json({ok:true,companyId:company.company_id,pickup:{...await getPickup(pool,company),branchesNative:business.branchesNative,branches:business.branches}});
   } catch(err) {
     return res.status(503).json({ok:false,error:"No se pudo consultar la ubicación."});
   }
@@ -1563,12 +1565,21 @@ app.use('/api/company/:companyId/health',async(req,res,next)=>{
  try{const c=await getCompany(req.params.companyId);if(!isHealth(c))return res.status(403).json({ok:false,error:'Esta empresa no tiene la demo Salud.'});req.healthCompany=c;res.set('Cache-Control','no-store');next();}catch{res.status(503).json({ok:false,error:'No se pudo consultar la demo.'});}
 });
 const healthError=(res,e)=>res.status(400).json({ok:false,error:e.code?'No se pudo completar la operación. Actualizá la agenda.':e.message});
-app.get('/api/company/:companyId/health/doctors',async(req,res)=>{try{res.json({ok:true,today:localToday(),items:await doctors(pool,req.params.companyId)});}catch(e){healthError(res,e);}});
+// El modo consulta no se determina en el navegador: el servidor comprueba el permiso real.
+async function healthOperationAllowed(req){
+ if(req.healthCompany?.service_state!=='ACTIVE')return false;
+ if(String(req.session?.role||'').toUpperCase()==='SUPERADMIN')return true;
+ const uid=Number(req.session?.uid||0);
+ if(!Number.isSafeInteger(uid)||uid<=0)return false;
+ const {rows}=await pool.query("SELECT uc.permissions FROM panel_user_companies uc JOIN panel_users u ON u.user_id=uc.user_id WHERE uc.company_id=$1 AND uc.user_id=$2 AND u.active=TRUE",[req.params.companyId,uid]);
+ return !!rows[0]&&rows[0].permissions?.view!==false&&rows[0].permissions?.operate!==false;
+}
+app.get('/api/company/:companyId/health/doctors',async(req,res)=>{try{res.json({ok:true,today:localToday(),items:await doctors(pool,req.params.companyId),canOperate:await healthOperationAllowed(req)});}catch{res.status(503).json({ok:false,error:'No se pudo verificar el acceso a la agenda.'});}});
 app.post('/api/company/:companyId/health/doctors',requireSuperadmin,async(req,res)=>{try{res.json({ok:true,id:await saveDoctor(pool,req.params.companyId,req.body||{})});}catch(e){healthError(res,e);}});
 app.get('/api/company/:companyId/health/availability',async(req,res)=>{try{res.json({ok:true,...await availability(pool,req.params.companyId,req.query.doctorId,String(req.query.date||''))});}catch(e){healthError(res,e);}});
 app.get('/api/company/:companyId/health/agenda',async(req,res)=>{try{res.json({ok:true,items:await appointments(pool,req.params.companyId,String(req.query.date||''),String(req.query.doctorId||''),String(req.query.specialty||''),String(req.query.service||''))});}catch(e){healthError(res,e);}});
 app.post('/api/company/:companyId/health/book',canOperate,async(req,res)=>{try{if(req.healthCompany.service_state!=='ACTIVE')throw Error('Servicio demo pausado.');res.json({ok:true,appointment:await reserve(pool,req.params.companyId,req.body||{})});}catch(e){healthError(res,e);}});
-app.post('/api/company/:companyId/health/state',canOperate,async(req,res)=>{try{if(req.body.state!=='CANCELLED')throw Error('La agenda permite reservar y cancelar; no requiere un circuito clínico.');res.json({ok:true,appointment:await appointmentState(pool,req.params.companyId,req.body.id,req.body.state,null,req.session.sub)});}catch(e){healthError(res,e);}});
+app.post('/api/company/:companyId/health/state',canOperate,async(req,res)=>{try{if(req.healthCompany.service_state!=='ACTIVE')return res.status(403).json({ok:false,error:'Servicio pausado.'});if(req.body.state!=='CANCELLED')throw Error('La agenda permite reservar y cancelar; no requiere un circuito clínico.');res.json({ok:true,appointment:await appointmentState(pool,req.params.companyId,req.body.id,req.body.state,null,req.session.sub)});}catch(e){healthError(res,e);}});
 app.post('/api/company/:companyId/health/chat',canOperate,async(req,res)=>{try{if(req.healthCompany.service_state!=='ACTIVE')throw Error('Servicio pausado.');const result=await healthAssistant(pool,req.healthCompany,{contact:'SIM-'+crypto.createHash('sha256').update(req.session.sub+'|'+String(req.body.sessionId||'').slice(0,40)).digest('hex'),text:req.body.text,messageId:req.body.messageId},interpretHealth);res.json({ok:true,...result});}catch(e){healthError(res,e);}});
 app.get('/api/company/:companyId/health/verify',async(req,res)=>{
  try{const code=String(req.query.code||'').replace(/^ONE-SALUD:/,'');if(!/^[a-f0-9]{48}$/.test(code))return res.status(400).json({ok:false,error:'QR inválido.'});
@@ -2075,12 +2086,8 @@ app.get('/api/company/:companyId/order-hours',authRequired,async(req,res)=>{
  try{const row=await getOrderHours(pool,req.params.companyId);res.json({ok:true,...row,status:evaluateHours(row.settings)});}
  catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
 });
-app.post('/api/company/:companyId/order-hours',authRequired,async(req,res)=>{
+app.post('/api/company/:companyId/order-hours',authRequired,requireSuperadmin,async(req,res)=>{
  try{
-  if(String(req.session?.role||'').toUpperCase()!=='SUPERADMIN'){
-   const access=(await pool.query('SELECT permissions FROM panel_user_companies WHERE company_id=$1 AND user_id=$2',[req.params.companyId,req.session?.uid])).rows[0];
-   if(!access||access.permissions?.editBusiness===false)return res.status(403).json({ok:false,error:'No tenés permiso para editar horarios.'});
-  }
   const row=await saveOrderHours(pool,req.params.companyId,req.body||{});res.json({ok:true,...row,status:evaluateHours(row.settings)});
  }catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
 });
@@ -2090,13 +2097,9 @@ app.get('/api/company/:companyId/bot-instructions',authRequired,async(req,res)=>
  try{res.json({ok:true,...await getBotInstructions(pool,req.params.companyId)});}
  catch{res.status(503).json({ok:false,error:'No se pudieron cargar las instrucciones.'});}
 });
-app.post('/api/company/:companyId/bot-instructions',authRequired,async(req,res)=>{
+app.post('/api/company/:companyId/bot-instructions',authRequired,requireSuperadmin,async(req,res)=>{
  res.set('Cache-Control','no-store');
  try{
-  if(String(req.session?.role||'').toUpperCase()!=='SUPERADMIN'){
-   const access=(await pool.query('SELECT permissions FROM panel_user_companies WHERE company_id=$1 AND user_id=$2',[req.params.companyId,req.session?.uid])).rows[0];
-   if(!access||access.permissions?.editBusiness===false)return res.status(403).json({ok:false,error:'No tenés permiso para editar las instrucciones del bot.'});
-  }
   res.json({ok:true,...await saveBotInstructions(pool,req.params.companyId,req.body||{})});
  }catch(err){res.status(400).json({ok:false,error:err.message});}
 });
@@ -2105,11 +2108,9 @@ app.get('/api/company/:companyId/profile',authRequired,async(req,res)=>{
  try{const company=await getCompany(req.params.companyId);if(!company)return res.status(404).json({ok:false,error:'Empresa no encontrada.'});res.json({ok:true,...await getBusinessProfile(pool,company)});}
  catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
 });
-app.post('/api/company/:companyId/profile',authRequired,async(req,res)=>{
+app.post('/api/company/:companyId/profile',authRequired,requireSuperadmin,async(req,res)=>{
  try{
-  const isSuper=String(req.session?.role||'').toUpperCase()==='SUPERADMIN';
-  if(!isSuper){const access=(await pool.query('SELECT permissions FROM panel_user_companies WHERE company_id=$1 AND user_id=$2',[req.params.companyId,req.session?.uid])).rows[0];if(!access||access.permissions?.editBusiness===false)return res.status(403).json({ok:false,error:'No tenés permiso para editar la empresa.'});}
-  res.json({ok:true,...await saveBusinessProfile(pool,req.params.companyId,req.body||{},isSuper)});
+  res.json({ok:true,...await saveBusinessProfile(pool,req.params.companyId,req.body||{},true)});
  }catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
 });
 
@@ -2155,13 +2156,18 @@ async function ensureCatalog(company){
 async function ensureSettings(company){
   return getGastroSettings(pool,company,()=>postBridge(company,'gastro_settings_get'));
 }
+async function gastroEditorAllowed(req){
+  if(String(req.session?.role||'').toUpperCase()==='SUPERADMIN')return true;
+  const uid=Number(req.session?.uid||0);
+  if(!Number.isSafeInteger(uid)||uid<=0)return false;
+  const {rows}=await pool.query('SELECT permissions FROM panel_user_companies WHERE user_id=$1 AND company_id=$2',[uid,req.params.companyId]);
+  return !!rows[0]&&rows[0].permissions?.view!==false&&rows[0].permissions?.editCatalog!==false;
+}
 async function canEditGastro(req,res,next){
-  if(String(req.session?.role||'').toUpperCase()==='SUPERADMIN')return next();
   try{
-    const {rows}=await pool.query('SELECT permissions FROM panel_user_companies WHERE user_id=$1 AND company_id=$2',[Number(req.session?.uid||0),req.params.companyId]);
-    if(!rows[0]||rows[0].permissions?.editCatalog===false)return res.status(403).json({ok:false,error:'No tenés permiso para editar el catálogo.'});
+    if(!await gastroEditorAllowed(req))return res.status(403).json({ok:false,error:'No tenés permiso para editar el catálogo.'});
     next();
-  }catch(err){res.status(500).json({ok:false,error:'No se pudo verificar el permiso.'});}
+  }catch{res.status(503).json({ok:false,error:'No se pudo verificar el permiso.'});}
 }
 
 app.get(
@@ -2180,7 +2186,8 @@ app.get(
 
       const stored=await ensureCatalog(company);
       return res.json({ok:true,...(company.snapshot?.data?.gastroBundle||{}),...stored.catalog,
-        source:"PANEL",revision:stored.revision,syncedAt:stored.updated_at});
+        source:"PANEL",revision:stored.revision,syncedAt:stored.updated_at,
+        canEdit:await gastroEditorAllowed(req)});
     } catch (err) {
       return res.status(500).json({
         ok:false,
@@ -2213,15 +2220,11 @@ for (const [pathName, operation] of [
 ]) {
   app.post(
     `/api/company/:companyId/gastro/${pathName}`,
-    authRequired,
+    authRequired,canEditGastro,
     async (req, res) => {
       try {
         const company = await getCompany(req.params.companyId);
         if (!company) return res.status(404).json({ok:false,error:"Empresa no encontrada."});
-        if(String(req.session?.role||'').toUpperCase()!=='SUPERADMIN'){
-          const access=await pool.query('SELECT permissions FROM panel_user_companies WHERE user_id=$1 AND company_id=$2',[Number(req.session?.uid||0),company.company_id]);
-          if(!access.rows[0]||access.rows[0].permissions?.editCatalog===false)return res.status(403).json({ok:false,error:'No tenés permiso para editar el catálogo.'});
-        }
         await ensureCatalog(company);
         const result = await saveGastroItem(pool,company,pathName,req.body||{});
         return res.json({ok:true,...result});
@@ -2233,13 +2236,13 @@ for (const [pathName, operation] of [
 }
 
 
-app.get('/api/company/:companyId/gastro/migration',authRequired,async(req,res)=>{
+app.get('/api/company/:companyId/gastro/migration',authRequired,requireSuperadmin,async(req,res)=>{
  try{
   const company=await getCompany(req.params.companyId);if(!company)return res.status(404).json({ok:false,error:'Empresa no encontrada.'});
   res.set('Cache-Control','no-store');res.json({ok:true,...await gastroMigrationStatus(pool,company)});
  }catch(err){res.status(400).json({ok:false,error:String(err.message||err)});}
 });
-app.post('/api/company/:companyId/gastro/migration',authRequired,canEditGastro,async(req,res)=>{
+app.post('/api/company/:companyId/gastro/migration',authRequired,requireSuperadmin,async(req,res)=>{
  try{
   const company=await getCompany(req.params.companyId);if(!company)return res.status(404).json({ok:false,error:'Empresa no encontrada.'});
   const status=await migrateGastroStep(pool,company,req.body||{},(operation,payload)=>postBridge(company,operation,payload,req.session?.sub||'PANEL_V5'));
@@ -2250,7 +2253,7 @@ app.post('/api/company/:companyId/gastro/migration',authRequired,canEditGastro,a
 app.get('/api/company/:companyId/gastro/settings',authRequired,async(req,res)=>{
   try{
     const company=await getCompany(req.params.companyId);if(!company)throw new Error('Empresa no encontrada.');
-    const row=await ensureSettings(company);res.json({ok:true,...row.settings,settingsRevision:row.revision});
+    const row=await ensureSettings(company);res.json({ok:true,...row.settings,settingsRevision:row.revision,canEdit:await gastroEditorAllowed(req)});
   }catch(err){res.status(503).json({ok:false,error:String(err.message||err)});}
 });
 for(const [path,operation] of [

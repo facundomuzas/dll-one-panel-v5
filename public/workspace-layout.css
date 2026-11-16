@@ -1,0 +1,51 @@
+/* Full-width DLL ONE workspace. Keep mobile chat overlay behavior intact. */
+.app > main { min-width: 0; width: 100%; }
+.app .content { width: 100%; max-width: none; margin: 0; }
+.app.focus-mode { grid-template-columns: minmax(0, 1fr); }
+.app.focus-mode > aside { display: none; }
+.app.focus-mode .content { padding-inline: clamp(16px, 2vw, 32px); }
+#workspaceModeButton { white-space: nowrap; }
+
+@media (min-width: 761px) {
+  /* The thread takes the available viewport height, not a fixed 535px strip. */
+  #conversations .conversation-shell {
+    height: max(520px, calc(100dvh - 235px));
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  #conversations .conversation-list-pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  #conversations .conversation-tools { flex: 0 0 auto; }
+  #conversations .conversation-items {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  #conversations .chat-pane { min-height: 0; overflow: hidden; }
+  #conversations .chat-messages {
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 760px) {
+  #workspaceModeButton { display: none; }
+  #conversations .conversation-shell {
+    display: block;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  #conversations .conversation-list-pane { display: block; overflow: visible; }
+  #conversations .conversation-items { max-height: none; overflow: visible; }
+  #conversations .chat-pane.mobile-open { height: 100dvh; overflow: hidden; }
+  #conversations .chat-messages { min-height: 0; max-height: none; }
+}

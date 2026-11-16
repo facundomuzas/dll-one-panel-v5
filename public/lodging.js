@@ -1,5 +1,5 @@
-let lodgingItems=[],lodgingRevision=null,lodgingSeq=0,lodgingBusy=false,lodgingCanEdit=false;
-function resetLodging(){if(typeof resetLodgingOperations==='function')resetLodgingOperations();lodgingSeq++;lodgingItems=[];lodgingRevision=null;lodgingCanEdit=false;$('lodgingList').replaceChildren();$('lodgingFields').disabled=true;$('lodgingNew').disabled=true;$('lodgingStatus').textContent='';$('cabinPhotos').value='';for(const id of ['cabinId','cabinName','cabinDescription','cabinRate'])$(id).value='';}
+let lodgingItems=[],lodgingRevision=null,lodgingSeq=0,lodgingBusy=false,lodgingCanEdit=false,lodgingCanOperate=false,lodgingCanConfigure=false;
+function resetLodging(){if(typeof resetLodgingOperations==='function')resetLodgingOperations();lodgingSeq++;lodgingItems=[];lodgingRevision=null;lodgingCanEdit=false;lodgingCanOperate=false;lodgingCanConfigure=false;$('lodgingList').replaceChildren();$('lodgingFields').disabled=true;$('lodgingNew').disabled=true;$('lodgingStatus').textContent='';$('cabinPhotos').value='';for(const id of ['cabinId','cabinName','cabinDescription','cabinRate'])$(id).value='';}
 async function loadLodging(){
  resetLodging();const seq=lodgingSeq,id=companyId;
  try{const r=await api(`/api/company/${encodeURIComponent(id)}/lodging`);if(id!==companyId||seq!==lodgingSeq)return;

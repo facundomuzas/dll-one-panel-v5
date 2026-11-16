@@ -10,7 +10,7 @@ export function eventsRouter(db){
   res.set('Cache-Control','no-store');
   if(req.session?.role==='SUPERADMIN')req.eventPermissions={manage:true,operate:true};
   else{const row=(await db.query('SELECT permissions FROM panel_user_companies WHERE company_id=$1 AND user_id=$2',[req.params.companyId,req.session?.uid])).rows[0];
-   if(!row)return res.status(403).json({ok:false,error:'No tenés acceso a esta empresa.'});
+   if(!row||row.permissions?.view===false)return res.status(403).json({ok:false,error:'No tenés acceso a esta empresa.'});
    req.eventPermissions={manage:row.permissions?.editCatalog!==false,operate:row.permissions?.operate!==false};
   }return next();
  }catch{return res.status(503).json({ok:false,error:'No se pudieron verificar los permisos.'});}});

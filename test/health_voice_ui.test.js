@@ -2,7 +2,13 @@ import test from 'node:test';import assert from 'node:assert/strict';import {rea
 test('agenda ofrece cancelación sin circuito profesional y muestra estado existente',async()=>{
  const dom=new JSDOM('<div id="healthAgenda"></div><input id="healthDate" value="2026-10-25"><input id="healthFilter"><input id="healthSpecialtyFilter"><input id="healthServiceFilter"><div id="healthStatus"></div>',{runScripts:'outside-only'});
  const w=dom.window;w.$=id=>w.document.getElementById(id);w.companyId='A';w.api=async url=>({items:[{id:'T1',patient:'Persona Prueba',dni:'12345678',doctor_name:'Doctor',mode:'FIXED',slot:'08:00',state:'BOOKED'}]});
- w.eval(readFileSync(new URL('../public/health_demo.js',import.meta.url),'utf8'));await w.eval('loadHealthAgendaData()');assert.equal(w.document.querySelectorAll('select').length,0);assert.equal(w.document.querySelector('button').textContent,'Cancelar turno');dom.window.close();
+ w.eval(readFileSync(new URL('../public/health_demo.js',import.meta.url),'utf8').replace(/^let /,'var '));
+ w.healthCanOperate=true;await w.loadHealthAgendaData();
+ assert.equal(w.document.querySelectorAll('select').length,0);
+ assert.equal(w.document.querySelector('button').textContent,'Cancelar turno');
+ w.healthCanOperate=false;await w.loadHealthAgendaData();
+ assert.equal(w.document.querySelector('button'),null,'solo consulta nunca ofrece cancelar');
+ dom.window.close();
 });
 test('control del adicional carga desactivado y envía revisión y voz, sin claves',async()=>{
  const dom=new JSDOM('<div id="companyServiceList"></div><div id="companyServiceStatus"></div>',{runScripts:'outside-only'});const w=dom.window;w.$=id=>w.document.getElementById(id);let body;

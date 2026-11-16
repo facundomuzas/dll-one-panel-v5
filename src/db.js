@@ -101,6 +101,18 @@ export async function initDb() {
     )
   `);
 
+  await pool.query(`ALTER TABLE panel_users ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 0`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS panel_user_security_log (
+      id BIGSERIAL PRIMARY KEY,
+      actor_user_id BIGINT NOT NULL,
+      target_user_id BIGINT NOT NULL,
+      action TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS panel_user_companies (
       user_id BIGINT NOT NULL REFERENCES panel_users(user_id) ON DELETE CASCADE,
@@ -352,7 +364,12 @@ export async function listCompaniesForUser(userId, role) {
       FROM panel_companies c
       INNER JOIN panel_user_companies uc
         ON uc.company_id = c.company_id
-      WHERE uc.user_id = $1 AND c.service_state IN ('ACTIVE','PAUSED')
+      INNER JOIN panel_users u
+        ON u.user_id = uc.user_id
+      WHERE uc.user_id = $1
+        AND u.active = TRUE
+        AND COALESCE(uc.permissions->>'view', 'true') = 'true'
+        AND c.service_state IN ('ACTIVE','PAUSED')
       ORDER BY c.company_name ASC
     `,
     [Number(userId)]
@@ -400,7 +417,7 @@ export async function userCanAccessCompany(userId, role, companyId) {
 
 export async function getPanelUserById(userId) {
   const { rows } = await pool.query(
-    'SELECT user_id, login_key, role, active FROM panel_users WHERE user_id=$1 LIMIT 1',
+    'SELECT user_id, login_key, role, active, session_version FROM panel_users WHERE user_id=$1 LIMIT 1',
     [userId]
   );
   return rows[0] || null;
@@ -416,6 +433,7 @@ export async function getPanelUserByLogin(loginKey) {
         password_hash,
         role,
         active,
+        session_version,
         created_at,
         updated_at
       FROM panel_users
