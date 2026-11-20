@@ -17,8 +17,19 @@ window.renderAdminUsers = function(container, users, {api, reload, currentUser, 
       Number(other.user_id)!==Number(user.user_id)&&
       String(other.role).toUpperCase()==='SUPERADMIN'&&other.active===true
     );
-    const canDelete=!ownAccount&&(!isSuperadmin||hasOtherActiveSuperadmin);
-    const canToggle=!ownAccount&&(!isSuperadmin||!user.active||hasOtherActiveSuperadmin);
+    // The Railway bootstrap admin is authenticated but has no panel_users row.
+    // From that real session, the last DB superadmin is not the last available
+    // admin. Never allow this exception for normal DB superadmin sessions.
+    const bootstrapAdmin=Number(currentUser.userId)===0&&
+      String(currentUser.role||'').toUpperCase()==='SUPERADMIN';
+    const hasRecoveryAdmin=hasOtherActiveSuperadmin||bootstrapAdmin;
+    const canDelete=!ownAccount&&(!isSuperadmin||hasRecoveryAdmin);
+    const canToggle=!ownAccount&&(!isSuperadmin||!user.active||hasRecoveryAdmin);
+    if(isSuperadmin&&!ownAccount&&user.active&&!hasRecoveryAdmin){
+      const hint=document.createElement('small');
+      hint.textContent='Para suspender este último superadministrador de la base, ingresá con la cuenta principal de emergencia o creá otro superadministrador activo.';
+      main.append(hint);
+    }
     function button(label, question, url, options) {
       const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=label;
       b.addEventListener('click',async()=>{
