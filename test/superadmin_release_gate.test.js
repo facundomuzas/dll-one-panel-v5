@@ -21,7 +21,7 @@ await db.exec(`
 CREATE TABLE panel_users (
  user_id INT PRIMARY KEY,login_key TEXT NOT NULL,display_name TEXT NOT NULL,
  password_hash TEXT NOT NULL,role TEXT NOT NULL,active BOOLEAN NOT NULL,
- session_version INTEGER NOT NULL DEFAULT 0,updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+ session_version INTEGER NOT NULL DEFAULT 0,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE TABLE panel_user_companies (user_id INT,company_id TEXT,PRIMARY KEY(user_id,company_id));
 CREATE TABLE panel_companies(company_id TEXT,service_state TEXT);
