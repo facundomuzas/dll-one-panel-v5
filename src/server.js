@@ -2253,7 +2253,7 @@ app.post('/api/company/:companyId/gastro/migration',authRequired,requireSuperadm
 app.get('/api/company/:companyId/gastro/settings',authRequired,async(req,res)=>{
   try{
     const company=await getCompany(req.params.companyId);if(!company)throw new Error('Empresa no encontrada.');
-    const row=await ensureSettings(company);res.json({ok:true,...row.settings,settingsRevision:row.revision,canEdit:await gastroEditorAllowed(req)});
+    const row=await ensureSettings(company);res.json({ok:true,...row.settings,settingsRevision:row.revision,canEdit:String(req.session?.role||'').toUpperCase()==='SUPERADMIN'});
   }catch(err){res.status(503).json({ok:false,error:String(err.message||err)});}
 });
 for(const [path,operation] of [
@@ -2261,7 +2261,7 @@ for(const [path,operation] of [
  ['zone','zone'],['zone/:id/delete','zone/delete'],['menu/config','menu/config'],
  ['menu/upload','menu/upload'],['menu/:id/toggle','menu/toggle'],
  ['menu/:id/move','menu/move'],['menu/:id/delete','menu/delete']]){
- app.post('/api/company/:companyId/gastro/'+path,authRequired,canEditGastro,async(req,res)=>{
+ app.post('/api/company/:companyId/gastro/'+path,authRequired,requireSuperadmin,async(req,res)=>{
   try{
    const company=await getCompany(req.params.companyId);if(!company)throw new Error('Empresa no encontrada.');
    await ensureSettings(company);
