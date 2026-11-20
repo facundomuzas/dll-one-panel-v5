@@ -13,7 +13,7 @@ test('revocation preserves unrelated memberships and business data; protected ac
  CREATE TABLE panel_companies(company_id text,service_state text);
  INSERT INTO panel_companies VALUES('A','ACTIVE'),('C','ARCHIVED');
  CREATE TABLE orders(company_id text,amount int);
- INSERT INTO panel_users VALUES(1,'SUPERADMIN',true,now()),(2,'ADMIN_EMPRESA',true,now()),(3,'OPERADOR',true,now());
+ INSERT INTO panel_users(user_id,role,active,updated_at) VALUES(1,'SUPERADMIN',true,now()),(2,'ADMIN_EMPRESA',true,now()),(3,'OPERADOR',true,now());
  INSERT INTO panel_user_companies VALUES(2,'A'),(2,'B');INSERT INTO orders VALUES('A',100);`);
  const pool={connect:async()=>({query:(...args)=>db.query(...args),release(){}})};
  try {
@@ -34,7 +34,7 @@ test('revocation preserves unrelated memberships and business data; protected ac
   assert.equal((await db.query('SELECT * FROM panel_user_companies')).rows.length,2);
   await assert.rejects(changeUserAccess(pool,{userId:2,actorId:1,companyId:'C',restore:true}));
   await assert.rejects(changeUserAccess(pool,{userId:1,actorId:0,remove:true}));
-  await db.query("INSERT INTO panel_users VALUES (4,'SUPERADMIN',true,now())");
+  await db.query("INSERT INTO panel_users(user_id,role,active,updated_at) VALUES (4,'SUPERADMIN',true,now())");
   await changeUserAccess(pool,{userId:4,actorId:1,remove:true});
   await changeUserAccess(pool,{userId:2,actorId:1,remove:true});
   assert.equal((await db.query('SELECT * FROM panel_users WHERE user_id=2')).rows.length,0);
