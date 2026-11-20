@@ -9,12 +9,16 @@ export async function changeUserAccess(pool, {userId, actorId, active, companyId
     await client.query('BEGIN');
     // Serialize lifecycle mutations, including concurrent attempts to remove administrators.
     await client.query('LOCK TABLE panel_users IN SHARE ROW EXCLUSIVE MODE');
-    const {rows} = await client.query('SELECT user_id, role FROM panel_users WHERE user_id=$1 FOR UPDATE', [Number(userId)]);
+    const {rows} = await client.query('SELECT user_id, role, active FROM panel_users WHERE user_id=$1 FOR UPDATE', [Number(userId)]);
     if (!rows[0]) throw Error('Usuario no encontrado.');
     if (String(rows[0].role).toUpperCase() === 'SUPERADMIN') {
-      if (!remove) throw Error('Las cuentas SUPERADMIN están protegidas.');
-      const others=await client.query("SELECT user_id FROM panel_users WHERE role='SUPERADMIN' AND active=TRUE AND user_id<>$1",[Number(userId)]);
-      if (!others.rows.length) throw Error('No se puede eliminar el último superadministrador activo.');
+      if (companyId !== undefined) throw Error('Las cuentas SUPERADMIN tienen acceso global; no se asignan a una empresa.');
+      // Other SUPERADMINs can be suspended, restored or deleted, but the
+      // last active DB superadministrator must never be disabled or removed.
+      if (remove || (active === false && rows[0].active)) {
+        const others=await client.query("SELECT user_id FROM panel_users WHERE role='SUPERADMIN' AND active=TRUE AND user_id<>$1",[Number(userId)]);
+        if (!others.rows.length) throw Error('No se puede suspender ni eliminar el último superadministrador activo.');
+      }
     }
     if (remove) {
       await client.query('DELETE FROM panel_user_companies WHERE user_id=$1', [Number(userId)]);
@@ -26,7 +30,7 @@ export async function changeUserAccess(pool, {userId, actorId, active, companyId
     } else if (companyId !== undefined) {
       await client.query('DELETE FROM panel_user_companies WHERE user_id=$1 AND company_id=$2', [Number(userId), companyId]);
     } else {
-      await client.query('UPDATE panel_users SET active=$2, updated_at=NOW() WHERE user_id=$1', [Number(userId), active]);
+      await client.query('UPDATE panel_users SET active=$2, session_version=session_version+1, updated_at=NOW() WHERE user_id=$1', [Number(userId), active]);
     }
     await client.query('COMMIT');
     return {ok:true};
