@@ -100,5 +100,5 @@ test('client permission editCatalog does not imply administrative settings capab
  assert.equal((await client.json()).canEdit,false);
  const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
  assert.match(html,/\$\('gSettingsFields'\)\.disabled=settingsRevision===null\|\|!gastroSettingsCanEdit/);
- assert.match(html,/gastroSettingsCanEdit=raw\.canEdit===true/);
+ assert.match(html,/gastroSettingsCanEdit=r\.canEdit===true/);
 });
