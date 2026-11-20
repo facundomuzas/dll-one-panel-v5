@@ -7,7 +7,18 @@ window.renderAdminUsers = function(container, users, {api, reload, currentUser, 
     const title=document.createElement('strong'); title.textContent=user.display_name||user.login_key;
     const detail=document.createElement('small'); detail.textContent=`${user.login_key} · ${user.role} · ${user.active?'Activo':'Suspendido'}`;
     main.append(title,detail);row.append(main);container.append(row);
-    const protectedUser=String(user.role).toUpperCase()==='SUPERADMIN'||Number(user.user_id)===Number(currentUser.userId);
+    const isSuperadmin=String(user.role).toUpperCase()==='SUPERADMIN';
+    const ownAccount=Number(user.user_id)===Number(currentUser.userId);
+    // Membership controls are never meaningful for a global SUPERADMIN.
+    // Account lifecycle controls are different: another superadmin can manage
+    // this account only while an active peer remains to prevent lockout.
+    const protectedUser=isSuperadmin||ownAccount;
+    const hasOtherActiveSuperadmin=users.some(other=>
+      Number(other.user_id)!==Number(user.user_id)&&
+      String(other.role).toUpperCase()==='SUPERADMIN'&&other.active===true
+    );
+    const canDelete=!ownAccount&&(!isSuperadmin||hasOtherActiveSuperadmin);
+    const canToggle=!ownAccount&&(!isSuperadmin||!user.active||hasOtherActiveSuperadmin);
     function button(label, question, url, options) {
       const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=label;
       b.addEventListener('click',async()=>{
@@ -26,7 +37,6 @@ window.renderAdminUsers = function(container, users, {api, reload, currentUser, 
       main.append(entry);
     }
     if(!(user.companies||[]).length){const label=document.createElement('small');label.textContent=protectedUser?'Acceso global de superadministrador':'Sin empresas asignadas';main.append(label);}
-    const ownAccount=Number(user.user_id)===Number(currentUser.userId);
     if(!protectedUser){
       const available=companies.filter(c=>!(user.companies||[]).some(m=>m.companyId===c.idEmpresa));
       if(available.length){
@@ -43,7 +53,7 @@ window.renderAdminUsers = function(container, users, {api, reload, currentUser, 
         const assign=document.createElement('div');assign.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:12px';assign.append(select,restore);main.append(assign);
       }
     }
-    if(!ownAccount){
+    if(canDelete){
       const deletion=button('Eliminar usuario',`¿Eliminar definitivamente al usuario ${user.login_key}? Se borrará su cuenta y todos sus accesos. Se conservan las empresas, pedidos y reservas. Esta acción no se puede deshacer.`,
         `/api/admin/users/${encodeURIComponent(user.user_id)}`,{method:'DELETE'});
       deletion.style.marginTop='12px';main.append(deletion);
@@ -100,7 +110,7 @@ window.renderAdminUsers = function(container, users, {api, reload, currentUser, 
       open.style.marginTop='12px';
       main.append(open,form);
     }
-    if(!protectedUser){
+    if(canToggle){
       const controls=document.createElement('div');controls.style.cssText='margin-top:12px;display:flex;flex-wrap:wrap;gap:8px';
       controls.append(button(user.active?'Suspender usuario':'Reactivar usuario',user.active?`¿Suspender a ${user.login_key}? No podrá ingresar a ninguna empresa y sus sesiones serán rechazadas en la próxima solicitud. Se conservan los datos.`:`¿Reactivar a ${user.login_key}? Recuperará acceso a las empresas que todavía tenga asignadas.`,
         `/api/admin/users/${encodeURIComponent(user.user_id)}/active`,{method:'POST',body:JSON.stringify({active:!user.active})}));main.append(controls);
