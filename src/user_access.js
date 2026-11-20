@@ -1,5 +1,15 @@
 // Access changes preserve business data and memberships in unrelated companies.
-export async function changeUserAccess(pool, {userId, actorId, active, companyId, restore=false, remove=false}) {
+// A validated bootstrap (uid=0) can recover the last database SUPERADMIN,
+// but a DB user cannot claim that privilege. The route builds this flag from
+// the already authenticated session, never from a request body.
+export function authenticatedBootstrapRecovery(session, env=process.env) {
+  return Number(session?.uid)===0 &&
+    String(session?.role||'').toUpperCase()==='SUPERADMIN' &&
+    Boolean(env.PANEL_ADMIN_USER)&&Boolean(env.PANEL_ADMIN_PASSWORD) &&
+    String(session?.sub||'')===String(env.PANEL_ADMIN_USER);
+}
+
+export async function changeUserAccess(pool, {userId, actorId, active, companyId, restore=false, remove=false, bootstrapRecovery=false}) {
   if (!/^[1-9]\d*$/.test(String(userId)) || !Number.isSafeInteger(Number(userId))) throw Error('Usuario inválido.');
   if (Number(userId) === Number(actorId)) throw Error('No podés modificar tu propio acceso.');
   if (!remove && companyId === undefined && typeof active !== 'boolean') throw Error('El estado debe ser verdadero o falso.');
@@ -17,7 +27,7 @@ export async function changeUserAccess(pool, {userId, actorId, active, companyId
       // last active DB superadministrator must never be disabled or removed.
       if (remove || (active === false && rows[0].active)) {
         const others=await client.query("SELECT user_id FROM panel_users WHERE role='SUPERADMIN' AND active=TRUE AND user_id<>$1",[Number(userId)]);
-        if (!others.rows.length) throw Error('No se puede suspender ni eliminar el último superadministrador activo.');
+        if (!others.rows.length && !(bootstrapRecovery===true && Number(actorId)===0)) throw Error('No se puede suspender ni eliminar el último superadministrador activo.');
       }
     }
     if (remove) {
@@ -42,6 +52,7 @@ export function registerUserAccessRoutes(app, {pool, authRequired, requireSupera
   const handler = (company, restore=false, remove=false) => async (req, res) => {
     try {
       const result = await changeUserAccess(pool, {userId:req.params.userId, actorId:req.session?.uid, restore, remove,
+        bootstrapRecovery:authenticatedBootstrapRecovery(req.session),
         ...(company ? {companyId:req.params.companyId} : {active:req.body?.active})});
       return res.json(result);
     } catch (err) { return res.status(400).json({ok:false,error:err.message}); }
