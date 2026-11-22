@@ -97,8 +97,9 @@ test('manual takeover acknowledged by motor before panel exposes HUMANO; operato
  assert.equal(motors.get(id('A','WA_123')),'HUMANO');
  assert.equal(notifications[0].path,'/admin/panel/conversation-mode');
  const send=await request('send',{message:'Buenas, atendemos tu consulta'});
- assert.equal(send.status,200,await send.text());
- assert.equal((await send.clone().json()).wamid,'local_fake_wamid_2');
+ const sentPayload=await send.json();
+ assert.equal(send.status,200,JSON.stringify(sentPayload));
+ assert.equal(sentPayload.wamid,'local_fake_wamid_2');
  assert.equal(notifications[1].path,'/admin/panel/send');
  const done=await request('return-bot');
  assert.equal(done.status,200,await done.text());
@@ -125,8 +126,9 @@ test('the 24-hour WhatsApp customer support window is enforced on the server',as
  });
  motors.set(id('A','WA_123'),'HUMANO');
  const expired=await request('send');
- assert.equal(expired.status,409,await expired.text());
- assert.match((await expired.clone().json()).error,/24 horas/);
+ const errorPayload=await expired.json();
+ assert.equal(expired.status,409,JSON.stringify(errorPayload));
+ assert.match(errorPayload.error,/24 horas/);
  assert.equal(notifications.length,0);
  states.set(id('A','WA_123'),{mode:'HUMANO',last_inbound_at:null});
  const missing=await request('send',{message:'Sin último mensaje'});
