@@ -1851,6 +1851,22 @@ app.post(
           "PANEL_V5"
         );
 
+      // Never report human takeover unless the WhatsApp motor acknowledged it.
+      // A local-only HUMAN state could still let the bot reply to the customer.
+      const motorResult = await postMotor(
+        "/admin/panel/conversation-mode",
+        {
+          companyId:req.params.companyId,
+          phoneNumberId:company.phone_number_id,
+          clientId:req.params.clientId,
+          mode:"HUMANO",
+          assignedTo:operator
+        }
+      );
+      if (motorResult?.ok !== true || motorResult.mode !== "HUMANO") {
+        throw new Error("No se confirmó la intervención humana en el motor.");
+      }
+
       await setConversationMode(
         req.params.companyId,
         req.params.clientId,
@@ -1858,28 +1874,10 @@ app.post(
         operator
       );
 
-      let motorWarning = "";
-
-      try {
-        await postMotor(
-          "/admin/panel/conversation-mode",
-          {
-            companyId:req.params.companyId,
-            phoneNumberId:company.phone_number_id,
-            clientId:req.params.clientId,
-            mode:"HUMANO",
-            assignedTo:operator
-          }
-        );
-      } catch (err) {
-        motorWarning = String(err?.message || err);
-      }
-
       return res.json({
         ok:true,
         modo:"HUMANO",
-        source:"POSTGRES_DIRECT",
-        motorWarning
+        source:"POSTGRES_DIRECT"
       });
     } catch (err) {
       return res.status(500).json({
@@ -1970,15 +1968,25 @@ app.post(
         req.params.clientId
       );
 
-      if (
-        state &&
-        normalizeState(state.mode) !== "HUMANO"
-      ) {
+      // Missing state is BOT by default, never authorization to send.
+      if (!state || normalizeState(state.mode) !== "HUMANO") {
         recentHumanSends.delete(dedupeKey);
-
         return res.status(409).json({
           ok:false,
           error:"Primero tomá la conversación."
+        });
+      }
+
+      // The WhatsApp Cloud API allows free-form replies only within 24 hours
+      // of the latest inbound customer message. Client-side disabling is not
+      // a security gate: enforce the window here before contacting the motor.
+      const lastInbound = dateMs(state.last_inbound_at);
+      const inboundAge = Date.now() - lastInbound;
+      if (!lastInbound || inboundAge < 0 || inboundAge >= 24 * 60 * 60 * 1000) {
+        recentHumanSends.delete(dedupeKey);
+        return res.status(409).json({
+          ok:false,
+          error:"La ventana de 24 horas está cerrada. El cliente debe volver a escribir."
         });
       }
 
@@ -2043,6 +2051,22 @@ app.post(
         });
       }
 
+      // Keep the current panel mode on a motor error: otherwise the panel
+      // would show "BOT" when the motor still suppresses automatic replies.
+      const motorResult = await postMotor(
+        "/admin/panel/conversation-mode",
+        {
+          companyId:req.params.companyId,
+          phoneNumberId:company.phone_number_id,
+          clientId:req.params.clientId,
+          mode:"BOT",
+          assignedTo:""
+        }
+      );
+      if (motorResult?.ok !== true || motorResult.mode !== "BOT") {
+        throw new Error("No se confirmó el regreso al bot en el motor.");
+      }
+
       await setConversationMode(
         req.params.companyId,
         req.params.clientId,
@@ -2050,28 +2074,10 @@ app.post(
         ""
       );
 
-      let motorWarning = "";
-
-      try {
-        await postMotor(
-          "/admin/panel/conversation-mode",
-          {
-            companyId:req.params.companyId,
-            phoneNumberId:company.phone_number_id,
-            clientId:req.params.clientId,
-            mode:"BOT",
-            assignedTo:""
-          }
-        );
-      } catch (err) {
-        motorWarning = String(err?.message || err);
-      }
-
       return res.json({
         ok:true,
         modo:"BOT",
-        source:"POSTGRES_DIRECT",
-        motorWarning
+        source:"POSTGRES_DIRECT"
       });
     } catch (err) {
       return res.status(500).json({
